@@ -23,6 +23,30 @@
           <div>Host: <a href="http://<%= deployment.previewHost %>" target="_blank" rel="noreferrer" class="text-zinc-100 underline decoration-zinc-700 underline-offset-4"><%= deployment.previewHost %></a></div>
           <div>Project: <code class="text-zinc-200"><%= deployment.projectName %></code></div>
           <div>Last event: <code class="text-zinc-200"><%= deployment.lastEvent %></code></div>
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              data-api-action
+              data-method="POST"
+              data-action="/api/deployments/<%= deployment.deploymentId %>/redeploy"
+              class="border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
+            >
+              Redeploy
+            </button>
+            <button
+              type="button"
+              data-api-action
+              data-method="DELETE"
+              data-action="/api/deployments/<%= deployment.deploymentId %>"
+              class="border border-red-950 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-900/40"
+            >
+              Destroy
+            </button>
+          </div>
+          <details class="border border-zinc-800 bg-black/40" data-preserve-open="deployment:<%= deployment.deploymentId %>:script-log">
+            <summary class="cursor-pointer list-none px-4 py-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Orchestrator Script Log</summary>
+            <pre class="overflow-x-auto border-t border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.logTail || "No log output yet." %></pre>
+          </details>
           <div class="border border-zinc-800 bg-zinc-950/70 px-4 py-4">
             <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Live Runtime</p>
             <% if (!deployment.runtime || deployment.runtime.available === false) { %>
@@ -60,30 +84,6 @@
               </div>
             <% } %>
           </div>
-          <div class="flex flex-wrap gap-3">
-            <button
-              type="button"
-              data-api-action
-              data-method="POST"
-              data-action="/api/deployments/<%= deployment.deploymentId %>/redeploy"
-              class="border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
-            >
-              Redeploy
-            </button>
-            <button
-              type="button"
-              data-api-action
-              data-method="DELETE"
-              data-action="/api/deployments/<%= deployment.deploymentId %>"
-              class="border border-red-950 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-900/40"
-            >
-              Destroy
-            </button>
-          </div>
-          <details class="border border-zinc-800 bg-black/40" data-preserve-open="deployment:<%= deployment.deploymentId %>:script-log">
-            <summary class="cursor-pointer list-none px-4 py-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Orchestrator Script Log</summary>
-            <pre class="overflow-x-auto border-t border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.logTail || "No log output yet." %></pre>
-          </details>
         </div>
       </details>
     <% }) %>
