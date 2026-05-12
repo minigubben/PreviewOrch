@@ -200,7 +200,6 @@ class DeploymentService {
           TARGET_VALUE: String(targetValue),
           TARGET_BRANCH: targetBranch || "",
           TARGET_SHA: targetSha || "",
-          COMPOSE_BAKE: String(this.config.composeBake),
           BASE_DOMAIN: this.config.baseDomain,
           DEPLOYMENTS_DIR: this.config.deploymentsDir,
           LOG_FILE: logFile,

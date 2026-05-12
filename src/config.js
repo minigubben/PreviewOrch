@@ -19,7 +19,6 @@ function getConfig(overrides = {}) {
   return {
     port: Number(overrides.PORT || process.env.PORT || 3000),
     baseDomain: overrides.BASE_DOMAIN || process.env.BASE_DOMAIN || "preview.example.com",
-    composeBake: normalizeComposeBake(overrides.COMPOSE_BAKE || process.env.COMPOSE_BAKE),
     adminUsername: overrides.ADMIN_USERNAME || process.env.ADMIN_USERNAME || "admin",
     adminPasswordHash: overrides.ADMIN_PASSWORD_BCRYPT_HASH || process.env.ADMIN_PASSWORD_BCRYPT_HASH || "",
     sessionSecret: overrides.SESSION_SECRET || process.env.SESSION_SECRET || "change-me",
@@ -66,15 +65,6 @@ function normalizeSessionCookieSecure(value, nodeEnv) {
   }
 
   return nodeEnv === "production" ? "auto" : false;
-}
-
-function normalizeComposeBake(value) {
-  if (value === undefined || value === null || value === "") {
-    return false;
-  }
-
-  const normalized = String(value).toLowerCase();
-  return ["true", "1", "yes", "on"].includes(normalized);
 }
 
 module.exports = {

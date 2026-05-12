@@ -32,9 +32,6 @@ if [[ -n "${SSH_DIR:-}" ]]; then
   fi
 fi
 
-# Force plain docker compose builds unless the operator explicitly enables Bake.
-export COMPOSE_BAKE="${COMPOSE_BAKE:-false}"
-
 project_name="$(node -e 'const input = `${process.env.REPO_SLUG}-${process.env.DEPLOYMENT_KEY}`; process.stdout.write(input.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55));')"
 preview_host="${REPO_SLUG}-${DEPLOYMENT_KEY}.${BASE_DOMAIN}"
 deployment_id="${REPO_ID}-${DEPLOYMENT_KEY}"
