@@ -173,6 +173,20 @@ async function createApp({ config, services = {} }) {
     });
   });
 
+  app.get("/ui/repo-config", requireAuth, async (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    return res.render("partials/repo-config", {
+      repos: await repoStore.list(),
+    });
+  });
+
+  app.get("/ui/deployments", requireAuth, async (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    return res.render("partials/deployments-panel", {
+      deployments: await deploymentService.listDeployments(),
+    });
+  });
+
   app.get("/api/repos", requireAuth, async (req, res) => {
     res.json(await repoStore.list());
   });

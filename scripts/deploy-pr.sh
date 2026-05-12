@@ -42,6 +42,12 @@ compose_path_resolved="$(PROJECT_DIR="${project_dir}" node -e 'const path = requ
 metadata_path="${work_dir}/deployment.json"
 env_file="${work_dir}/.env.runtime"
 proxy_override_path="${work_dir}/.orchestrator-proxy.override.yml"
+tmp_checkout="$(mktemp -d "${DEPLOYMENTS_DIR}/.${REPO_SLUG}-${DEPLOYMENT_KEY}-checkout-XXXXXX")"
+
+cleanup() {
+  rm -rf "${tmp_checkout}"
+}
+trap cleanup EXIT
 
 mkdir -p "$(dirname "${work_dir}")"
 
@@ -66,14 +72,12 @@ if [[ -f "${metadata_path}" ]]; then
   fi
 fi
 
-rm -rf "${work_dir}"
-
 case "${TARGET_TYPE}" in
   branch)
-    git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
+    git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
     if [[ -n "${TARGET_SHA:-}" ]]; then
       (
-        cd "${work_dir}"
+        cd "${tmp_checkout}"
         if ! git checkout "${TARGET_SHA}" >/dev/null 2>&1; then
           git fetch --depth 1 origin "${TARGET_SHA}" >/dev/null 2>&1
           git checkout "${TARGET_SHA}" >/dev/null 2>&1
@@ -83,18 +87,18 @@ case "${TARGET_TYPE}" in
     ;;
   pr)
     if [[ -n "${TARGET_BRANCH:-}" && -n "${TARGET_SHA:-}" ]]; then
-      git clone --depth 1 --branch "${TARGET_BRANCH}" "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
+      git clone --depth 1 --branch "${TARGET_BRANCH}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
       (
-        cd "${work_dir}"
+        cd "${tmp_checkout}"
         if ! git checkout "${TARGET_SHA}" >/dev/null 2>&1; then
           git fetch --depth 1 origin "${TARGET_SHA}" >/dev/null 2>&1
           git checkout "${TARGET_SHA}" >/dev/null 2>&1
         fi
       )
     else
-      git clone --depth 1 "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
+      git clone --depth 1 "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
       (
-        cd "${work_dir}"
+        cd "${tmp_checkout}"
         git fetch --depth 1 origin "pull/${TARGET_VALUE}/head:manual-pr-${TARGET_VALUE}" >/dev/null 2>&1
         git checkout "manual-pr-${TARGET_VALUE}" >/dev/null 2>&1
       )
@@ -105,6 +109,10 @@ case "${TARGET_TYPE}" in
     exit 1
     ;;
 esac
+
+mkdir -p "${work_dir}"
+find "${work_dir}" -mindepth 1 -maxdepth 1 ! -name 'deployment.json' -exec rm -rf {} +
+cp -a "${tmp_checkout}/." "${work_dir}/"
 
 if [[ ! -d "${project_dir}" ]]; then
   echo "{\"ok\":false,\"message\":\"Working directory missing after clone at ${WORKING_DIRECTORY}\"}"
