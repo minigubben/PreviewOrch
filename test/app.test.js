@@ -321,6 +321,12 @@ test("stores a generated proxy override path when proxy settings are appended", 
   const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
   assert.equal(metadata.appendProxySettings, true);
   assert.match(metadata.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
+
+  const overrideFile = await fs.readFile(metadata.proxyOverridePath, "utf8");
+  assert.match(overrideFile, /traefik\.enable: "true"/);
+  assert.match(overrideFile, /traefik\.docker\.network: preview-proxy/);
+  assert.match(overrideFile, /traefik\.http\.routers\.acme-widgets-pr-17\.rule: Host\(`acme-widgets-pr-17\.preview\.example\.com`\)/);
+  assert.match(overrideFile, /traefik\.http\.services\.acme-widgets-pr-17\.loadbalancer\.server\.port: "3000"/);
 });
 
 test("resolves compose paths from the configured working directory", async () => {

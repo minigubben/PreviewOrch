@@ -161,14 +161,16 @@ const YAML = require("yaml");
 const doc = {
   services: {
     [process.env.PUBLIC_SERVICE]: {
-      networks: [process.env.TRAEFIK_NETWORK_NAME],
-      labels: [
-        "traefik.enable=true",
-        `traefik.docker.network=${process.env.TRAEFIK_NETWORK_NAME}`,
-        `traefik.http.routers.\${ORCH_PROJECT_NAME}.rule=Host(\`${process.env.PREVIEW_HOST}\`)`,
-        "traefik.http.routers.${ORCH_PROJECT_NAME}.entrypoints=web",
-        "traefik.http.services.${ORCH_PROJECT_NAME}.loadbalancer.server.port=${ORCH_PREVIEW_SERVICE_PORT}",
-      ],
+      networks: {
+        [process.env.TRAEFIK_NETWORK_NAME]: null,
+      },
+      labels: {
+        "traefik.enable": "true",
+        "traefik.docker.network": process.env.TRAEFIK_NETWORK_NAME,
+        [`traefik.http.routers.${process.env.PROJECT_NAME}.rule`]: `Host(\`${process.env.PREVIEW_HOST}\`)`,
+        [`traefik.http.routers.${process.env.PROJECT_NAME}.entrypoints`]: "web",
+        [`traefik.http.services.${process.env.PROJECT_NAME}.loadbalancer.server.port`]: String(process.env.PUBLIC_PORT),
+      },
     },
   },
   networks: {
