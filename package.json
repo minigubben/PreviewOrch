@@ -7,7 +7,7 @@
   "main": "dist/src/server.js",
   "scripts": {
     "start": "node dist/src/server.js",
-    "build:node": "rm -rf dist && tsc -p tsconfig.node.json && mkdir -p dist/src dist/src/public/brand && cp -R src/views dist/src/views && cp PreviewOrch.png dist/src/public/brand/previeworch.png && cp PreviewOrchFavicon.png dist/src/public/brand/previeworch-favicon.png",
+    "build:node": "rm -rf dist && tsc -p tsconfig.node.json && mkdir -p dist/src dist/src/public && cp -R src/views dist/src/views && cp -R src/public/. dist/src/public/",
     "build:client": "vite build",
     "build": "npm run build:node && npm run build:client",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.client.json --noEmit",
