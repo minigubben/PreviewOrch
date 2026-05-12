@@ -3,12 +3,16 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
 
 import {
   getDeploymentPaths,
   validateComposeContract,
   writeRuntimeEnvFile,
 } from "../src/cli/script-helper.js";
+
+const execFile = promisify(execFileCallback);
 
 test("getDeploymentPaths derives the compiled script helper paths", () => {
   const paths = getDeploymentPaths({
@@ -26,6 +30,26 @@ test("getDeploymentPaths derives the compiled script helper paths", () => {
   assert.equal(paths.deploymentId, "repo-1-pr-42");
   assert.equal(paths.previewHost, "acme-widgets-pr-42.preview.example.com");
   assert.equal(paths.metadataPath, "/tmp/deployments/acme-widgets/pr-42/deployment.json");
+});
+
+test("script helper CLI supports resolve-deploy-field for shell-script compatibility", async () => {
+  const scriptPath = new URL("../src/cli/script-helper.js", import.meta.url);
+  const { stdout } = await execFile(process.execPath, [scriptPath.pathname, "resolve-deploy-field", "projectName"], {
+    env: {
+      ...process.env,
+      BASE_DOMAIN: "preview.example.com",
+      COMPOSE_PATH: "deploy/preview-compose.yml",
+      DEPLOYMENTS_DIR: "/tmp/deployments",
+      DEPLOYMENT_KEY: "pr-42",
+      REPO_ID: "repo-1",
+      REPO_SLUG: "acme-widgets",
+      TARGET_TYPE: "pr",
+      TARGET_VALUE: "42",
+      WORKING_DIRECTORY: ".",
+    },
+  });
+
+  assert.equal(stdout, "acme-widgets-pr-42");
 });
 
 test("writeRuntimeEnvFile writes orchestrator and extra env values", async () => {

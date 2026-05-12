@@ -53,6 +53,14 @@ export function getDeploymentPaths(env: CliEnvironment): {
   };
 }
 
+export function resolveDeployField(
+  env: CliEnvironment,
+  field: keyof ReturnType<typeof getDeploymentPaths>,
+): string {
+  const paths = getDeploymentPaths(env);
+  return String(paths[field] ?? "");
+}
+
 export function readMetadataField(metadataPath: string, field: keyof DeploymentMetadata | "ok"): string {
   const metadata = readMetadata(metadataPath);
   if (!metadata) {
@@ -235,6 +243,17 @@ function main(argv: string[]): void {
 
   if (command === "resolve-deploy-paths") {
     printJson(getDeploymentPaths(env));
+    return;
+  }
+
+  if (command === "resolve-deploy-field") {
+    const [field] = rest;
+    process.stdout.write(
+      resolveDeployField(
+        env,
+        required(field, "field") as keyof ReturnType<typeof getDeploymentPaths>,
+      ),
+    );
     return;
   }
 
