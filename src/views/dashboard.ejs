@@ -8,7 +8,7 @@
     <script>
       window.CSRF_TOKEN = "<%= csrfToken %>";
     </script>
-    <script src="/static/app.js" defer></script>
+    <script src="/static/app.js?v=<%= assetVersion %>" defer></script>
   </head>
   <body class="min-h-screen bg-black text-zinc-100 antialiased">
     <main class="min-h-screen">

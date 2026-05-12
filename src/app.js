@@ -18,6 +18,7 @@ const { readLogTail } = require("./lib/log-reader");
 
 async function createApp({ config, services = {} }) {
   await bootstrapFilesystem(config);
+  const assetVersion = String(Date.now());
 
   const logger = services.logger || new Logger({ appLogFile: config.appLogFile, eventsLogFile: config.eventsLogFile });
   const scriptRunner = services.scriptRunner || new ScriptRunner({ logger });
@@ -98,7 +99,8 @@ async function createApp({ config, services = {} }) {
     if (req.session.user) {
       return res.redirect("/");
     }
-    return res.render("login", { error: null });
+    res.setHeader("Cache-Control", "no-store");
+    return res.render("login", { error: null, assetVersion });
   });
 
   app.post("/login", express.urlencoded({ extended: false }), verifyCsrfToken, async (req, res) => {
@@ -156,11 +158,13 @@ async function createApp({ config, services = {} }) {
       sshKeyManager.getStatus(),
     ]);
 
+    res.setHeader("Cache-Control", "no-store");
     return res.render("dashboard", {
       repos,
       deployments,
       appLogTail: eventsLog,
       sshKeyStatus,
+      assetVersion,
       baseDomain: config.baseDomain,
       traefikNetworkName: config.traefikNetworkName,
       apiBase: "/api",
