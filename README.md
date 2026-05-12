@@ -39,9 +39,12 @@ ADMIN_PASSWORD_BCRYPT_HASH=...
 SESSION_SECRET=...
 SESSION_COOKIE_SECURE=auto
 GITHUB_WEBHOOK_SECRET=...
+COMPOSE_BAKE=false
 ```
 
 `SESSION_COOKIE_SECURE=auto` is the recommended default. It marks the cookie `Secure` when the request is actually HTTPS, but still allows local or plain-HTTP access during initial setup. Set it to `true` only if every admin request reaches the app as HTTPS through your proxy chain.
+
+`COMPOSE_BAKE=false` is the recommended default for this stack. The app container uses plain `docker compose up --build` for preview deployments, and disabling Bake avoids a `buildx` dependency inside the orchestrator container. Only set it to `true` if you have the Docker `buildx` plugin available in the app container and want Compose Bake behavior.
 
 Generate the bcrypt hash with:
 

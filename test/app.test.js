@@ -218,6 +218,8 @@ test("deploys on pull request opened and stores deployment metadata", async () =
   const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
   assert.equal(metadata.previewHost, "acme-widgets-pr-17.preview.example.com");
   assert.equal(metadata.appendProxySettings, false);
+  const deployCall = context.scriptRunner.calls.find((call) => call.scriptName === "deploy-pr.sh");
+  assert.equal(deployCall.env.COMPOSE_BAKE, "false");
 });
 
 test("redeploys on pull request synchronize", async () => {
