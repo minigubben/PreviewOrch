@@ -23,8 +23,9 @@ async function createTestContext(options = {}) {
     ADMIN_USERNAME: "admin",
     ADMIN_PASSWORD_BCRYPT_HASH: bcrypt.hashSync(password, 10),
     SESSION_SECRET: "test-session-secret",
+    SESSION_COOKIE_SECURE: options.sessionCookieSecure,
     GITHUB_WEBHOOK_SECRET: "webhook-secret",
-    NODE_ENV: "test",
+    NODE_ENV: options.nodeEnv || "test",
     DOCKER_SOCKET_PATH: path.join(root, "docker.sock"),
   });
 

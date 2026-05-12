@@ -46,6 +46,24 @@ test("rejects invalid admin credentials", async () => {
   assert.match(response.text, /Invalid username or password/);
 });
 
+test("allows login in production mode when session cookie secure is auto", async () => {
+  const context = await createTestContext({
+    nodeEnv: "production",
+    sessionCookieSecure: "auto",
+  });
+  test.after(() => context.cleanup());
+
+  const csrfToken = await context.agent.get("/login").then((response) => response.text.match(/name="_csrf" value="([^"]+)"/)[1]);
+  const response = await context.agent.post("/login").type("form").send({
+    username: "admin",
+    password: context.password,
+    _csrf: csrfToken,
+  });
+
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/");
+});
+
 test("adds a repository with valid configuration", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

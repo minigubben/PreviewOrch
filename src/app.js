@@ -65,7 +65,7 @@ async function createApp({ config, services = {} }) {
       cookie: {
         httpOnly: true,
         sameSite: "lax",
-        secure: config.nodeEnv === "production",
+        secure: config.sessionCookieSecure,
       },
     }),
   );

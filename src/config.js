@@ -22,6 +22,10 @@ function getConfig(overrides = {}) {
     adminUsername: overrides.ADMIN_USERNAME || process.env.ADMIN_USERNAME || "admin",
     adminPasswordHash: overrides.ADMIN_PASSWORD_BCRYPT_HASH || process.env.ADMIN_PASSWORD_BCRYPT_HASH || "",
     sessionSecret: overrides.SESSION_SECRET || process.env.SESSION_SECRET || "change-me",
+    sessionCookieSecure: normalizeSessionCookieSecure(
+      overrides.SESSION_COOKIE_SECURE || process.env.SESSION_COOKIE_SECURE,
+      overrides.NODE_ENV || process.env.NODE_ENV || "development",
+    ),
     githubWebhookSecret: overrides.GITHUB_WEBHOOK_SECRET || process.env.GITHUB_WEBHOOK_SECRET || "",
     traefikNetworkName: overrides.TRAEFIK_NETWORK_NAME || process.env.TRAEFIK_NETWORK_NAME || "preview-proxy",
     nodeEnv: overrides.NODE_ENV || process.env.NODE_ENV || "development",
@@ -42,6 +46,25 @@ function getConfig(overrides = {}) {
       destroyPr: path.join(scriptsDir, "destroy-pr.sh"),
     },
   };
+}
+
+function normalizeSessionCookieSecure(value, nodeEnv) {
+  if (value === undefined || value === null || value === "") {
+    return nodeEnv === "production" ? "auto" : false;
+  }
+
+  const normalized = String(value).toLowerCase();
+  if (normalized === "auto") {
+    return "auto";
+  }
+  if (["true", "1", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "0", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return nodeEnv === "production" ? "auto" : false;
 }
 
 module.exports = {
