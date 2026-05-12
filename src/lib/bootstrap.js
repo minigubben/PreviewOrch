@@ -10,6 +10,19 @@ async function ensureFile(filePath, fallback) {
   }
 }
 
+async function syncSettingsFile(config) {
+  const existing = await readJson(config.settingsFile, null);
+  const createdAt = existing?.createdAt || formatTimestamp();
+
+  await writeJson(config.settingsFile, {
+    createdAt,
+    updatedAt: formatTimestamp(),
+    baseDomain: config.baseDomain,
+    traefikNetworkName: config.traefikNetworkName,
+    sourceOfTruth: "environment",
+  });
+}
+
 async function bootstrapFilesystem(config) {
   await fs.mkdir(config.configDir, { recursive: true });
   await fs.mkdir(config.deploymentsDir, { recursive: true });
@@ -18,11 +31,7 @@ async function bootstrapFilesystem(config) {
   await fs.mkdir(config.sshDir, { recursive: true });
 
   await ensureFile(config.reposFile, []);
-  await ensureFile(config.settingsFile, {
-    createdAt: formatTimestamp(),
-    baseDomain: config.baseDomain,
-    traefikNetworkName: config.traefikNetworkName,
-  });
+  await syncSettingsFile(config);
 }
 
 module.exports = {
