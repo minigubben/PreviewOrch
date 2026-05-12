@@ -9,6 +9,7 @@ import { promisify } from "node:util";
 import {
   getDeploymentPaths,
   validateComposeContract,
+  writeProxyOverride,
   writeRuntimeEnvFile,
 } from "../src/cli/script-helper.js";
 
@@ -77,6 +78,32 @@ test("writeRuntimeEnvFile writes orchestrator and extra env values", async () =>
     assert.match(contents, /ORCH_PROJECT_NAME=acme-widgets-pr-42/);
     assert.match(contents, /APP_FQDN=acme-widgets-pr-42\.preview\.example\.com/);
     assert.match(contents, /API_ORIGIN=https:\/\/api\.example\.com/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("writeProxyOverride preserves existing compose networking by only adding labels", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-proxy-"));
+  const overridePath = path.join(root, ".orchestrator-proxy.override.yml");
+
+  try {
+    writeProxyOverride(
+      {
+        PUBLIC_PORT: "3000",
+        PUBLIC_SERVICE: "app",
+        TRAEFIK_NETWORK_NAME: "preview-proxy",
+      },
+      overridePath,
+      "acme-widgets-pr-42.preview.example.com",
+      "acme-widgets-pr-42",
+    );
+
+    const contents = await fs.readFile(overridePath, "utf8");
+    assert.match(contents, /traefik\.enable: "true"/);
+    assert.match(contents, /traefik\.docker\.network: preview-proxy/);
+    assert.doesNotMatch(contents, /networks:\s+preview-proxy:\s+null/);
+    assert.doesNotMatch(contents, /external: true/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

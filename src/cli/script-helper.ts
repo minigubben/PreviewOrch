@@ -96,16 +96,13 @@ export function writeRuntimeEnvFile(env: CliEnvironment, targetPath: string, pre
 }
 
 export function writeProxyOverride(env: CliEnvironment, targetPath: string, previewHost: string, projectName: string): void {
-  const networkName = required(env.TRAEFIK_NETWORK_NAME, "TRAEFIK_NETWORK_NAME");
   const publicService = required(env.PUBLIC_SERVICE, "PUBLIC_SERVICE");
   const publicPort = required(env.PUBLIC_PORT, "PUBLIC_PORT");
+  const networkName = required(env.TRAEFIK_NETWORK_NAME, "TRAEFIK_NETWORK_NAME");
 
   const doc = {
     services: {
       [publicService]: {
-        networks: {
-          [networkName]: null,
-        },
         labels: {
           "traefik.enable": "true",
           "traefik.docker.network": networkName,
@@ -113,12 +110,6 @@ export function writeProxyOverride(env: CliEnvironment, targetPath: string, prev
           [`traefik.http.routers.${projectName}.entrypoints`]: "web",
           [`traefik.http.services.${projectName}.loadbalancer.server.port`]: String(publicPort),
         },
-      },
-    },
-    networks: {
-      [networkName]: {
-        external: true,
-        name: networkName,
       },
     },
   };

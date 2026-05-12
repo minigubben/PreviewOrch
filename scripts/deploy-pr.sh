@@ -146,4 +146,20 @@ if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
 fi
 docker compose "${compose_up_args[@]}" up -d --build
 
+if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
+  compose_ps_args=(
+    --project-name "${project_name}"
+    --project-directory "${project_dir}"
+    --env-file "${env_file}"
+    -f "${compose_path_resolved}"
+    -f "${proxy_override_path}"
+  )
+  while IFS= read -r container_id; do
+    [[ -n "${container_id}" ]] || continue
+    if ! docker inspect "${container_id}" --format '{{json .NetworkSettings.Networks}}' | grep -q "\"${TRAEFIK_NETWORK_NAME}\""; then
+      docker network connect "${TRAEFIK_NETWORK_NAME}" "${container_id}"
+    fi
+  done < <(docker compose "${compose_ps_args[@]}" ps -q "${PUBLIC_SERVICE}")
+fi
+
 node "${SCRIPT_HELPER_PATH}" write-deployment-metadata "${metadata_path}"

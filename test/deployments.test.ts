@@ -77,9 +77,9 @@ test("stores a generated proxy override path when proxy settings are appended", 
   assert.match(overrideFile, /traefik\.docker\.network: preview-proxy/);
   assert.match(overrideFile, /traefik\.http\.routers\.acme-widgets-pr-17\.rule: Host\(`acme-widgets-pr-17\.preview\.example\.com`\)/);
   assert.match(overrideFile, /traefik\.http\.services\.acme-widgets-pr-17\.loadbalancer\.server\.port: "3000"/);
-  assert.match(overrideFile, /networks:\s+preview-proxy:\s+null/);
-  assert.match(overrideFile, /preview-proxy:\s+[\s\S]*external: true/);
-  assert.match(overrideFile, /preview-proxy:\s+[\s\S]*name: preview-proxy/);
+  assert.doesNotMatch(overrideFile, /networks:\s+preview-proxy:\s+null/);
+  assert.doesNotMatch(overrideFile, /preview-proxy:\s+[\s\S]*external: true/);
+  assert.doesNotMatch(overrideFile, /preview-proxy:\s+[\s\S]*name: preview-proxy/);
 });
 
 test("resolves compose paths from the configured working directory", async () => {
