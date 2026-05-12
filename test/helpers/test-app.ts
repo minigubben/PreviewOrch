@@ -31,7 +31,7 @@ async function createTestContext(options = {}) {
     SESSION_COOKIE_SECURE: options.sessionCookieSecure,
     GITHUB_WEBHOOK_SECRET: "webhook-secret",
     GITHUB_DEPLOYMENTS_TOKEN: options.githubDeploymentsToken || "",
-    ORCHESTRATOR_PUBLIC_URL: options.orchestratorPublicUrl || "https://orchestrator.preview.example.com",
+    ORCHESTRATOR_PUBLIC_URL: options.orchestratorPublicUrl || "https://previeworch.preview.example.com",
     NODE_ENV: options.nodeEnv || "test",
     DOCKER_SOCKET_PATH: path.join(root, "docker.sock"),
   });

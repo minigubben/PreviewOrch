@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PR Preview Orchestrator</title>
+    <title><%= brand.name %> | Sign in</title>
+    <link rel="icon" type="image/png" href="<%= brand.faviconPath %>" />
     <% (clientAssets?.css || []).forEach((href) => { %>
       <link rel="stylesheet" href="<%= href %>" />
     <% }) %>
@@ -12,15 +13,28 @@
     <main class="mx-auto flex min-h-screen w-full max-w-6xl items-center px-6 py-10">
       <section class="grid w-full gap-10 lg:grid-cols-[1.05fr_0.95fr]">
         <div class="hidden border-l border-zinc-800 pl-8 lg:block">
-          <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Preview Infrastructure</p>
+          <div class="mb-6 flex items-center gap-4">
+            <img src="<%= brand.logoPath %>" alt="<%= brand.name %> logo" class="h-16 w-16 rounded-2xl border border-lime-500/40 bg-zinc-950 object-cover p-1" />
+            <div>
+              <p class="text-xs uppercase tracking-[0.34em] text-lime-400/80">Preview Warband</p>
+              <p class="mt-2 text-2xl font-semibold text-zinc-50"><%= brand.name %></p>
+            </div>
+          </div>
           <h1 class="max-w-3xl text-5xl font-semibold leading-tight text-zinc-50">
-            PR preview orchestration without hidden automation.
+            PR preview orchestration with an inspectable battle plan.
           </h1>
           <p class="mt-6 max-w-2xl text-lg leading-8 text-zinc-400">
-            GitHub webhook intake, explicit repo configuration, Docker Compose deploys, and proxy wiring that stays inspectable.
+            GitHub webhook intake, explicit repo configuration, Docker Compose deploys, and proxy wiring that stays visible when things get loud.
           </p>
         </div>
         <div class="border border-zinc-800 bg-zinc-950/80 px-6 py-8">
+          <div class="mb-5 flex items-center gap-3 lg:hidden">
+            <img src="<%= brand.logoPath %>" alt="<%= brand.name %> logo" class="h-12 w-12 rounded-xl border border-lime-500/40 bg-zinc-950 object-cover p-1" />
+            <div>
+              <p class="text-xs uppercase tracking-[0.34em] text-lime-400/80">Preview Warband</p>
+              <p class="mt-1 text-xl font-semibold text-zinc-50"><%= brand.name %></p>
+            </div>
+          </div>
           <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Admin Access</p>
           <h2 class="text-3xl font-semibold text-zinc-50">Sign in</h2>
           <p class="mt-3 max-w-md text-sm leading-6 text-zinc-400">

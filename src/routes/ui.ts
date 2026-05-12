@@ -2,6 +2,7 @@
 import express from "express";
 
 import { requireAuth } from "../lib/auth.js";
+import { BRANDING } from "../lib/branding.js";
 import { asyncHandler, setNoStore } from "../lib/http.js";
 import { readLogTail } from "../lib/log-reader.js";
 
@@ -26,6 +27,7 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, ss
         appLogTail: eventsLog,
         sshKeyStatus,
         clientAssets,
+        brand: BRANDING,
         baseDomain: config.baseDomain,
         traefikNetworkName: config.traefikNetworkName,
         apiBase: "/api",

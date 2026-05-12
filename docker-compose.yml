@@ -43,9 +43,9 @@ services:
       TRAEFIK_NETWORK_NAME: preview-proxy
     labels:
       - traefik.enable=true
-      - traefik.http.routers.orchestrator.rule=Host(`orchestrator.${BASE_DOMAIN}`)
-      - traefik.http.routers.orchestrator.entrypoints=web
-      - traefik.http.services.orchestrator.loadbalancer.server.port=3000
+      - traefik.http.routers.previeworch.rule=Host(`previeworch.${BASE_DOMAIN}`)
+      - traefik.http.routers.previeworch.entrypoints=web
+      - traefik.http.services.previeworch.loadbalancer.server.port=3000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data/config:/data/config

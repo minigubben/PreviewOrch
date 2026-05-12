@@ -4,6 +4,7 @@ export type TargetType = "pr" | "branch";
 export type WebhookMappedAction = "deploy" | "destroy" | null;
 export type DeploymentStatus = "deploying" | "running" | "destroying" | "failed";
 export type GithubDeploymentState = "pending" | "success" | "failure" | "inactive";
+export type PrDeploymentAccess = "anyone" | "members" | "collaborators" | "contributors";
 
 export interface ClientAssets {
   js: string[];
@@ -60,6 +61,9 @@ export interface RepoRecord {
   previewHostEnvVarName: string;
   extraEnv: Record<string, string>;
   extraEnvText: string;
+  prDeploymentAccess: PrDeploymentAccess;
+  prDeploymentAllowedLogins: string[];
+  prDeploymentAllowedLoginsText: string;
   enabled: boolean;
   slug: string;
   createdAt?: string;
@@ -154,6 +158,9 @@ export interface WebhookContext {
   prNumber: number;
   prBranch?: string;
   prSha?: string;
+  prAuthorLogin?: string;
+  prAuthorAssociation?: string;
+  senderLogin?: string;
   headRepoFullName?: string;
   sourceCloneSshUrl?: string;
   raw: unknown;

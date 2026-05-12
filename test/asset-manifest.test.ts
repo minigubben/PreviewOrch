@@ -34,4 +34,7 @@ test("createApp can use an explicit client asset override for rendered pages", a
   assert.equal(response.status, 200);
   assert.match(response.text, /\/static\/assets\/test\.css/);
   assert.match(response.text, /\/static\/assets\/test\.js/);
+  assert.match(response.text, /PreviewOrch \| Sign in/);
+  assert.match(response.text, /\/static\/brand\/previeworch-favicon\.png/);
+  assert.match(response.text, /\/static\/brand\/previeworch\.png/);
 });

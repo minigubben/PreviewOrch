@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { BRANDING } from "./branding.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -51,7 +52,7 @@ class SshKeyManager {
       "-f",
       privateKeyPath,
       "-C",
-      `pr-preview-orchestrator@${os.hostname()}`,
+      `${BRANDING.subdomain}@${os.hostname()}`,
     ]);
 
     await Promise.all([

@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PR Preview Orchestrator</title>
+    <title><%= brand.name %> | Control</title>
+    <link rel="icon" type="image/png" href="<%= brand.faviconPath %>" />
     <% (clientAssets?.css || []).forEach((href) => { %>
       <link rel="stylesheet" href="<%= href %>" />
     <% }) %>
@@ -18,11 +19,16 @@
     <main class="min-h-screen">
       <section class="border-b border-zinc-800">
         <div class="mx-auto flex max-w-[1800px] items-start justify-between gap-6 px-5 py-5">
-          <div>
-            <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Control</p>
-            <h1 class="mt-2 text-4xl font-semibold text-zinc-50">minigubben</h1>
+          <div class="flex items-start gap-4">
+            <img src="<%= brand.logoPath %>" alt="<%= brand.name %> logo" class="h-16 w-16 rounded-2xl border border-lime-500/40 bg-zinc-950 object-cover p-1" />
+            <div>
+              <p class="text-xs uppercase tracking-[0.34em] text-lime-400/80">War Room</p>
+              <h1 class="mt-2 text-4xl font-semibold text-zinc-50"><%= brand.name %></h1>
+            </div>
+          </div>
+          <div class="ml-auto">
             <p class="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
-              Preview hosts land at
+              Preview hosts muster at
               <code class="text-zinc-300">{repoSlug}-{deploymentKey}.<%= baseDomain %></code>
               for PR and branch targets.
             </p>

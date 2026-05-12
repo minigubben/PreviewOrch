@@ -20,7 +20,7 @@ class FakeSshKeyManager {
     this.status = {
       hasKey: true,
       algorithm: "ed25519",
-      publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeGeneratedKey pr-preview-orchestrator@test\n",
+      publicKey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeGeneratedKey previeworch@test\n",
       publicKeyPath: "/fake/id_ed25519.pub",
     };
     return { ...this.status };

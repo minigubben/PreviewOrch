@@ -1,4 +1,4 @@
-# PR Preview Orchestrator
+# PreviewOrch
 
 Small Docker-based preview orchestration for GitHub repositories that ship a repo-owned Docker Compose file.
 
@@ -11,7 +11,7 @@ Small Docker-based preview orchestration for GitHub repositories that ship a rep
 - Runs `docker compose up -d --build` for the PR.
 - Destroys the preview with `docker compose down -v --remove-orphans` when the PR closes.
 - Supports manual deployments of either a branch or a PR from the admin UI.
-- Exposes an admin UI behind Traefik at `orchestrator.{BASE_DOMAIN}`.
+- Exposes an admin UI behind Traefik at `previeworch.{BASE_DOMAIN}`.
 
 ## Stack
 
@@ -62,7 +62,7 @@ Recommended token type:
 - Repository access limited to the repos managed by the orchestrator
 - Repository permission: `Deployments` = `Read and write`
 
-By default, GitHub deployment statuses link back to `https://orchestrator.{BASE_DOMAIN}`. `ORCHESTRATOR_PUBLIC_URL` is optional and only needed if the orchestrator is exposed at some different external URL.
+By default, GitHub deployment statuses link back to `https://previeworch.{BASE_DOMAIN}`. `ORCHESTRATOR_PUBLIC_URL` is optional and only needed if PreviewOrch is exposed at some different external URL.
 
 ## SSH Access
 
@@ -102,11 +102,11 @@ Configure Cloudflare Tunnel ingress to forward your wildcard hostname to the Tra
 - If Cloudflare reaches the Docker network directly, point it to `http://traefik:80`
 - If Cloudflare is configured outside Docker on the same host, point it to `http://<host-ip>:80`
 
-The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and previews are routed at `{repoSlug}-{deploymentKey}.{BASE_DOMAIN}`.
+The admin UI is then routed by Traefik at `previeworch.{BASE_DOMAIN}`, and previews are routed at `{repoSlug}-{deploymentKey}.{BASE_DOMAIN}`.
 
 ## Admin Workflow
 
-1. Sign in at `orchestrator.{BASE_DOMAIN}`.
+1. Sign in at `previeworch.{BASE_DOMAIN}`.
 2. Add a repository with:
    - clone SSH URL
    - default branch
@@ -129,7 +129,7 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and prev
 
 ## GitHub Webhook Setup
 
-- Payload URL: `https://orchestrator.{BASE_DOMAIN}/webhooks/github`
+- Payload URL: `https://previeworch.{BASE_DOMAIN}/webhooks/github`
 - Content type: `application/json`
 - Secret: same value as `GITHUB_WEBHOOK_SECRET`
   - In the orchestrator `.env` file, do not wrap `GITHUB_WEBHOOK_SECRET` in quotes
@@ -162,7 +162,7 @@ If `GITHUB_DEPLOYMENTS_TOKEN` is configured, the orchestrator publishes preview 
   - `failure` if the preview deploy fails
   - `inactive` when the preview is destroyed
 - The preview URL is published as the deployment `environment_url`
-- The deployment `log_url` points back to the orchestrator UI at `https://orchestrator.{BASE_DOMAIN}` by default, or `ORCHESTRATOR_PUBLIC_URL` if you override it
+- The deployment `log_url` points back to the PreviewOrch UI at `https://previeworch.{BASE_DOMAIN}` by default, or `ORCHESTRATOR_PUBLIC_URL` if you override it
 
 This integration is best-effort by design. GitHub deployment publishing failures are logged, but they do not block preview creation or teardown.
 

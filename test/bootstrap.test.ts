@@ -23,7 +23,7 @@ test("bootstrapFilesystem keeps settings.json aligned with environment config", 
     const first = JSON.parse(await fs.readFile(initial.settingsFile, "utf8"));
 
     assert.equal(first.baseDomain, "one.example.com");
-    assert.equal(first.orchestratorPublicUrl, "https://orchestrator.one.example.com");
+    assert.equal(first.orchestratorPublicUrl, "https://previeworch.one.example.com");
     assert.equal(first.traefikNetworkName, "proxy-one");
     assert.equal(first.sourceOfTruth, "environment");
 
@@ -38,7 +38,7 @@ test("bootstrapFilesystem keeps settings.json aligned with environment config", 
     const second = JSON.parse(await fs.readFile(next.settingsFile, "utf8"));
 
     assert.equal(second.baseDomain, "two.example.com");
-    assert.equal(second.orchestratorPublicUrl, "https://orchestrator.two.example.com");
+    assert.equal(second.orchestratorPublicUrl, "https://previeworch.two.example.com");
     assert.equal(second.traefikNetworkName, "proxy-two");
     assert.equal(second.sourceOfTruth, "environment");
     assert.equal(second.createdAt, first.createdAt);

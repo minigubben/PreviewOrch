@@ -1,5 +1,6 @@
 // @ts-nocheck
 import path from "node:path";
+import { BRANDING } from "./lib/branding.js";
 
 function resolveDataPath(envValue, fallback) {
   return path.resolve(envValue || fallback);
@@ -81,7 +82,7 @@ function normalizeOrchestratorPublicUrl(value, baseDomain) {
     return explicit.replace(/\/+$/, "");
   }
 
-  return `https://orchestrator.${baseDomain}`;
+  return `https://${BRANDING.subdomain}.${baseDomain}`;
 }
 
 export {
