@@ -47,6 +47,17 @@ async function waitFor(check, { timeoutMs = 2000, intervalMs = 20 } = {}) {
   throw lastError || new Error("Timed out waiting for condition.");
 }
 
+async function waitForDeployment(agent, expectedDeploymentId, { timeoutMs = 2000, intervalMs = 20 } = {}) {
+  return waitFor(async () => {
+    const response = await agent.get("/api/deployments");
+    assert.equal(response.status, 200);
+    const deployment = response.body.find((item) => item.deploymentId === expectedDeploymentId);
+    assert.ok(deployment, `Missing deployment ${expectedDeploymentId}`);
+    assert.equal(deployment.status, "running");
+    return deployment;
+  }, { timeoutMs, intervalMs });
+}
+
 test("rejects invalid admin credentials", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
@@ -366,7 +377,13 @@ test("stores a generated proxy override path when proxy settings are appended", 
   assert.equal(response.status, 202);
 
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
-  const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
+  const metadata = await waitFor(async () => {
+    const value = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+    assert.equal(value.status, "running");
+    assert.equal(value.appendProxySettings, true);
+    assert.match(value.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
+    return value;
+  });
   assert.equal(metadata.appendProxySettings, true);
   assert.match(metadata.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
 
@@ -375,7 +392,9 @@ test("stores a generated proxy override path when proxy settings are appended", 
   assert.match(overrideFile, /traefik\.docker\.network: preview-proxy/);
   assert.match(overrideFile, /traefik\.http\.routers\.acme-widgets-pr-17\.rule: Host\(`acme-widgets-pr-17\.preview\.example\.com`\)/);
   assert.match(overrideFile, /traefik\.http\.services\.acme-widgets-pr-17\.loadbalancer\.server\.port: "3000"/);
-  assert.doesNotMatch(overrideFile, /preview-proxy:\s+null/);
+  assert.match(overrideFile, /networks:\s+preview-proxy:\s+null/);
+  assert.match(overrideFile, /preview-proxy:\s+[\s\S]*external: true/);
+  assert.match(overrideFile, /preview-proxy:\s+[\s\S]*name: preview-proxy/);
 });
 
 test("resolves compose paths from the configured working directory", async () => {
@@ -402,7 +421,14 @@ test("resolves compose paths from the configured working directory", async () =>
   assert.equal(response.status, 202);
 
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
-  const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
+  const metadata = await waitFor(async () => {
+    const value = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+    assert.equal(value.status, "running");
+    assert.equal(value.workingDirectory, "ops/preview");
+    assert.match(value.projectDirectoryResolved, /acme-widgets\/pr-17\/ops\/preview$/);
+    assert.match(value.composePathResolved, /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/);
+    return value;
+  });
   assert.equal(metadata.workingDirectory, "ops/preview");
   assert.match(metadata.projectDirectoryResolved, /acme-widgets\/pr-17\/ops\/preview$/);
   assert.match(metadata.composePathResolved, /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/);
