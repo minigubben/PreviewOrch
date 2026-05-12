@@ -57,10 +57,7 @@ services:
       - traefik.http.services.previeworch.loadbalancer.server.port=3000
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - previeworch-config:/data/config
-      - previeworch-deployments:/data/deployments
-      - previeworch-logs:/data/logs
-      - previeworch-ssh:/data/ssh
+      - ${PREVIEWORCH_DATA_DIR:-./data}:/data
     depends_on:
       - traefik
     networks:
@@ -69,13 +66,3 @@ services:
 networks:
   preview-proxy:
     name: preview-proxy
-
-volumes:
-  previeworch-config:
-    name: previeworch-config
-  previeworch-deployments:
-    name: previeworch-deployments
-  previeworch-logs:
-    name: previeworch-logs
-  previeworch-ssh:
-    name: previeworch-ssh
