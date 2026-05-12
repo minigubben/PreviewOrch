@@ -22,6 +22,10 @@ class FakeRuntimeInspector {
         [`traefik.http.routers.${deployment.projectName}.rule`]: `Host(\`${deployment.previewHost}\`)`,
         [`traefik.http.services.${deployment.projectName}.loadbalancer.server.port`]: String(deployment.publicPort),
       },
+      logTail: [
+        "2026-05-12T16:00:00.000000000Z booting application",
+        "2026-05-12T16:00:01.000000000Z listening on :3000",
+      ].join("\n"),
     };
 
     return {

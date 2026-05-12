@@ -354,7 +354,10 @@ networks:
                               <div>State: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.state %></code></div>
                               <div>Networks: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.networks.join(", ") || "none" %></code></div>
                             </div>
+                            <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Target Labels</p>
                             <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= JSON.stringify(deployment.runtime.publicServiceContainer.labels, null, 2) %></pre>
+                            <p class="mb-3 mt-4 text-xs uppercase tracking-[0.28em] text-zinc-500">Target Container Logs</p>
+                            <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.runtime.publicServiceContainer.logTail || "No container log output yet." %></pre>
                           <% } %>
                           <div class="mt-4 space-y-3">
                             <% deployment.runtime.containers.forEach((container) => { %>
@@ -362,6 +365,7 @@ networks:
                                 <div class="text-sm text-zinc-200"><code><%= container.name %></code></div>
                                 <div class="mt-2 text-xs uppercase tracking-[0.22em] text-zinc-500"><%= container.service %> · <%= container.state %></div>
                                 <div class="mt-2 text-xs text-zinc-400">Networks: <%= container.networks.join(", ") || "none" %></div>
+                                <pre class="mt-3 overflow-x-auto border border-zinc-800 bg-[#050505] px-3 py-3 text-xs leading-6 text-zinc-200"><%= container.logTail || "No container log output yet." %></pre>
                               </div>
                             <% }) %>
                           </div>

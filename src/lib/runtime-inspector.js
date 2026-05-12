@@ -1,8 +1,9 @@
 const { execFile } = require("child_process");
 
 class RuntimeInspector {
-  constructor({ logger }) {
+  constructor({ logger, logTailLines = 80 }) {
     this.logger = logger;
+    this.logTailLines = logTailLines;
   }
 
   async inspectDeployment(deployment) {
@@ -33,9 +34,9 @@ class RuntimeInspector {
 
       const inspectRaw = await runDocker(["inspect", ...ids]);
       const inspected = JSON.parse(inspectRaw);
-      const containers = inspected
-        .map((item) => mapContainer(item))
-        .sort((left, right) => left.service.localeCompare(right.service) || left.name.localeCompare(right.name));
+      const containers = (
+        await Promise.all(inspected.map((item) => mapContainer(item, { logTailLines: this.logTailLines })))
+      ).sort((left, right) => left.service.localeCompare(right.service) || left.name.localeCompare(right.name));
 
       return {
         available: true,
@@ -53,7 +54,7 @@ class RuntimeInspector {
   }
 }
 
-function mapContainer(item) {
+async function mapContainer(item, { logTailLines }) {
   const labels = item?.Config?.Labels || {};
   const allNetworks = Object.keys(item?.NetworkSettings?.Networks || {}).sort();
   const traefikLabels = Object.fromEntries(
@@ -69,6 +70,7 @@ function mapContainer(item) {
     state: String(item.State?.Status || ""),
     networks: allNetworks,
     labels: traefikLabels,
+    logTail: await readContainerLogs(String(item.Id || ""), logTailLines),
   };
 }
 
@@ -93,6 +95,19 @@ function runDocker(args) {
       resolve(stdout);
     });
   });
+}
+
+async function readContainerLogs(containerId, tailLines) {
+  if (!containerId) {
+    return "";
+  }
+
+  try {
+    const raw = await runDocker(["logs", "--tail", String(tailLines), "--timestamps", containerId]);
+    return raw.trimEnd();
+  } catch (error) {
+    return `[log-unavailable] ${error.message}`;
+  }
 }
 
 module.exports = {
