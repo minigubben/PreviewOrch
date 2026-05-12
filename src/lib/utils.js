@@ -32,16 +32,6 @@ function buildProjectName(repoSlug, deploymentKey) {
   return `${repoSlug}-${deploymentKey}`.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55);
 }
 
-function asArray(value) {
-  if (Array.isArray(value)) {
-    return value;
-  }
-  if (value === undefined || value === null) {
-    return [];
-  }
-  return [value];
-}
-
 function formatTimestamp(date = new Date()) {
   return date.toISOString();
 }
@@ -62,7 +52,6 @@ function trimLines(text, maxLines = 40) {
 }
 
 module.exports = {
-  asArray,
   buildPreviewHost,
   buildProjectName,
   buildDeploymentKey,
