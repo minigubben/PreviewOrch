@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR Preview Orchestrator</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script>
+      window.CSRF_TOKEN = "<%= csrfToken %>";
+    </script>
+    <script src="/static/app.js" defer></script>
+  </head>
+  <body>
+    <main class="page">
+      <section class="hero">
+        <div>
+          <p class="muted">Admin dashboard</p>
+          <h1>Preview stacks without hidden automation.</h1>
+          <p class="muted">
+            Wildcard ingress is routed through <strong>Traefik</strong>. Preview hosts are generated as
+            <code>{repoSlug}-pr-{number}.<%= baseDomain %></code>.
+          </p>
+          <p class="notice" data-ui-status></p>
+        </div>
+        <form class="topbar-form" method="post" action="/logout">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <button class="button secondary" type="submit">Sign out</button>
+        </form>
+      </section>
+
+      <section class="grid two">
+        <article class="panel stack">
+          <div>
+            <h2>Add repository</h2>
+            <p class="muted">Each repository must supply the compose file path, public service, and public port explicitly.</p>
+          </div>
+          <form action="/api/repos" method="post" data-method="POST" data-api-form class="stack">
+            <div class="field">
+              <label for="owner">Owner</label>
+              <input id="owner" name="owner" required />
+            </div>
+            <div class="field">
+              <label for="name">Name</label>
+              <input id="name" name="name" required />
+            </div>
+            <div class="field">
+              <label for="cloneSshUrl">Clone SSH URL</label>
+              <input id="cloneSshUrl" name="cloneSshUrl" placeholder="git@github.com:owner/repo.git" required />
+            </div>
+            <div class="field">
+              <label for="defaultBranch">Default branch</label>
+              <input id="defaultBranch" name="defaultBranch" value="main" required />
+            </div>
+            <div class="field">
+              <label for="composePath">Compose path</label>
+              <input id="composePath" name="composePath" placeholder="deploy/docker-compose.preview.yml" required />
+            </div>
+            <div class="field">
+              <label for="publicService">Public service</label>
+              <input id="publicService" name="publicService" placeholder="web" required />
+            </div>
+            <div class="field">
+              <label for="publicPort">Public port</label>
+              <input id="publicPort" type="number" name="publicPort" value="3000" required />
+            </div>
+            <div class="field">
+              <label>
+                <input type="checkbox" name="enabled" value="true" checked />
+                Enabled
+              </label>
+            </div>
+            <button type="submit">Validate and save</button>
+          </form>
+        </article>
+
+        <article class="panel stack">
+          <div>
+            <h2>Compose contract</h2>
+            <p class="muted">Attach preview routing in the repo-owned compose file. The orchestrator only injects env vars.</p>
+          </div>
+<pre>services:
+  app:
+    networks:
+      - default
+      - preview-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=<%= traefikNetworkName %>
+      - traefik.http.routers.${ORCH_PROJECT_NAME}.rule=Host(`${ORCH_PREVIEW_HOST}`)
+      - traefik.http.routers.${ORCH_PROJECT_NAME}.entrypoints=web
+      - traefik.http.services.${ORCH_PROJECT_NAME}.loadbalancer.server.port=${ORCH_PREVIEW_SERVICE_PORT}
+
+networks:
+  preview-proxy:
+    external: true
+    name: <%= traefikNetworkName %></pre>
+        </article>
+      </section>
+
+      <section class="panel stack" style="margin-top: 20px;">
+        <div>
+          <h2>Configured repositories</h2>
+          <p class="muted">Edits are saved through the JSON API after the same validation checks pass again.</p>
+        </div>
+        <div class="grid">
+          <% if (!repos.length) { %>
+            <p class="muted">No repositories configured yet.</p>
+          <% } %>
+          <% repos.forEach((repo) => { %>
+            <article class="repo-card stack">
+              <div>
+                <strong><%= repo.owner %>/<%= repo.name %></strong>
+                <span class="status-chip"><%= repo.enabled ? "enabled" : "disabled" %></span>
+              </div>
+              <form action="/api/repos/<%= repo.id %>" method="post" data-method="PUT" data-api-form class="grid two">
+                <div class="field">
+                  <label>Owner</label>
+                  <input name="owner" value="<%= repo.owner %>" required />
+                </div>
+                <div class="field">
+                  <label>Name</label>
+                  <input name="name" value="<%= repo.name %>" required />
+                </div>
+                <div class="field">
+                  <label>Clone SSH URL</label>
+                  <input name="cloneSshUrl" value="<%= repo.cloneSshUrl %>" required />
+                </div>
+                <div class="field">
+                  <label>Default branch</label>
+                  <input name="defaultBranch" value="<%= repo.defaultBranch %>" required />
+                </div>
+                <div class="field">
+                  <label>Compose path</label>
+                  <input name="composePath" value="<%= repo.composePath %>" required />
+                </div>
+                <div class="field">
+                  <label>Public service</label>
+                  <input name="publicService" value="<%= repo.publicService %>" required />
+                </div>
+                <div class="field">
+                  <label>Public port</label>
+                  <input type="number" name="publicPort" value="<%= repo.publicPort %>" required />
+                </div>
+                <div class="field">
+                  <label>
+                    <input type="checkbox" name="enabled" value="true" <%= repo.enabled ? "checked" : "" %> />
+                    Enabled
+                  </label>
+                </div>
+                <div class="actions">
+                  <button type="submit">Save</button>
+                  <button
+                    type="button"
+                    class="danger"
+                    data-api-action
+                    data-method="DELETE"
+                    data-action="/api/repos/<%= repo.id %>"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </form>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="panel stack" style="margin-top: 20px;">
+        <div>
+          <h2>Deployments</h2>
+          <p class="muted">Each deployment directory holds a cloned PR checkout, runtime env file, metadata file, and log output.</p>
+        </div>
+        <div class="grid">
+          <% if (!deployments.length) { %>
+            <p class="muted">No active or historical deployments yet.</p>
+          <% } %>
+          <% deployments.forEach((deployment) => { %>
+            <article class="deployment-card stack">
+              <div class="actions">
+                <strong><%= deployment.repoSlug %> PR #<%= deployment.prNumber %></strong>
+                <span class="status-chip"><%= deployment.status %></span>
+              </div>
+              <div class="muted">
+                <div>Host: <a href="http://<%= deployment.previewHost %>" target="_blank" rel="noreferrer"><%= deployment.previewHost %></a></div>
+                <div>Project: <code><%= deployment.projectName %></code></div>
+                <div>Last event: <code><%= deployment.lastEvent %></code></div>
+              </div>
+              <div class="actions">
+                <button
+                  type="button"
+                  data-api-action
+                  data-method="POST"
+                  data-action="/api/deployments/<%= deployment.deploymentId %>/redeploy"
+                >
+                  Redeploy
+                </button>
+                <button
+                  type="button"
+                  class="danger"
+                  data-api-action
+                  data-method="DELETE"
+                  data-action="/api/deployments/<%= deployment.deploymentId %>"
+                >
+                  Destroy
+                </button>
+              </div>
+              <pre><%= deployment.logTail || "No log output yet." %></pre>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="panel stack" style="margin-top: 20px;">
+        <div>
+          <h2>App log tail</h2>
+          <p class="muted">Append-only operator log from <code>data/logs/app.log</code>.</p>
+        </div>
+        <pre><%= appLogTail || "No events logged yet." %></pre>
+      </section>
+    </main>
+  </body>
+</html>

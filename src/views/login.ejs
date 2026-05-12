@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR Preview Orchestrator</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <section class="login-card stack">
+        <div>
+          <p class="muted">Admin access</p>
+          <h1>PR preview orchestrator</h1>
+          <p class="muted">GitHub webhook intake, explicit repo config, and shell-driven Docker Compose deploys.</p>
+        </div>
+        <% if (error) { %>
+          <p class="danger"><%= error %></p>
+        <% } %>
+        <form method="post" action="/login" class="stack">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+          <div class="field">
+            <label for="username">Username</label>
+            <input id="username" name="username" required />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" name="password" required />
+          </div>
+          <button type="submit">Sign in</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

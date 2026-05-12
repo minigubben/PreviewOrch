@@ -1,0 +1,16 @@
+node_modules/
+.env
+coverage/
+dist/
+tmp/
+data/config/repos.json
+data/config/settings.json
+data/logs/app.log
+data/logs/events.jsonl
+data/logs/deployments/*.log
+data/deployments/*
+!data/deployments/.gitkeep
+!data/logs/deployments/.gitkeep
+!data/config/.gitkeep
+!data/logs/.gitkeep
+!data/ssh/.gitkeep

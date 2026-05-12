@@ -1,0 +1,62 @@
+services:
+  traefik:
+    image: traefik:v3.4
+    command:
+      - --api.dashboard=true
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - preview-proxy
+
+  cloudflared:
+    image: cloudflare/cloudflared:2026.5.0
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
+    depends_on:
+      - traefik
+    restart: unless-stopped
+    networks:
+      - preview-proxy
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD_BCRYPT_HASH: ${ADMIN_PASSWORD_BCRYPT_HASH}
+      SESSION_SECRET: ${SESSION_SECRET}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      DATA_ROOT: /data
+      CONFIG_DIR: /data/config
+      DEPLOYMENTS_DIR: /data/deployments
+      LOGS_DIR: /data/logs
+      SSH_DIR: /data/ssh
+      TRAEFIK_NETWORK_NAME: preview-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.orchestrator.rule=Host(`orchestrator.${BASE_DOMAIN}`)
+      - traefik.http.routers.orchestrator.entrypoints=web
+      - traefik.http.services.orchestrator.loadbalancer.server.port=3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/config:/data/config
+      - ./data/deployments:/data/deployments
+      - ./data/logs:/data/logs
+      - ./data/ssh:/data/ssh
+    depends_on:
+      - traefik
+    networks:
+      - preview-proxy
+
+networks:
+  preview-proxy:
+    name: preview-proxy
