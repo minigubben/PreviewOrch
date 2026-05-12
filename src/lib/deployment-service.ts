@@ -52,6 +52,25 @@ class DeploymentService {
       return { ignored: true };
     }
 
+    if (webhookContext.mappedAction === "deploy") {
+      const authorization = this.authorizePrDeploymentTrigger(repo, webhookContext);
+      if (!authorization.allowed) {
+        await this.logger.warn("Ignored pull request webhook due to PR trigger policy", {
+          repoId: repo.id,
+          prNumber: webhookContext.prNumber,
+          action: webhookContext.action,
+          prAuthorLogin: webhookContext.prAuthorLogin || "",
+          prAuthorAssociation: webhookContext.prAuthorAssociation || "",
+          senderLogin: webhookContext.senderLogin || "",
+          prDeploymentAccess: repo.prDeploymentAccess,
+        });
+        return {
+          ignored: true,
+          reason: authorization.reason,
+        };
+      }
+    }
+
     const deploymentKey = buildDeploymentKey("pr", webhookContext.prNumber);
     const task = async () => {
       if (webhookContext.mappedAction === "deploy") {
@@ -390,6 +409,31 @@ class DeploymentService {
     return this.lockManager.run(`${repo.id}:${deploymentKey}`, task);
   }
 
+  authorizePrDeploymentTrigger(repo, webhookContext) {
+    const authorLogin = String(webhookContext.prAuthorLogin || "").trim().toLowerCase();
+    const senderLogin = String(webhookContext.senderLogin || "").trim().toLowerCase();
+    const allowedLogins = new Set((repo.prDeploymentAllowedLogins || []).map((login) => String(login).toLowerCase()));
+
+    if ((authorLogin && allowedLogins.has(authorLogin)) || (senderLogin && allowedLogins.has(senderLogin))) {
+      return { allowed: true, reason: "allowlisted-login" };
+    }
+
+    if (repo.prDeploymentAccess === "anyone") {
+      return { allowed: true, reason: "anyone" };
+    }
+
+    const association = String(webhookContext.prAuthorAssociation || "").trim().toUpperCase();
+    const allowedAssociations = getAllowedAuthorAssociations(repo.prDeploymentAccess);
+    if (allowedAssociations.has(association)) {
+      return { allowed: true, reason: association.toLowerCase() };
+    }
+
+    return {
+      allowed: false,
+      reason: `pr author association ${association || "unknown"} is not allowed by ${repo.prDeploymentAccess} policy`,
+    };
+  }
+
   getFailureMessage(error) {
     return error.parsed?.message || error.stderr || error.message;
   }
@@ -403,6 +447,22 @@ function unavailableRuntime(reason) {
     containers: [],
     publicServiceContainer: null,
   };
+}
+
+function getAllowedAuthorAssociations(prDeploymentAccess) {
+  if (prDeploymentAccess === "members") {
+    return new Set(["OWNER", "MEMBER"]);
+  }
+
+  if (prDeploymentAccess === "collaborators") {
+    return new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+  }
+
+  if (prDeploymentAccess === "contributors") {
+    return new Set(["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR"]);
+  }
+
+  return new Set();
 }
 
 function normalizeManualTargetType(value) {

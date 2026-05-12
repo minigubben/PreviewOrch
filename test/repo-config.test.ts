@@ -24,6 +24,8 @@ test("normalizeRepoInput derives owner and name from clone url", () => {
   assert.equal(repo.name, "simcards");
   assert.equal(repo.workingDirectory, ".");
   assert.equal(repo.extraEnvText, "");
+  assert.equal(repo.prDeploymentAccess, "anyone");
+  assert.equal(repo.prDeploymentAllowedLoginsText, "");
 });
 
 test("hydrateStoredRepo normalizes stored env and working directory fields", () => {
@@ -37,6 +39,8 @@ test("hydrateStoredRepo normalizes stored env and working directory fields", () 
       NODE_ENV: "production",
       NULLISH: null,
     },
+    prDeploymentAccess: "contributors",
+    prDeploymentAllowedLogins: ["Dependabot[bot]", "release-bot"],
   });
 
   assert.equal(repo.owner, "acme");
@@ -44,6 +48,8 @@ test("hydrateStoredRepo normalizes stored env and working directory fields", () 
   assert.equal(repo.workingDirectory, "ops/preview");
   assert.equal(repo.appendProxySettings, true);
   assert.equal(repo.extraEnvText, "NODE_ENV=production\nNULLISH=");
+  assert.equal(repo.prDeploymentAccess, "contributors");
+  assert.equal(repo.prDeploymentAllowedLoginsText, "dependabot[bot]\nrelease-bot");
 });
 
 test("validateRepoShape rejects reserved env names and path escapes", () => {
@@ -74,4 +80,42 @@ test("clone url helpers preserve repository identity parsing", () => {
     name: "widgets",
   });
   assert.equal(deriveGithubFullNameFromCloneUrl("https://github.com/acme/widgets.git"), "acme/widgets");
+});
+
+test("normalizeRepoInput parses PR trigger allowlist and access policy", () => {
+  const repo = normalizeRepoInput({
+    cloneSshUrl: "git@github.com:acme/widgets.git",
+    composePath: "deploy/preview-compose.yml",
+    publicService: "app",
+    publicPort: 3000,
+    defaultBranch: "main",
+    prDeploymentAccess: "contributors",
+    prDeploymentAllowedLoginsText: "Dependabot[bot]\nrelease-bot\nDependabot[bot]",
+  });
+
+  assert.equal(repo.prDeploymentAccess, "contributors");
+  assert.deepEqual(repo.prDeploymentAllowedLogins, ["dependabot[bot]", "release-bot"]);
+  assert.equal(repo.prDeploymentAllowedLoginsText, "dependabot[bot]\nrelease-bot");
+});
+
+test("validateRepoShape rejects invalid PR trigger allowlist entries", () => {
+  assert.throws(
+    () =>
+      validateRepoShape({
+        owner: "acme",
+        name: "widgets",
+        cloneSshUrl: "git@github.com:acme/widgets.git",
+        composePath: "deploy/preview-compose.yml",
+        workingDirectory: ".",
+        publicService: "app",
+        publicPort: 3000,
+        defaultBranch: "main",
+        appendProxySettings: false,
+        previewHostEnvVarName: "",
+        extraEnv: {},
+        prDeploymentAccess: "members",
+        prDeploymentAllowedLogins: ["bad login"],
+      }),
+    RepoValidationError,
+  );
 });

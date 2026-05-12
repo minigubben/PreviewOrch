@@ -116,6 +116,8 @@ The admin UI is then routed by Traefik at `previeworch.{BASE_DOMAIN}`, and previ
    - public port
    - optional checkbox to append proxy settings to the selected service
    - optional preview host alias env var name, for example `APP_FQDN`
+   - PR trigger policy: `Anyone`, `Repository members`, `Members and collaborators`, or `Members, collaborators, and contributors`
+   - optional PR trigger allowlist of GitHub logins, one per line, for bots or specific external accounts such as `dependabot[bot]`
    - optional extra env vars as `KEY=value` lines
 3. The app validates:
    - `git ls-remote`
@@ -148,6 +150,7 @@ Handled actions:
 Webhook behavior:
 
 - `ping`: returns `200 OK` and confirms the endpoint is reachable
+- unauthorized PR deploy triggers: return `200 OK` with `{ "ignored": true }`
 - unsupported GitHub events: return `200 OK` with `{ "ignored": true }`
 
 ## Optional GitHub Deployment Publishing

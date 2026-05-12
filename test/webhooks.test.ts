@@ -129,6 +129,70 @@ test("redeploys on pull request synchronize", async () => {
   });
 });
 
+test("ignores webhook deploys when the PR author does not satisfy the repo trigger policy", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  await createRepo(context.agent, csrfToken, {
+    prDeploymentAccess: "members",
+  });
+
+  const payload = buildPullRequestPayload("opened", {
+    prAuthorLogin: "external-user",
+    prAuthorAssociation: "NONE",
+    senderLogin: "external-user",
+  });
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.ignored, true);
+  assert.match(response.body.reason, /not allowed by members policy/);
+  assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length, 0);
+
+  const deployments = await context.agent.get("/api/deployments");
+  assert.equal(deployments.status, 200);
+  assert.equal(deployments.body.length, 0);
+});
+
+test("allows allowlisted PR authors such as dependabot even when the trigger policy would block them", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken, {
+    prDeploymentAccess: "members",
+    prDeploymentAllowedLoginsText: "dependabot[bot]",
+  });
+
+  const payload = buildPullRequestPayload("opened", {
+    prNumber: 28,
+    prAuthorLogin: "dependabot[bot]",
+    prAuthorAssociation: "NONE",
+    senderLogin: "dependabot[bot]",
+  });
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 202);
+
+  const deployment = await waitForDeployment(context.agent, `${repoResponse.body.id}-pr-28`);
+  assert.equal(deployment.prNumber, 28);
+});
+
 test("destroys deployments and cleans the work directory on pull request close", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

@@ -116,6 +116,10 @@ function buildPullRequestPayload(action, overrides = {}) {
     },
     pull_request: {
       number: overrides.prNumber || 17,
+      author_association: overrides.prAuthorAssociation || "NONE",
+      user: {
+        login: overrides.prAuthorLogin || overrides.senderLogin || "octocat",
+      },
       head: {
         ref: overrides.prBranch || "feature/test",
         sha: overrides.prSha || "abc123",
@@ -124,6 +128,9 @@ function buildPullRequestPayload(action, overrides = {}) {
           ssh_url: overrides.headSshUrl || overrides.baseSshUrl || "git@github.com:acme/widgets.git",
         },
       },
+    },
+    sender: {
+      login: overrides.senderLogin || overrides.prAuthorLogin || "octocat",
     },
   };
 }

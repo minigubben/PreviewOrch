@@ -20,6 +20,8 @@ test("adds a repository with valid configuration", async () => {
   assert.deepEqual(response.body.extraEnv, {});
   assert.equal(response.body.previewHostEnvVarName, "");
   assert.equal(response.body.workingDirectory, ".");
+  assert.equal(response.body.prDeploymentAccess, "anyone");
+  assert.deepEqual(response.body.prDeploymentAllowedLogins, []);
   assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length, 1);
 });
 
@@ -59,6 +61,23 @@ test("stores additional env vars and preview host alias from the admin ui", asyn
     API_ORIGIN: "https://api.example.com",
   });
   assert.equal(response.body.extraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
+});
+
+test("stores PR trigger policy and allowlist from the admin ui", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    prDeploymentAccess: "contributors",
+    prDeploymentAllowedLoginsText: "Dependabot[bot]\nrelease-bot",
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.prDeploymentAccess, "contributors");
+  assert.deepEqual(response.body.prDeploymentAllowedLogins, ["dependabot[bot]", "release-bot"]);
+  assert.equal(response.body.prDeploymentAllowedLoginsText, "dependabot[bot]\nrelease-bot");
 });
 
 test("allows a repo without traefik labels when proxy settings will be appended", async () => {
@@ -112,6 +131,20 @@ test("rejects invalid additional env variable names", async () => {
 
   assert.equal(response.status, 400);
   assert.match(response.body.error, /must be a valid environment variable name/);
+});
+
+test("rejects invalid PR trigger allowlist entries", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    prDeploymentAllowedLoginsText: "not valid",
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /must contain valid GitHub login names/);
 });
 
 test("rejects a working directory outside the repository", async () => {

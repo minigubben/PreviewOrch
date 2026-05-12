@@ -13,9 +13,14 @@ const RESERVED_ENV_NAMES = new Set([
   "ORCH_PR_SHA",
   "ORCH_REPO_SLUG",
 ]);
+const PR_DEPLOYMENT_ACCESS_VALUES = new Set(["anyone", "members", "collaborators", "contributors"]);
 
 function normalizeRepoInput(input = {}) {
   const extraEnv = parseExtraEnvText(input.extraEnvText, input.extraEnv);
+  const prDeploymentAllowedLogins = parseGithubLoginListText(
+    input.prDeploymentAllowedLoginsText,
+    input.prDeploymentAllowedLogins,
+  );
   const identity = deriveGithubRepoIdentityFromCloneUrl(input.cloneSshUrl);
   return {
     id: input.id,
@@ -31,6 +36,9 @@ function normalizeRepoInput(input = {}) {
     previewHostEnvVarName: String(input.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
+    prDeploymentAccess: normalizePrDeploymentAccess(input.prDeploymentAccess),
+    prDeploymentAllowedLogins,
+    prDeploymentAllowedLoginsText: stringifyGithubLoginList(prDeploymentAllowedLogins),
     enabled: normalizeBoolean(input.enabled ?? true),
     slug: input.slug || slugifyRepo(identity?.owner || "", identity?.name || ""),
   };
@@ -38,6 +46,7 @@ function normalizeRepoInput(input = {}) {
 
 function hydrateStoredRepo(repo = {}) {
   const extraEnv = normalizeExistingExtraEnv(repo.extraEnv);
+  const prDeploymentAllowedLogins = normalizeExistingGithubLoginList(repo.prDeploymentAllowedLogins);
   const identity = deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl) || {
     owner: String(repo.owner || "").trim(),
     name: String(repo.name || "").trim(),
@@ -52,6 +61,9 @@ function hydrateStoredRepo(repo = {}) {
     previewHostEnvVarName: String(repo.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
+    prDeploymentAccess: normalizePrDeploymentAccess(repo.prDeploymentAccess),
+    prDeploymentAllowedLogins,
+    prDeploymentAllowedLoginsText: stringifyGithubLoginList(prDeploymentAllowedLogins),
   };
 }
 
@@ -73,6 +85,8 @@ function validateRepoShape(repo) {
   }
 
   validateEnvMap(repo.extraEnv);
+  validatePrDeploymentAccess(repo.prDeploymentAccess);
+  validateGithubLoginList(repo.prDeploymentAllowedLogins, "prDeploymentAllowedLogins");
 
   if (repo.previewHostEnvVarName) {
     assertEnvVarName(repo.previewHostEnvVarName, "previewHostEnvVarName");
@@ -89,6 +103,17 @@ function validateRepoShape(repo) {
   }
 
   assertWorkingDirectory(repo.workingDirectory);
+}
+
+function normalizePrDeploymentAccess(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  return PR_DEPLOYMENT_ACCESS_VALUES.has(normalized) ? normalized : "anyone";
+}
+
+function validatePrDeploymentAccess(value) {
+  if (!PR_DEPLOYMENT_ACCESS_VALUES.has(String(value || ""))) {
+    throw new RepoValidationError("prDeploymentAccess must be one of: anyone, members, collaborators, contributors.");
+  }
 }
 
 function deriveGithubRepoIdentityFromCloneUrl(cloneUrl) {
@@ -177,6 +202,56 @@ function stringifyExtraEnv(extraEnv) {
     .join("\n");
 }
 
+function parseGithubLoginListText(loginsText, existingLogins) {
+  if (typeof loginsText !== "string") {
+    return normalizeExistingGithubLoginList(existingLogins);
+  }
+
+  const entries = [];
+  const seen = new Set();
+  for (const [index, rawLine] of loginsText.split(/\r?\n/).entries()) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const login = normalizeGithubLogin(line);
+    assertGithubLogin(login, `prDeploymentAllowedLogins line ${index + 1}`);
+    if (!seen.has(login)) {
+      seen.add(login);
+      entries.push(login);
+    }
+  }
+
+  return entries;
+}
+
+function normalizeExistingGithubLoginList(existingLogins) {
+  if (!Array.isArray(existingLogins)) {
+    return [];
+  }
+
+  const entries = [];
+  const seen = new Set();
+  for (const rawLogin of existingLogins) {
+    const login = normalizeGithubLogin(rawLogin);
+    if (!login) {
+      continue;
+    }
+    assertGithubLogin(login, "prDeploymentAllowedLogins");
+    if (!seen.has(login)) {
+      seen.add(login);
+      entries.push(login);
+    }
+  }
+
+  return entries;
+}
+
+function stringifyGithubLoginList(logins) {
+  return (logins || []).join("\n");
+}
+
 function validateEnvMap(envMap) {
   for (const [key, value] of Object.entries(envMap || {})) {
     assertEnvVarName(key, `extraEnv key ${key}`);
@@ -189,9 +264,25 @@ function validateEnvMap(envMap) {
   }
 }
 
+function validateGithubLoginList(logins, label) {
+  for (const login of logins || []) {
+    assertGithubLogin(login, label);
+  }
+}
+
 function assertEnvVarName(name, label) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name))) {
     throw new RepoValidationError(`${label} must be a valid environment variable name.`);
+  }
+}
+
+function normalizeGithubLogin(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function assertGithubLogin(login, label) {
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?(?:\[bot\])?$/.test(String(login))) {
+    throw new RepoValidationError(`${label} must contain valid GitHub login names.`);
   }
 }
 

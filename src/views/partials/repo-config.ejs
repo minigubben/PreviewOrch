@@ -92,6 +92,21 @@
               <input id="previewHostEnvVarName" name="previewHostEnvVarName" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
               <p class="text-xs leading-5 text-zinc-500">Optional. If set, the generated preview host is written to both <code class="text-zinc-300">ORCH_PREVIEW_HOST</code> and this variable.</p>
             </div>
+            <div class="space-y-2">
+              <label for="prDeploymentAccess" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">PR Trigger Policy</label>
+              <select id="prDeploymentAccess" name="prDeploymentAccess" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
+                <option value="anyone">Anyone</option>
+                <option value="members">Repository members</option>
+                <option value="collaborators">Members and collaborators</option>
+                <option value="contributors">Members, collaborators, and contributors</option>
+              </select>
+              <p class="text-xs leading-5 text-zinc-500">Controls which PR author associations can trigger automatic preview deployments.</p>
+            </div>
+            <div class="space-y-2 xl:col-span-2">
+              <label for="prDeploymentAllowedLoginsText" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">PR Trigger Allowlist</label>
+              <textarea id="prDeploymentAllowedLoginsText" name="prDeploymentAllowedLoginsText" rows="4" placeholder="dependabot[bot]" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"></textarea>
+              <p class="text-xs leading-5 text-zinc-500">Optional GitHub logins, one per line. These users can trigger deployments even if their association would normally be blocked.</p>
+            </div>
             <div class="space-y-2 xl:col-span-2">
               <label for="extraEnvText" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
               <textarea id="extraEnvText" name="extraEnvText" rows="6" placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"></textarea>
@@ -175,6 +190,19 @@
               <div class="space-y-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
                 <input name="previewHostEnvVarName" value="<%= repo.previewHostEnvVarName || "" %>" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+              </div>
+              <div class="space-y-2">
+                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">PR Trigger Policy</label>
+                <select name="prDeploymentAccess" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
+                  <option value="anyone" <%= repo.prDeploymentAccess === "anyone" ? "selected" : "" %>>Anyone</option>
+                  <option value="members" <%= repo.prDeploymentAccess === "members" ? "selected" : "" %>>Repository members</option>
+                  <option value="collaborators" <%= repo.prDeploymentAccess === "collaborators" ? "selected" : "" %>>Members and collaborators</option>
+                  <option value="contributors" <%= repo.prDeploymentAccess === "contributors" ? "selected" : "" %>>Members, collaborators, and contributors</option>
+                </select>
+              </div>
+              <div class="space-y-2 xl:col-span-2">
+                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">PR Trigger Allowlist</label>
+                <textarea name="prDeploymentAllowedLoginsText" rows="4" placeholder="dependabot[bot]" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"><%= repo.prDeploymentAllowedLoginsText || "" %></textarea>
               </div>
               <div class="space-y-2 xl:col-span-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
