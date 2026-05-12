@@ -325,8 +325,8 @@ networks:
                   <p class="text-sm text-zinc-500">No active or historical deployments yet.</p>
                 <% } %>
                 <% deployments.forEach((deployment) => { %>
-                  <article class="border border-zinc-800 bg-black/70">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 px-4 py-4">
+                  <details class="border border-zinc-800 bg-black/70">
+                    <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 border-b border-zinc-800 px-4 py-4">
                       <div>
                         <p class="text-xs uppercase tracking-[0.28em] text-zinc-500">Deployment</p>
                         <h3 class="mt-2 text-xl font-semibold text-zinc-50">
@@ -334,8 +334,11 @@ networks:
                           <%= deployment.targetType === "branch" ? `Branch ${deployment.targetValue}` : `PR #${deployment.targetValue ?? deployment.prNumber}` %>
                         </h3>
                       </div>
-                      <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= deployment.status %></span>
-                    </div>
+                      <div class="flex items-center gap-3">
+                        <span class="text-xs uppercase tracking-[0.24em] text-zinc-500">Expand</span>
+                        <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= deployment.status %></span>
+                      </div>
+                    </summary>
                     <div class="space-y-4 px-4 py-4 text-sm text-zinc-400">
                       <div>Host: <a href="http://<%= deployment.previewHost %>" target="_blank" rel="noreferrer" class="text-zinc-100 underline decoration-zinc-700 underline-offset-4"><%= deployment.previewHost %></a></div>
                       <div>Project: <code class="text-zinc-200"><%= deployment.projectName %></code></div>
@@ -354,19 +357,25 @@ networks:
                               <div>State: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.state %></code></div>
                               <div>Networks: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.networks.join(", ") || "none" %></code></div>
                             </div>
-                            <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Target Labels</p>
-                            <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= JSON.stringify(deployment.runtime.publicServiceContainer.labels, null, 2) %></pre>
-                            <p class="mb-3 mt-4 text-xs uppercase tracking-[0.28em] text-zinc-500">Target Container Logs</p>
-                            <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.runtime.publicServiceContainer.logTail || "No container log output yet." %></pre>
+                            <details class="border border-zinc-800 bg-black/40">
+                              <summary class="cursor-pointer list-none px-4 py-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Target Labels</summary>
+                              <pre class="overflow-x-auto border-t border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= JSON.stringify(deployment.runtime.publicServiceContainer.labels, null, 2) %></pre>
+                            </details>
+                            <details class="mt-4 border border-zinc-800 bg-black/40">
+                              <summary class="cursor-pointer list-none px-4 py-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Target Container Logs</summary>
+                              <pre class="overflow-x-auto border-t border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.runtime.publicServiceContainer.logTail || "No container log output yet." %></pre>
+                            </details>
                           <% } %>
                           <div class="mt-4 space-y-3">
                             <% deployment.runtime.containers.forEach((container) => { %>
-                              <div class="border border-zinc-800 px-3 py-3">
-                                <div class="text-sm text-zinc-200"><code><%= container.name %></code></div>
-                                <div class="mt-2 text-xs uppercase tracking-[0.22em] text-zinc-500"><%= container.service %> · <%= container.state %></div>
-                                <div class="mt-2 text-xs text-zinc-400">Networks: <%= container.networks.join(", ") || "none" %></div>
+                              <details class="border border-zinc-800 px-3 py-3">
+                                <summary class="cursor-pointer list-none">
+                                  <div class="text-sm text-zinc-200"><code><%= container.name %></code></div>
+                                  <div class="mt-2 text-xs uppercase tracking-[0.22em] text-zinc-500"><%= container.service %> · <%= container.state %></div>
+                                  <div class="mt-2 text-xs text-zinc-400">Networks: <%= container.networks.join(", ") || "none" %></div>
+                                </summary>
                                 <pre class="mt-3 overflow-x-auto border border-zinc-800 bg-[#050505] px-3 py-3 text-xs leading-6 text-zinc-200"><%= container.logTail || "No container log output yet." %></pre>
-                              </div>
+                              </details>
                             <% }) %>
                           </div>
                         <% } %>
@@ -391,9 +400,12 @@ networks:
                           Destroy
                         </button>
                       </div>
-                      <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.logTail || "No log output yet." %></pre>
+                      <details class="border border-zinc-800 bg-black/40">
+                        <summary class="cursor-pointer list-none px-4 py-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Orchestrator Script Log</summary>
+                        <pre class="overflow-x-auto border-t border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.logTail || "No log output yet." %></pre>
+                      </details>
                     </div>
-                  </article>
+                  </details>
                 <% }) %>
               </div>
             </section>
