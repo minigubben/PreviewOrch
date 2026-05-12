@@ -95,6 +95,27 @@ Or start the full stack:
 docker compose up --build
 ```
 
+## Deploy With The Published Image
+
+The GitHub Actions workflow in `.github/workflows/publish-container.yml` publishes the container to `ghcr.io/minigubben/previeworch`. Pushes to `main` refresh the `latest` tag, and version tags such as `v1.2.3` are published as matching image tags.
+
+To deploy the published image from this repo checkout:
+
+```bash
+cp .env.example .env
+docker compose -f docs/docker-compose.ghcr.yml up -d
+```
+
+If you want the optional Cloudflare Tunnel sidecar, include the `cloudflare` profile:
+
+```bash
+docker compose -f docs/docker-compose.ghcr.yml --profile cloudflare up -d
+```
+
+If the GHCR package is private, log in first with an account or token that can read packages from `ghcr.io/minigubben/previeworch`.
+
+The deployment compose file uses named Docker volumes for persistent config, deployment state, logs, and SSH keys, so it does not depend on bind-mounting the repo `data/` directory.
+
 ## Cloudflare Tunnel Target
 
 Configure Cloudflare Tunnel ingress to forward your wildcard hostname to the Traefik `web` entrypoint on port `80`.

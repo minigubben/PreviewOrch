@@ -1,0 +1,81 @@
+name: previeworch
+
+services:
+  traefik:
+    image: traefik:v3.7
+    command:
+      - --api.dashboard=true
+      - --api.insecure=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+      - --accesslog=true
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - preview-proxy
+
+  cloudflared:
+    profiles:
+      - cloudflare
+    image: cloudflare/cloudflared
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
+    depends_on:
+      - traefik
+    restart: unless-stopped
+    networks:
+      - preview-proxy
+
+  app:
+    image: ghcr.io/minigubben/previeworch:latest
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      BASE_DOMAIN: ${BASE_DOMAIN}
+      ORCHESTRATOR_PUBLIC_URL: ${ORCHESTRATOR_PUBLIC_URL}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD_BCRYPT_HASH: ${ADMIN_PASSWORD_BCRYPT_HASH}
+      SESSION_SECRET: ${SESSION_SECRET}
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      GITHUB_DEPLOYMENTS_TOKEN: ${GITHUB_DEPLOYMENTS_TOKEN}
+      GITHUB_API_BASE_URL: ${GITHUB_API_BASE_URL}
+      NODE_ENV: ${NODE_ENV:-production}
+      DATA_ROOT: /data
+      CONFIG_DIR: /data/config
+      DEPLOYMENTS_DIR: /data/deployments
+      LOGS_DIR: /data/logs
+      SSH_DIR: /data/ssh
+      TRAEFIK_NETWORK_NAME: preview-proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.previeworch.rule=Host(`previeworch.${BASE_DOMAIN}`)
+      - traefik.http.routers.previeworch.entrypoints=web
+      - traefik.http.services.previeworch.loadbalancer.server.port=3000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - previeworch-config:/data/config
+      - previeworch-deployments:/data/deployments
+      - previeworch-logs:/data/logs
+      - previeworch-ssh:/data/ssh
+    depends_on:
+      - traefik
+    networks:
+      - preview-proxy
+
+networks:
+  preview-proxy:
+    name: preview-proxy
+
+volumes:
+  previeworch-config:
+    name: previeworch-config
+  previeworch-deployments:
+    name: previeworch-deployments
+  previeworch-logs:
+    name: previeworch-logs
+  previeworch-ssh:
+    name: previeworch-ssh
