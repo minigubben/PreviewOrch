@@ -38,6 +38,12 @@ class FakeScriptRunner {
       throw error;
     }
 
+    if (env.WORKING_DIRECTORY === "missing-dir") {
+      const error = new Error("Working directory does not exist.");
+      error.parsed = { message: "Working directory does not exist at missing-dir" };
+      throw error;
+    }
+
     if (env.COMPOSE_PATH === "missing-labels.yml" && env.APPEND_PROXY_SETTINGS !== "true") {
       const error = new Error("Missing Traefik contract.");
       error.parsed = { message: "Missing required Traefik label contract token: ${ORCH_PREVIEW_HOST}" };
@@ -62,7 +68,8 @@ class FakeScriptRunner {
     const targetValue = targetType === "pr" ? Number(env.TARGET_VALUE) : env.TARGET_VALUE;
     const deploymentKey = env.DEPLOYMENT_KEY || buildDeploymentKey(targetType, targetValue);
     const workDir = path.join(env.DEPLOYMENTS_DIR, repoSlug, deploymentKey);
-    const composePathResolved = path.join(workDir, env.COMPOSE_PATH);
+    const projectDirectoryResolved = path.resolve(workDir, env.WORKING_DIRECTORY || ".");
+    const composePathResolved = path.join(projectDirectoryResolved, env.COMPOSE_PATH);
     const envFile = path.join(workDir, ".env.runtime");
     const proxyOverridePath = path.join(workDir, ".orchestrator-proxy.override.yml");
     const previewHost = buildPreviewHost(repoSlug, deploymentKey, env.BASE_DOMAIN || this.baseDomain);
@@ -101,6 +108,8 @@ class FakeScriptRunner {
         previewHost,
         projectName,
         workDir,
+        workingDirectory: env.WORKING_DIRECTORY || ".",
+        projectDirectoryResolved,
         composePathResolved,
         sourceCloneSshUrl: env.SOURCE_CLONE_SSH_URL,
         envFile,
@@ -128,6 +137,8 @@ class FakeScriptRunner {
         previewHost,
         projectName,
         workDir,
+        workingDirectory: env.WORKING_DIRECTORY || ".",
+        projectDirectoryResolved,
         composePathResolved,
         sourceCloneSshUrl: env.SOURCE_CLONE_SSH_URL,
         envFile,

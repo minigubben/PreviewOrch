@@ -98,6 +98,7 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and prev
    - repo name
    - clone SSH URL
    - default branch
+   - working directory inside the repo, default `.`
    - compose file path
    - public service name
    - public port
@@ -107,6 +108,7 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and prev
 3. The app validates:
    - `git ls-remote`
    - shallow clone of the default branch
+   - working directory existence
    - compose path existence
    - public service existence
    - required Traefik label contract, unless proxy settings will be appended by the orchestrator

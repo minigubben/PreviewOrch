@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const path = require("path");
 
 const { readJson, writeJson } = require("./json-file");
 const { normalizeBoolean, slugifyRepo } = require("./utils");
@@ -131,6 +132,8 @@ class RepoStore {
     if (typeof repo.appendProxySettings !== "boolean") {
       throw new RepoValidationError("appendProxySettings must be a boolean.");
     }
+
+    assertWorkingDirectory(repo.workingDirectory);
   }
 
   assertNoDuplicate(repos, candidate, selfId = null) {
@@ -153,6 +156,7 @@ class RepoStore {
         env: {
           CLONE_SSH_URL: repo.cloneSshUrl,
           DEFAULT_BRANCH: repo.defaultBranch,
+          WORKING_DIRECTORY: repo.workingDirectory,
           COMPOSE_PATH: repo.composePath,
           PUBLIC_SERVICE: repo.publicService,
           PUBLIC_PORT: String(repo.publicPort),
@@ -185,6 +189,7 @@ function normalizeRepoInput(input) {
     name: String(input.name || "").trim(),
     cloneSshUrl: String(input.cloneSshUrl || "").trim(),
     composePath: String(input.composePath || "").trim(),
+    workingDirectory: normalizeWorkingDirectory(input.workingDirectory),
     publicService: String(input.publicService || "").trim(),
     publicPort: Number(input.publicPort),
     defaultBranch: String(input.defaultBranch || "").trim(),
@@ -201,6 +206,7 @@ function hydrateStoredRepo(repo) {
   return {
     ...repo,
     appendProxySettings: normalizeBoolean(repo.appendProxySettings ?? false),
+    workingDirectory: normalizeWorkingDirectory(repo.workingDirectory),
     previewHostEnvVarName: String(repo.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
@@ -275,6 +281,23 @@ function validateEnvMap(envMap) {
 function assertEnvVarName(name, label) {
   if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name))) {
     throw new RepoValidationError(`${label} must be a valid environment variable name.`);
+  }
+}
+
+function normalizeWorkingDirectory(value) {
+  const raw = String(value ?? ".").trim();
+  if (!raw) {
+    return ".";
+  }
+
+  const normalized = path.posix.normalize(raw.replace(/\\/g, "/"));
+  return normalized || ".";
+}
+
+function assertWorkingDirectory(workingDirectory) {
+  const normalized = normalizeWorkingDirectory(workingDirectory);
+  if (path.posix.isAbsolute(normalized) || normalized === ".." || normalized.startsWith("../")) {
+    throw new RepoValidationError("workingDirectory must stay inside the repository.");
   }
 }
 

@@ -110,6 +110,11 @@
                     <input id="composePath" name="composePath" placeholder="deploy/docker-compose.preview.yml" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
                   </div>
                   <div class="space-y-2">
+                    <label for="workingDirectory" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Working Directory</label>
+                    <input id="workingDirectory" name="workingDirectory" value="." required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    <p class="text-xs leading-5 text-zinc-500">Repo-relative directory where <code class="text-zinc-300">docker compose</code> should run. Default: <code class="text-zinc-300">.</code></p>
+                  </div>
+                  <div class="space-y-2">
                     <label for="publicService" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Service</label>
                     <input id="publicService" name="publicService" placeholder="web" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
                   </div>
@@ -199,6 +204,10 @@
                     <div class="space-y-2">
                       <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Compose Path</label>
                       <input name="composePath" value="<%= repo.composePath %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Working Directory</label>
+                      <input name="workingDirectory" value="<%= repo.workingDirectory || '.' %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
                     </div>
                     <div class="space-y-2">
                       <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Service</label>

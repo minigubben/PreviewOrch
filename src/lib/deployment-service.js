@@ -1,3 +1,5 @@
+const path = require("path");
+
 const { RepoValidationError } = require("./repo-store");
 const { buildDeploymentKey, buildPreviewHost, buildProjectName, slugifyRepo } = require("./utils");
 
@@ -132,8 +134,9 @@ class DeploymentService {
     const previewHost = buildPreviewHost(repoSlug, deploymentKey, this.config.baseDomain);
     const projectName = buildProjectName(repoSlug, deploymentKey);
     const workDir = this.deploymentStore.getWorkDir(repoSlug, deploymentKey);
+    const projectDirectoryResolved = path.resolve(workDir, repo.workingDirectory || ".");
     const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
-    const composePathResolved = `${workDir}/${repo.composePath}`.replace(/\/+/g, "/");
+    const composePathResolved = path.resolve(projectDirectoryResolved, repo.composePath);
     const now = new Date().toISOString();
 
     const seed = {
@@ -151,6 +154,8 @@ class DeploymentService {
       previewHost,
       projectName,
       workDir,
+      workingDirectory: repo.workingDirectory || ".",
+      projectDirectoryResolved,
       composePathResolved,
       sourceCloneSshUrl,
       status: "deploying",
@@ -189,6 +194,7 @@ class DeploymentService {
           REPO_SLUG: repoSlug,
           SOURCE_CLONE_SSH_URL: sourceCloneSshUrl,
           DEFAULT_BRANCH: repo.defaultBranch,
+          WORKING_DIRECTORY: repo.workingDirectory || ".",
           COMPOSE_PATH: repo.composePath,
           PUBLIC_SERVICE: repo.publicService,
           PUBLIC_PORT: String(repo.publicPort),
@@ -248,7 +254,8 @@ class DeploymentService {
     const previewHost = buildPreviewHost(repoSlug, deploymentKey, this.config.baseDomain);
     const projectName = buildProjectName(repoSlug, deploymentKey);
     const workDir = this.deploymentStore.getWorkDir(repoSlug, deploymentKey);
-    const composePathResolved = `${workDir}/${repo.composePath}`.replace(/\/+/g, "/");
+    const projectDirectoryResolved = existing?.projectDirectoryResolved || path.resolve(workDir, repo.workingDirectory || ".");
+    const composePathResolved = existing?.composePathResolved || path.resolve(projectDirectoryResolved, repo.composePath);
     const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
     const seed = {
       deploymentId,
@@ -265,6 +272,8 @@ class DeploymentService {
       previewHost,
       projectName,
       workDir,
+      workingDirectory: existing?.workingDirectory || repo.workingDirectory || ".",
+      projectDirectoryResolved,
       composePathResolved,
       sourceCloneSshUrl: existing?.sourceCloneSshUrl || repo.cloneSshUrl,
       status: "destroying",

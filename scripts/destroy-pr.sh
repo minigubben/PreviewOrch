@@ -14,6 +14,7 @@ fi
 deployment_id="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.deploymentId || ""));')"
 project_name="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.projectName || ""));')"
 compose_path_resolved="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.composePathResolved || ""));')"
+project_directory_resolved="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.projectDirectoryResolved || ""));')"
 work_dir="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.workDir || ""));')"
 env_file="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.envFile || ""));')"
 proxy_override_path="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.proxyOverridePath || ""));')"
@@ -21,6 +22,7 @@ proxy_override_path="$(node -e 'const fs = require("fs"); const m = JSON.parse(f
 if [[ -n "${project_name}" && -n "${compose_path_resolved}" && -f "${compose_path_resolved}" ]]; then
   compose_down_args=(
     --project-name "${project_name}"
+    --project-directory "${project_directory_resolved:-$(dirname "${compose_path_resolved}")}"
     --env-file "${env_file:-${work_dir}/.env.runtime}"
     -f "${compose_path_resolved}"
   )

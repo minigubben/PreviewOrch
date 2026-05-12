@@ -110,6 +110,7 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(response.body.appendProxySettings, false);
   assert.deepEqual(response.body.extraEnv, {});
   assert.equal(response.body.previewHostEnvVarName, "");
+  assert.equal(response.body.workingDirectory, ".");
   assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length, 1);
 });
 
@@ -184,6 +185,20 @@ test("rejects invalid additional env variable names", async () => {
 
   assert.equal(response.status, 400);
   assert.match(response.body.error, /must be a valid environment variable name/);
+});
+
+test("rejects a working directory outside the repository", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    workingDirectory: "../outside",
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /workingDirectory must stay inside the repository/);
 });
 
 test("deploys on pull request opened and stores deployment metadata", async () => {
@@ -306,6 +321,36 @@ test("stores a generated proxy override path when proxy settings are appended", 
   const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
   assert.equal(metadata.appendProxySettings, true);
   assert.match(metadata.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
+});
+
+test("resolves compose paths from the configured working directory", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken, {
+    workingDirectory: "ops/preview",
+    composePath: "docker-compose.preview.yml",
+  });
+  assert.equal(repoResponse.status, 201);
+
+  const payload = buildPullRequestPayload("opened");
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 200);
+
+  const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
+  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+  assert.equal(metadata.workingDirectory, "ops/preview");
+  assert.match(metadata.projectDirectoryResolved, /acme-widgets\/pr-17\/ops\/preview$/);
+  assert.match(metadata.composePathResolved, /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/);
 });
 
 test("manually deploys a branch from the repo editor api", async () => {

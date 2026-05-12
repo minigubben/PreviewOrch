@@ -8,6 +8,7 @@ required_vars=(
   REPO_SLUG
   SOURCE_CLONE_SSH_URL
   COMPOSE_PATH
+  WORKING_DIRECTORY
   PUBLIC_SERVICE
   PUBLIC_PORT
   DEPLOYMENT_KEY
@@ -36,7 +37,8 @@ project_name="$(node -e 'const input = `${process.env.REPO_SLUG}-${process.env.D
 preview_host="${REPO_SLUG}-${DEPLOYMENT_KEY}.${BASE_DOMAIN}"
 deployment_id="${REPO_ID}-${DEPLOYMENT_KEY}"
 work_dir="${DEPLOYMENTS_DIR}/${REPO_SLUG}/${DEPLOYMENT_KEY}"
-compose_path_resolved="${work_dir}/${COMPOSE_PATH}"
+project_dir="$(WORK_DIR="${work_dir}" node -e 'const path = require("path"); process.stdout.write(path.resolve(process.env.WORK_DIR, process.env.WORKING_DIRECTORY || "."));')"
+compose_path_resolved="$(PROJECT_DIR="${project_dir}" node -e 'const path = require("path"); process.stdout.write(path.resolve(process.env.PROJECT_DIR, process.env.COMPOSE_PATH));')"
 metadata_path="${work_dir}/deployment.json"
 env_file="${work_dir}/.env.runtime"
 proxy_override_path="${work_dir}/.orchestrator-proxy.override.yml"
@@ -46,12 +48,14 @@ mkdir -p "$(dirname "${work_dir}")"
 if [[ -f "${metadata_path}" ]]; then
   previous_project_name="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.projectName || ""));')"
   previous_compose_path="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.composePathResolved || ""));')"
+  previous_project_directory_resolved="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.projectDirectoryResolved || ""));')"
   previous_env_file="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.envFile || ""));')"
   previous_proxy_override_path="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.proxyOverridePath || ""));')"
 
   if [[ -n "${previous_project_name}" && -n "${previous_compose_path}" && -f "${previous_compose_path}" ]]; then
     compose_down_args=(
       --project-name "${previous_project_name}"
+      --project-directory "${previous_project_directory_resolved:-$(dirname "${previous_compose_path}")}"
       --env-file "${previous_env_file:-${env_file}}"
       -f "${previous_compose_path}"
     )
@@ -101,6 +105,11 @@ case "${TARGET_TYPE}" in
     exit 1
     ;;
 esac
+
+if [[ ! -d "${project_dir}" ]]; then
+  echo "{\"ok\":false,\"message\":\"Working directory missing after clone at ${WORKING_DIRECTORY}\"}"
+  exit 1
+fi
 
 if [[ ! -f "${compose_path_resolved}" ]]; then
   echo "{\"ok\":false,\"message\":\"Compose file missing after clone at ${COMPOSE_PATH}\"}"
@@ -178,6 +187,7 @@ fi
 
 compose_up_args=(
   --project-name "${project_name}"
+  --project-directory "${project_dir}"
   --env-file "${env_file}"
   -f "${compose_path_resolved}"
 )
@@ -191,6 +201,8 @@ DEPLOYMENT_KEY="${DEPLOYMENT_KEY}" \
 PREVIEW_HOST="${preview_host}" \
 PROJECT_NAME="${project_name}" \
 WORK_DIR="${work_dir}" \
+WORKING_DIRECTORY="${WORKING_DIRECTORY}" \
+PROJECT_DIRECTORY_RESOLVED="${project_dir}" \
 COMPOSE_PATH_RESOLVED="${compose_path_resolved}" \
 PROXY_OVERRIDE_PATH="${proxy_override_path}" \
 METADATA_PATH="${metadata_path}" \
@@ -213,6 +225,8 @@ const metadata = {
   previewHost: process.env.PREVIEW_HOST,
   projectName: process.env.PROJECT_NAME,
   workDir: process.env.WORK_DIR,
+  workingDirectory: process.env.WORKING_DIRECTORY || ".",
+  projectDirectoryResolved: process.env.PROJECT_DIRECTORY_RESOLVED || process.env.WORK_DIR,
   composePathResolved: process.env.COMPOSE_PATH_RESOLVED,
   proxyOverridePath: process.env.APPEND_PROXY_SETTINGS === "true" ? process.env.PROXY_OVERRIDE_PATH : "",
   sourceCloneSshUrl: process.env.SOURCE_CLONE_SSH_URL,

@@ -4,6 +4,7 @@ set -euo pipefail
 required_vars=(
   CLONE_SSH_URL
   DEFAULT_BRANCH
+  WORKING_DIRECTORY
   COMPOSE_PATH
   PUBLIC_SERVICE
   PUBLIC_PORT
@@ -40,7 +41,13 @@ if ! git clone --depth 1 --branch "${DEFAULT_BRANCH}" "${CLONE_SSH_URL}" "${tmp_
   exit 1
 fi
 
-compose_file="${tmp_dir}/repo/${COMPOSE_PATH}"
+project_dir="${tmp_dir}/repo/${WORKING_DIRECTORY}"
+if [[ ! -d "${project_dir}" ]]; then
+  echo "{\"ok\":false,\"message\":\"Working directory does not exist at ${WORKING_DIRECTORY}\"}"
+  exit 1
+fi
+
+compose_file="${project_dir}/${COMPOSE_PATH}"
 if [[ ! -f "${compose_file}" ]]; then
   echo "{\"ok\":false,\"message\":\"Compose file does not exist at ${COMPOSE_PATH}\"}"
   exit 1
