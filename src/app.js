@@ -13,6 +13,7 @@ const { LockManager } = require("./lib/lock-manager");
 const { Logger } = require("./lib/logger");
 const { RepoStore, RepoValidationError } = require("./lib/repo-store");
 const { ScriptError, ScriptRunner } = require("./lib/script-runner");
+const { SshKeyManager } = require("./lib/ssh-key-manager");
 const { readLogTail } = require("./lib/log-reader");
 
 async function createApp({ config, services = {} }) {
@@ -45,6 +46,7 @@ async function createApp({ config, services = {} }) {
       scriptRunner,
       lockManager: services.lockManager || new LockManager(),
     });
+  const sshKeyManager = services.sshKeyManager || new SshKeyManager({ sshDir: config.sshDir, logger });
 
   const app = express();
   app.set("view engine", "ejs");
@@ -147,16 +149,18 @@ async function createApp({ config, services = {} }) {
   app.use(express.json());
 
   app.get("/", requireAuth, async (req, res) => {
-    const [repos, deployments, eventsLog] = await Promise.all([
+    const [repos, deployments, eventsLog, sshKeyStatus] = await Promise.all([
       repoStore.list(),
       deploymentService.listDeployments(),
       readLogTail(config.appLogFile, 60),
+      sshKeyManager.getStatus(),
     ]);
 
     return res.render("dashboard", {
       repos,
       deployments,
       appLogTail: eventsLog,
+      sshKeyStatus,
       baseDomain: config.baseDomain,
       traefikNetworkName: config.traefikNetworkName,
       apiBase: "/api",
@@ -204,6 +208,15 @@ async function createApp({ config, services = {} }) {
 
   app.get("/api/deployments", requireAuth, async (req, res) => {
     res.json(await deploymentService.listDeployments());
+  });
+
+  app.post("/api/ssh-keypair", requireAuth, verifyCsrfToken, async (req, res, next) => {
+    try {
+      const status = await sshKeyManager.generateOrRotate();
+      res.json(status);
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.post("/api/deployments/:id/redeploy", requireAuth, verifyCsrfToken, async (req, res, next) => {

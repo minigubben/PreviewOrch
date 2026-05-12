@@ -32,6 +32,11 @@ async function runAction(event) {
   event.preventDefault();
   const button = event.currentTarget;
   const statusNode = document.querySelector("[data-ui-status]");
+  const confirmMessage = button.dataset.confirm;
+
+  if (confirmMessage && !window.confirm(confirmMessage)) {
+    return;
+  }
 
   try {
     const response = await fetch(button.dataset.action, {

@@ -90,6 +90,30 @@
 
         <article class="panel stack">
           <div>
+            <h2>SSH key</h2>
+            <p class="muted">Use this key for GitHub repo access. Generate it from the UI and rotate it here when needed.</p>
+          </div>
+          <div class="actions">
+            <button
+              type="button"
+              data-api-action
+              data-method="POST"
+              data-action="/api/ssh-keypair"
+              <%= sshKeyStatus.hasKey ? 'data-confirm="An SSH key already exists. Generate a new keypair and replace the current one?"' : "" %>
+            >
+              <%= sshKeyStatus.hasKey ? "Rotate SSH keypair" : "Generate SSH keypair" %>
+            </button>
+          </div>
+          <% if (sshKeyStatus.hasKey) { %>
+            <p class="muted">Active key type: <code><%= sshKeyStatus.algorithm %></code></p>
+            <pre><%= sshKeyStatus.publicKey %></pre>
+          <% } else { %>
+            <p class="muted">No SSH keypair exists yet. Generate one, then add the public key to GitHub deploy keys or your automation account.</p>
+          <% } %>
+        </article>
+
+        <article class="panel stack">
+          <div>
             <h2>Compose contract</h2>
             <p class="muted">Attach preview routing in the repo-owned compose file. The orchestrator only injects env vars.</p>
           </div>

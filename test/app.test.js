@@ -46,6 +46,38 @@ test("rejects invalid admin credentials", async () => {
   assert.match(response.text, /Invalid username or password/);
 });
 
+test("dashboard shows missing ssh key state before generation", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const response = await context.agent.get("/");
+
+  assert.equal(response.status, 200);
+  assert.match(response.text, /No SSH keypair exists yet/);
+  assert.match(response.text, /Generate SSH keypair/);
+});
+
+test("admin can generate an ssh keypair from the ui api", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await context.agent.post("/api/ssh-keypair").set("X-CSRF-Token", csrfToken).send({});
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.hasKey, true);
+  assert.equal(response.body.algorithm, "ed25519");
+  assert.match(response.body.publicKey, /^ssh-ed25519 /);
+  assert.equal(context.sshKeyManager.generateCalls, 1);
+
+  const dashboard = await context.agent.get("/");
+  assert.match(dashboard.text, /Rotate SSH keypair/);
+  assert.match(dashboard.text, /ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeGeneratedKey/);
+  assert.match(dashboard.text, /Generate a new keypair and replace the current one\?/);
+});
+
 test("allows login in production mode when session cookie secure is auto", async () => {
   const context = await createTestContext({
     nodeEnv: "production",

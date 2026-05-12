@@ -8,6 +8,7 @@ const request = require("supertest");
 const { createApp } = require("../../src/app");
 const { getConfig } = require("../../src/config");
 const { FakeScriptRunner } = require("./fake-script-runner");
+const { FakeSshKeyManager } = require("./fake-ssh-key-manager");
 
 async function createTestContext(options = {}) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-test-"));
@@ -35,11 +36,13 @@ async function createTestContext(options = {}) {
     baseDomain: config.baseDomain,
     deployDelayMs: options.deployDelayMs || 0,
   });
+  const sshKeyManager = options.sshKeyManager || new FakeSshKeyManager(options.initialSshKeyStatus);
 
   const app = await createApp({
     config,
     services: {
       scriptRunner,
+      sshKeyManager,
     },
   });
 
@@ -52,6 +55,7 @@ async function createTestContext(options = {}) {
     password,
     root,
     scriptRunner,
+    sshKeyManager,
     cleanup: async () => {
       await fs.rm(root, { recursive: true, force: true });
     },

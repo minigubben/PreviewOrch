@@ -50,12 +50,13 @@ node -e 'console.log(require("bcryptjs").hashSync("change-me", 10))'
 
 ## SSH Access
 
-Mount one SSH private key into `data/ssh/` so the app container can clone configured repos:
+Generate the SSH keypair from the admin UI. The dashboard shows the current public key so it can be copied into GitHub deploy keys or your automation account.
 
-- `data/ssh/id_ed25519`, or
-- `data/ssh/id_rsa`
+- The app stores the active keypair in `data/ssh/`
+- Generated keys use `id_ed25519` and `id_ed25519.pub`
+- You can rotate the keypair from the same dashboard action
 
-The scripts automatically set `GIT_SSH_COMMAND` to use that key.
+The scripts automatically set `GIT_SSH_COMMAND` to use `data/ssh/id_ed25519` when it exists, otherwise they fall back to `data/ssh/id_rsa`.
 
 ## Run
 
