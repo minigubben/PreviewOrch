@@ -12,6 +12,7 @@ const { buildWebhookContext, verifyGithubSignature } = require("./lib/github");
 const { LockManager } = require("./lib/lock-manager");
 const { Logger } = require("./lib/logger");
 const { RepoStore, RepoValidationError } = require("./lib/repo-store");
+const { RuntimeInspector } = require("./lib/runtime-inspector");
 const { ScriptError, ScriptRunner } = require("./lib/script-runner");
 const { SshKeyManager } = require("./lib/ssh-key-manager");
 const { readLogTail } = require("./lib/log-reader");
@@ -46,6 +47,7 @@ async function createApp({ config, services = {} }) {
       deploymentStore,
       scriptRunner,
       lockManager: services.lockManager || new LockManager(),
+      runtimeInspector: services.runtimeInspector || new RuntimeInspector({ logger }),
     });
   const sshKeyManager = services.sshKeyManager || new SshKeyManager({ sshDir: config.sshDir, logger });
 

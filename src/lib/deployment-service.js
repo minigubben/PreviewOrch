@@ -4,17 +4,37 @@ const { RepoValidationError } = require("./repo-store");
 const { buildDeploymentKey, buildPreviewHost, buildProjectName, slugifyRepo } = require("./utils");
 
 class DeploymentService {
-  constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager }) {
+  constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager, runtimeInspector }) {
     this.config = config;
     this.logger = logger;
     this.repoStore = repoStore;
     this.deploymentStore = deploymentStore;
     this.scriptRunner = scriptRunner;
     this.lockManager = lockManager;
+    this.runtimeInspector = runtimeInspector;
   }
 
   async listDeployments() {
-    return this.deploymentStore.listWithLogTails();
+    const deployments = await this.deploymentStore.listWithLogTails();
+    if (!this.runtimeInspector) {
+      return deployments.map((deployment) => ({
+        ...deployment,
+        runtime: {
+          available: false,
+          status: "unavailable",
+          reason: "runtime-inspector-disabled",
+          containers: [],
+          publicServiceContainer: null,
+        },
+      }));
+    }
+
+    return Promise.all(
+      deployments.map(async (deployment) => ({
+        ...deployment,
+        runtime: await this.runtimeInspector.inspectDeployment(deployment),
+      })),
+    );
   }
 
   async handleWebhook(webhookContext) {

@@ -7,6 +7,7 @@ const request = require("supertest");
 
 const { createApp } = require("../../src/app");
 const { getConfig } = require("../../src/config");
+const { FakeRuntimeInspector } = require("./fake-runtime-inspector");
 const { FakeScriptRunner } = require("./fake-script-runner");
 const { FakeSshKeyManager } = require("./fake-ssh-key-manager");
 
@@ -37,12 +38,14 @@ async function createTestContext(options = {}) {
     deployDelayMs: options.deployDelayMs || 0,
   });
   const sshKeyManager = options.sshKeyManager || new FakeSshKeyManager(options.initialSshKeyStatus);
+  const runtimeInspector = options.runtimeInspector || new FakeRuntimeInspector();
 
   const app = await createApp({
     config,
     services: {
       scriptRunner,
       sshKeyManager,
+      runtimeInspector,
     },
   });
 
@@ -56,6 +59,7 @@ async function createTestContext(options = {}) {
     root,
     scriptRunner,
     sshKeyManager,
+    runtimeInspector,
     cleanup: async () => {
       await fs.rm(root, { recursive: true, force: true });
     },

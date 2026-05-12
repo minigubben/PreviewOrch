@@ -340,6 +340,33 @@ networks:
                       <div>Host: <a href="http://<%= deployment.previewHost %>" target="_blank" rel="noreferrer" class="text-zinc-100 underline decoration-zinc-700 underline-offset-4"><%= deployment.previewHost %></a></div>
                       <div>Project: <code class="text-zinc-200"><%= deployment.projectName %></code></div>
                       <div>Last event: <code class="text-zinc-200"><%= deployment.lastEvent %></code></div>
+                      <div class="border border-zinc-800 bg-zinc-950/70 px-4 py-4">
+                        <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Live Runtime</p>
+                        <% if (!deployment.runtime || deployment.runtime.available === false) { %>
+                          <p class="text-sm text-zinc-500">Docker inspection unavailable<% if (deployment.runtime?.reason) { %>: <code class="text-zinc-400"><%= deployment.runtime.reason %></code><% } %>.</p>
+                        <% } else if (!deployment.runtime.containers.length) { %>
+                          <p class="text-sm text-zinc-500">No live containers found for this Compose project.</p>
+                        <% } else { %>
+                          <% if (deployment.runtime.publicServiceContainer) { %>
+                            <div class="mb-4 space-y-2">
+                              <div>Target container: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.name %></code></div>
+                              <div>Service: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.service %></code></div>
+                              <div>State: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.state %></code></div>
+                              <div>Networks: <code class="text-zinc-200"><%= deployment.runtime.publicServiceContainer.networks.join(", ") || "none" %></code></div>
+                            </div>
+                            <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= JSON.stringify(deployment.runtime.publicServiceContainer.labels, null, 2) %></pre>
+                          <% } %>
+                          <div class="mt-4 space-y-3">
+                            <% deployment.runtime.containers.forEach((container) => { %>
+                              <div class="border border-zinc-800 px-3 py-3">
+                                <div class="text-sm text-zinc-200"><code><%= container.name %></code></div>
+                                <div class="mt-2 text-xs uppercase tracking-[0.22em] text-zinc-500"><%= container.service %> · <%= container.state %></div>
+                                <div class="mt-2 text-xs text-zinc-400">Networks: <%= container.networks.join(", ") || "none" %></div>
+                              </div>
+                            <% }) %>
+                          </div>
+                        <% } %>
+                      </div>
                       <div class="flex flex-wrap gap-3">
                         <button
                           type="button"

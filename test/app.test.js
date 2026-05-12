@@ -228,6 +228,8 @@ test("deploys on pull request opened and stores deployment metadata", async () =
   assert.equal(authorizedDeployments.status, 200);
   assert.equal(authorizedDeployments.body.length, 1);
   assert.equal(authorizedDeployments.body[0].status, "running");
+  assert.equal(authorizedDeployments.body[0].runtime.publicServiceContainer.name, "acme-widgets-pr-17-app-1");
+  assert.deepEqual(authorizedDeployments.body[0].runtime.publicServiceContainer.networks, ["default", "preview-proxy"]);
 
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
   const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
@@ -386,6 +388,7 @@ test("manually deploys a branch from the repo editor api", async () => {
   const dashboard = await context.agent.get("/");
   assert.equal(dashboard.status, 200);
   assert.match(dashboard.text, /Branch release\/2026-q2/);
+  assert.match(dashboard.text, /acme-widgets-branch-release-2026-q2-app-1/);
 });
 
 test("manually deploys a pull request from the repo editor api", async () => {
