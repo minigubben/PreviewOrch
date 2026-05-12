@@ -1,6 +1,6 @@
 services:
   traefik:
-    image: traefik:v3.4
+    image: traefik:v3.7
     command:
       - --api.dashboard=true
       - --api.insecure=false
@@ -17,7 +17,7 @@ services:
       - preview-proxy
 
   cloudflared:
-    image: cloudflare/cloudflared:2026.5.0
+    image: cloudflare/cloudflared
     command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN}
     depends_on:
       - traefik
