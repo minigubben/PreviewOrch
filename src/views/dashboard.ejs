@@ -48,11 +48,11 @@
                 + Add repository
               </button>
               <% repos.forEach((repo) => { %>
-                <button
-                  type="button"
+                <a
+                  href="#repo-<%= repo.id %>"
                   data-panel-trigger
                   data-panel-target="repo-<%= repo.id %>"
-                  class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-left transition hover:bg-zinc-800"
+                  class="block w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-left transition hover:bg-zinc-800"
                 >
                   <div class="flex items-start justify-between gap-3">
                     <div>
@@ -61,34 +61,12 @@
                     </div>
                     <span class="mt-1 text-xs text-zinc-500">edit</span>
                   </div>
-                </button>
+                </a>
               <% }) %>
               <% if (!repos.length) { %>
                 <p class="px-1 pt-2 text-sm text-zinc-500">No repositories configured yet.</p>
               <% } %>
             </div>
-          </section>
-
-          <section class="border-b border-zinc-800 px-5 py-5">
-            <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">SSH Key</p>
-            <p class="mb-4 text-sm leading-6 text-zinc-400">Generate or rotate the GitHub access key from the UI.</p>
-            <button
-              type="button"
-              data-api-action
-              data-method="POST"
-              data-action="/api/ssh-keypair"
-              class="mb-4 w-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-left text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
-              <%= sshKeyStatus.hasKey ? 'data-confirm="An SSH key already exists. Generate a new keypair and replace the current one?"' : "" %>
-            >
-              <%= sshKeyStatus.hasKey ? "Rotate SSH keypair" : "Generate SSH keypair" %>
-            </button>
-            <% if (sshKeyStatus.hasKey) { %>
-              <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Active Key Type</p>
-              <p class="mb-4 text-sm text-zinc-300"><code><%= sshKeyStatus.algorithm %></code></p>
-              <pre class="overflow-x-auto border border-zinc-800 bg-zinc-950 px-4 py-4 text-xs leading-6 text-zinc-200"><%= sshKeyStatus.publicKey %></pre>
-            <% } else { %>
-              <p class="text-sm leading-6 text-zinc-400">No SSH keypair exists yet. Generate one, then add the public key to GitHub deploy keys or your automation account.</p>
-            <% } %>
           </section>
         </aside>
 
@@ -260,6 +238,28 @@
 
           <div class="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
             <section class="space-y-6">
+              <div class="border border-zinc-800 bg-zinc-950/70 px-5 py-5">
+                <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">SSH Key</p>
+                <p class="mb-4 text-sm leading-6 text-zinc-400">Generate or rotate the GitHub access key from the UI.</p>
+                <button
+                  type="button"
+                  data-api-action
+                  data-method="POST"
+                  data-action="/api/ssh-keypair"
+                  class="mb-4 border border-zinc-700 bg-zinc-900 px-4 py-3 text-left text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
+                  <%= sshKeyStatus.hasKey ? 'data-confirm="An SSH key already exists. Generate a new keypair and replace the current one?"' : "" %>
+                >
+                  <%= sshKeyStatus.hasKey ? "Rotate SSH keypair" : "Generate SSH keypair" %>
+                </button>
+                <% if (sshKeyStatus.hasKey) { %>
+                  <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Active Key Type</p>
+                  <p class="mb-4 text-sm text-zinc-300"><code><%= sshKeyStatus.algorithm %></code></p>
+                  <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= sshKeyStatus.publicKey %></pre>
+                <% } else { %>
+                  <p class="text-sm leading-6 text-zinc-400">No SSH keypair exists yet. Generate one, then add the public key to GitHub deploy keys or your automation account.</p>
+                <% } %>
+              </div>
+
               <div class="border border-zinc-800 bg-zinc-950/70 px-5 py-5">
                 <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Compose Contract</p>
                 <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200">services:

@@ -106,6 +106,7 @@ function initPanelSelector() {
     triggers.forEach((trigger) => {
       const active = trigger.dataset.panelTarget === id;
       trigger.dataset.active = String(active);
+      trigger.setAttribute("aria-selected", String(active));
       trigger.classList.toggle("bg-zinc-100", active);
       trigger.classList.toggle("text-black", active);
       trigger.classList.toggle("border-zinc-100", active);
@@ -117,16 +118,29 @@ function initPanelSelector() {
     panels.forEach((panel) => {
       panel.classList.toggle("hidden", panel.dataset.panelId !== id);
     });
-
-    if (typeof window !== "undefined") {
-      window.location.hash = id;
-    }
   }
 
   triggers.forEach((trigger) => {
-    trigger.addEventListener("click", () => activate(trigger.dataset.panelTarget));
+    trigger.addEventListener("click", (event) => {
+      event.preventDefault();
+      const target = trigger.dataset.panelTarget;
+      if (typeof window !== "undefined") {
+        window.location.hash = target;
+      }
+      activate(target);
+    });
   });
 
-  const initial = window.location.hash ? window.location.hash.slice(1) : triggers[0].dataset.panelTarget;
-  activate(byId.has(initial) ? initial : triggers[0].dataset.panelTarget);
+  if (typeof window !== "undefined") {
+    window.addEventListener("hashchange", () => {
+      const target = window.location.hash.slice(1);
+      if (byId.has(target)) {
+        activate(target);
+      }
+    });
+  }
+
+  const initial = typeof window !== "undefined" && window.location.hash ? window.location.hash.slice(1) : triggers[0].dataset.panelTarget;
+  const fallback = triggers[0].dataset.panelTarget;
+  activate(byId.has(initial) ? initial : fallback);
 }
