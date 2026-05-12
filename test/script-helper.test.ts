@@ -86,10 +86,22 @@ test("writeRuntimeEnvFile writes orchestrator and extra env values", async () =>
 test("writeProxyOverride preserves existing compose networking by only adding labels", async () => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-proxy-"));
   const overridePath = path.join(root, ".orchestrator-proxy.override.yml");
+  const composePath = path.join(root, "compose.yml");
 
   try {
+    await fs.writeFile(
+      composePath,
+      [
+        "services:",
+        "  app:",
+        "    image: nginx:latest",
+      ].join("\n"),
+      "utf8",
+    );
+
     writeProxyOverride(
       {
+        COMPOSE_ABS_PATH: composePath,
         PUBLIC_PORT: "3000",
         PUBLIC_SERVICE: "app",
         TRAEFIK_NETWORK_NAME: "preview-proxy",
@@ -102,8 +114,50 @@ test("writeProxyOverride preserves existing compose networking by only adding la
     const contents = await fs.readFile(overridePath, "utf8");
     assert.match(contents, /traefik\.enable: "true"/);
     assert.match(contents, /traefik\.docker\.network: preview-proxy/);
-    assert.doesNotMatch(contents, /networks:\s+preview-proxy:\s+null/);
-    assert.doesNotMatch(contents, /external: true/);
+    assert.match(contents, /services:\s+app:\s+networks:\s+- default\s+- preview-proxy/s);
+    assert.match(contents, /preview-proxy:\s+[\s\S]*external: true/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("writeProxyOverride preserves explicitly declared service networks", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-proxy-explicit-"));
+  const overridePath = path.join(root, ".orchestrator-proxy.override.yml");
+  const composePath = path.join(root, "compose.yml");
+
+  try {
+    await fs.writeFile(
+      composePath,
+      [
+        "services:",
+        "  app:",
+        "    image: nginx:latest",
+        "    networks:",
+        "      internal:",
+        "        aliases:",
+        "          - appalias",
+        "networks:",
+        "  internal: {}",
+      ].join("\n"),
+      "utf8",
+    );
+
+    writeProxyOverride(
+      {
+        COMPOSE_ABS_PATH: composePath,
+        PUBLIC_PORT: "3000",
+        PUBLIC_SERVICE: "app",
+        TRAEFIK_NETWORK_NAME: "preview-proxy",
+      },
+      overridePath,
+      "acme-widgets-pr-42.preview.example.com",
+      "acme-widgets-pr-42",
+    );
+
+    const contents = await fs.readFile(overridePath, "utf8");
+    assert.match(contents, /services:\s+app:\s+networks:\s+- internal\s+- preview-proxy/s);
+    assert.doesNotMatch(contents, /- default/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

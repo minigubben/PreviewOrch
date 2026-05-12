@@ -99,10 +99,13 @@ export function writeProxyOverride(env: CliEnvironment, targetPath: string, prev
   const publicService = required(env.PUBLIC_SERVICE, "PUBLIC_SERVICE");
   const publicPort = required(env.PUBLIC_PORT, "PUBLIC_PORT");
   const networkName = required(env.TRAEFIK_NETWORK_NAME, "TRAEFIK_NETWORK_NAME");
+  const composeAbsPath = required(env.COMPOSE_ABS_PATH, "COMPOSE_ABS_PATH");
+  const serviceNetworks = resolveServiceNetworks(composeAbsPath, publicService);
 
   const doc = {
     services: {
       [publicService]: {
+        networks: [...serviceNetworks, networkName],
         labels: {
           "traefik.enable": "true",
           "traefik.docker.network": networkName,
@@ -110,6 +113,12 @@ export function writeProxyOverride(env: CliEnvironment, targetPath: string, prev
           [`traefik.http.routers.${projectName}.entrypoints`]: "web",
           [`traefik.http.services.${projectName}.loadbalancer.server.port`]: String(publicPort),
         },
+      },
+    },
+    networks: {
+      [networkName]: {
+        external: true,
+        name: networkName,
       },
     },
   };
@@ -207,6 +216,39 @@ export function validateComposeContract(
   }
 
   return { ok: true, message: "Repository validation passed." };
+}
+
+function resolveServiceNetworks(composeAbsPath: string, publicService: string): string[] {
+  const raw = fs.readFileSync(composeAbsPath, "utf8");
+  const doc = YAML.parse(raw) as {
+    services?: Record<string, { networks?: string[] | Record<string, unknown> }>;
+  } | null;
+
+  if (!doc || typeof doc !== "object" || !doc.services || typeof doc.services !== "object") {
+    throw new Error("Compose file must contain a services object.");
+  }
+
+  const service = doc.services[publicService];
+  if (!service) {
+    throw new Error(`Configured public service '${publicService}' was not found in compose file.`);
+  }
+
+  const declaredNetworks = service.networks;
+  if (!declaredNetworks) {
+    return ["default"];
+  }
+
+  if (Array.isArray(declaredNetworks)) {
+    const names = declaredNetworks.map(String).filter(Boolean);
+    return names.length ? names : ["default"];
+  }
+
+  if (typeof declaredNetworks === "object") {
+    const names = Object.keys(declaredNetworks);
+    return names.length ? names : ["default"];
+  }
+
+  throw new Error(`Configured public service '${publicService}' has an unsupported networks definition.`);
 }
 
 function readMetadata(metadataPath: string): DeploymentMetadata | null {
