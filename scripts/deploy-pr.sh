@@ -161,9 +161,6 @@ const YAML = require("yaml");
 const doc = {
   services: {
     [process.env.PUBLIC_SERVICE]: {
-      networks: {
-        [process.env.TRAEFIK_NETWORK_NAME]: null,
-      },
       labels: {
         "traefik.enable": "true",
         "traefik.docker.network": process.env.TRAEFIK_NETWORK_NAME,
@@ -171,12 +168,6 @@ const doc = {
         [`traefik.http.routers.${process.env.PROJECT_NAME}.entrypoints`]: "web",
         [`traefik.http.services.${process.env.PROJECT_NAME}.loadbalancer.server.port`]: String(process.env.PUBLIC_PORT),
       },
-    },
-  },
-  networks: {
-    [process.env.TRAEFIK_NETWORK_NAME]: {
-      external: true,
-      name: process.env.TRAEFIK_NETWORK_NAME,
     },
   },
 };
@@ -197,6 +188,22 @@ if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
   compose_up_args+=(-f "${proxy_override_path}")
 fi
 docker compose "${compose_up_args[@]}" up -d --build
+
+if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
+  compose_ps_args=(
+    --project-name "${project_name}"
+    --project-directory "${project_dir}"
+    --env-file "${env_file}"
+    -f "${compose_path_resolved}"
+    -f "${proxy_override_path}"
+  )
+  while IFS= read -r container_id; do
+    [[ -n "${container_id}" ]] || continue
+    if ! docker inspect "${container_id}" --format '{{json .NetworkSettings.Networks}}' | grep -q "\"${TRAEFIK_NETWORK_NAME}\""; then
+      docker network connect "${TRAEFIK_NETWORK_NAME}" "${container_id}"
+    fi
+  done < <(docker compose "${compose_ps_args[@]}" ps -q "${PUBLIC_SERVICE}")
+fi
 
 DEPLOYMENT_ID="${deployment_id}" \
 DEPLOYMENT_KEY="${DEPLOYMENT_KEY}" \
