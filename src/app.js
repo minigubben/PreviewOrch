@@ -223,6 +223,19 @@ async function createApp({ config, services = {} }) {
     }
   });
 
+  app.post("/api/repos/:id/manual-deploy", requireAuth, verifyCsrfToken, async (req, res, next) => {
+    try {
+      const deployment = await deploymentService.deployManualTarget({
+        repoId: req.params.id,
+        manualTargetType: req.body.manualTargetType,
+        manualTargetValue: req.body.manualTargetValue,
+      });
+      res.json(deployment);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/deployments/:id/redeploy", requireAuth, verifyCsrfToken, async (req, res, next) => {
     try {
       const deployment = await deploymentService.redeployById(req.params.id);

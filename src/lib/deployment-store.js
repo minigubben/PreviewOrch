@@ -10,20 +10,20 @@ class DeploymentStore {
     this.deploymentLogsDir = deploymentLogsDir;
   }
 
-  getWorkDir(repoSlug, prNumber) {
-    return path.join(this.deploymentsDir, repoSlug, `pr-${prNumber}`);
+  getWorkDir(repoSlug, deploymentKey) {
+    return path.join(this.deploymentsDir, repoSlug, deploymentKey);
   }
 
-  getMetadataPath(repoSlug, prNumber) {
-    return path.join(this.getWorkDir(repoSlug, prNumber), "deployment.json");
+  getMetadataPath(repoSlug, deploymentKey) {
+    return path.join(this.getWorkDir(repoSlug, deploymentKey), "deployment.json");
   }
 
-  getLogPath(repoSlug, prNumber) {
-    return path.join(this.deploymentLogsDir, `${repoSlug}-pr-${prNumber}.log`);
+  getLogPath(repoSlug, deploymentKey) {
+    return path.join(this.deploymentLogsDir, `${repoSlug}-${deploymentKey}.log`);
   }
 
   async save(metadata) {
-    await writeJson(this.getMetadataPath(metadata.repoSlug, metadata.prNumber), metadata);
+    await writeJson(this.getMetadataPath(metadata.repoSlug, metadata.deploymentKey), metadata);
     return metadata;
   }
 
@@ -66,7 +66,7 @@ class DeploymentStore {
     return Promise.all(
       deployments.map(async (deployment) => ({
         ...deployment,
-        logTail: await readLogTail(this.getLogPath(deployment.repoSlug, deployment.prNumber), maxLines),
+        logTail: await readLogTail(this.getLogPath(deployment.repoSlug, deployment.deploymentKey), maxLines),
       })),
     );
   }

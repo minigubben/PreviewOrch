@@ -10,9 +10,9 @@ required_vars=(
   COMPOSE_PATH
   PUBLIC_SERVICE
   PUBLIC_PORT
-  PR_NUMBER
-  PR_BRANCH
-  PR_SHA
+  DEPLOYMENT_KEY
+  TARGET_TYPE
+  TARGET_VALUE
   BASE_DOMAIN
   DEPLOYMENTS_DIR
 )
@@ -32,10 +32,10 @@ if [[ -n "${SSH_DIR:-}" ]]; then
   fi
 fi
 
-project_name="$(node -e 'const input = `${process.env.REPO_SLUG}-pr-${process.env.PR_NUMBER}`; process.stdout.write(input.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55));')"
-preview_host="${REPO_SLUG}-pr-${PR_NUMBER}.${BASE_DOMAIN}"
-deployment_id="${REPO_ID}-pr-${PR_NUMBER}"
-work_dir="${DEPLOYMENTS_DIR}/${REPO_SLUG}/pr-${PR_NUMBER}"
+project_name="$(node -e 'const input = `${process.env.REPO_SLUG}-${process.env.DEPLOYMENT_KEY}`; process.stdout.write(input.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55));')"
+preview_host="${REPO_SLUG}-${DEPLOYMENT_KEY}.${BASE_DOMAIN}"
+deployment_id="${REPO_ID}-${DEPLOYMENT_KEY}"
+work_dir="${DEPLOYMENTS_DIR}/${REPO_SLUG}/${DEPLOYMENT_KEY}"
 compose_path_resolved="${work_dir}/${COMPOSE_PATH}"
 metadata_path="${work_dir}/deployment.json"
 env_file="${work_dir}/.env.runtime"
@@ -64,14 +64,43 @@ fi
 
 rm -rf "${work_dir}"
 
-git clone --depth 1 --branch "${PR_BRANCH}" "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
-(
-  cd "${work_dir}"
-  if ! git checkout "${PR_SHA}" >/dev/null 2>&1; then
-    git fetch --depth 1 origin "${PR_SHA}" >/dev/null 2>&1
-    git checkout "${PR_SHA}" >/dev/null 2>&1
-  fi
-)
+case "${TARGET_TYPE}" in
+  branch)
+    git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
+    if [[ -n "${TARGET_SHA:-}" ]]; then
+      (
+        cd "${work_dir}"
+        if ! git checkout "${TARGET_SHA}" >/dev/null 2>&1; then
+          git fetch --depth 1 origin "${TARGET_SHA}" >/dev/null 2>&1
+          git checkout "${TARGET_SHA}" >/dev/null 2>&1
+        fi
+      )
+    fi
+    ;;
+  pr)
+    if [[ -n "${TARGET_BRANCH:-}" && -n "${TARGET_SHA:-}" ]]; then
+      git clone --depth 1 --branch "${TARGET_BRANCH}" "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
+      (
+        cd "${work_dir}"
+        if ! git checkout "${TARGET_SHA}" >/dev/null 2>&1; then
+          git fetch --depth 1 origin "${TARGET_SHA}" >/dev/null 2>&1
+          git checkout "${TARGET_SHA}" >/dev/null 2>&1
+        fi
+      )
+    else
+      git clone --depth 1 "${SOURCE_CLONE_SSH_URL}" "${work_dir}" >/dev/null
+      (
+        cd "${work_dir}"
+        git fetch --depth 1 origin "pull/${TARGET_VALUE}/head:manual-pr-${TARGET_VALUE}" >/dev/null 2>&1
+        git checkout "manual-pr-${TARGET_VALUE}" >/dev/null 2>&1
+      )
+    fi
+    ;;
+  *)
+    echo "{\"ok\":false,\"message\":\"Unsupported TARGET_TYPE: ${TARGET_TYPE}\"}"
+    exit 1
+    ;;
+esac
 
 if [[ ! -f "${compose_path_resolved}" ]]; then
   echo "{\"ok\":false,\"message\":\"Compose file missing after clone at ${COMPOSE_PATH}\"}"
@@ -88,9 +117,9 @@ const reserved = {
   ORCH_PROJECT_NAME: process.env.PROJECT_NAME,
   ORCH_PREVIEW_HOST: process.env.PREVIEW_HOST,
   ORCH_PREVIEW_SERVICE_PORT: process.env.PUBLIC_PORT,
-  ORCH_PR_NUMBER: process.env.PR_NUMBER,
-  ORCH_PR_BRANCH: process.env.PR_BRANCH,
-  ORCH_PR_SHA: process.env.PR_SHA,
+  ORCH_PR_NUMBER: process.env.TARGET_TYPE === "pr" ? process.env.TARGET_VALUE : "",
+  ORCH_PR_BRANCH: process.env.TARGET_BRANCH || "",
+  ORCH_PR_SHA: process.env.TARGET_SHA || "",
   ORCH_REPO_SLUG: process.env.REPO_SLUG,
 };
 
@@ -158,6 +187,7 @@ fi
 docker compose "${compose_up_args[@]}" up -d --build
 
 DEPLOYMENT_ID="${deployment_id}" \
+DEPLOYMENT_KEY="${DEPLOYMENT_KEY}" \
 PREVIEW_HOST="${preview_host}" \
 PROJECT_NAME="${project_name}" \
 WORK_DIR="${work_dir}" \
@@ -170,11 +200,16 @@ const fs = require("fs");
 
 const metadata = {
   deploymentId: process.env.DEPLOYMENT_ID,
+  deploymentKey: process.env.DEPLOYMENT_KEY,
   repoId: process.env.REPO_ID,
   repoSlug: process.env.REPO_SLUG,
-  prNumber: Number(process.env.PR_NUMBER),
-  prBranch: process.env.PR_BRANCH,
-  prSha: process.env.PR_SHA,
+  targetType: process.env.TARGET_TYPE,
+  targetValue: process.env.TARGET_TYPE === "pr" ? Number(process.env.TARGET_VALUE) : process.env.TARGET_VALUE,
+  targetBranch: process.env.TARGET_BRANCH || "",
+  targetSha: process.env.TARGET_SHA || "",
+  prNumber: process.env.TARGET_TYPE === "pr" ? Number(process.env.TARGET_VALUE) : null,
+  prBranch: process.env.TARGET_TYPE === "pr" ? process.env.TARGET_BRANCH || "" : null,
+  prSha: process.env.TARGET_TYPE === "pr" ? process.env.TARGET_SHA || "" : null,
   previewHost: process.env.PREVIEW_HOST,
   projectName: process.env.PROJECT_NAME,
   workDir: process.env.WORK_DIR,

@@ -6,12 +6,30 @@ function slugifyRepo(owner, name) {
     .replace(/-{2,}/g, "-");
 }
 
-function buildPreviewHost(repoSlug, prNumber, baseDomain) {
-  return `${repoSlug}-pr-${prNumber}.${baseDomain}`;
+function slugifyValue(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
 }
 
-function buildProjectName(repoSlug, prNumber) {
-  return `${repoSlug}-pr-${prNumber}`.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55);
+function buildDeploymentKey(targetType, targetValue) {
+  if (targetType === "pr") {
+    return `pr-${Number(targetValue)}`;
+  }
+  if (targetType === "branch") {
+    return `branch-${slugifyValue(targetValue).slice(0, 32)}`;
+  }
+  throw new Error(`Unsupported targetType: ${targetType}`);
+}
+
+function buildPreviewHost(repoSlug, deploymentKey, baseDomain) {
+  return `${repoSlug}-${deploymentKey}.${baseDomain}`;
+}
+
+function buildProjectName(repoSlug, deploymentKey) {
+  return `${repoSlug}-${deploymentKey}`.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55);
 }
 
 function asArray(value) {
@@ -47,8 +65,10 @@ module.exports = {
   asArray,
   buildPreviewHost,
   buildProjectName,
+  buildDeploymentKey,
   formatTimestamp,
   normalizeBoolean,
   slugifyRepo,
+  slugifyValue,
   trimLines,
 };

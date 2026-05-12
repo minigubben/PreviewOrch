@@ -308,6 +308,58 @@ test("stores a generated proxy override path when proxy settings are appended", 
   assert.match(metadata.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
 });
 
+test("manually deploys a branch from the repo editor api", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken);
+  assert.equal(repoResponse.status, 201);
+
+  const response = await context.agent
+    .post(`/api/repos/${repoResponse.body.id}/manual-deploy`)
+    .set("X-CSRF-Token", csrfToken)
+    .send({
+      manualTargetType: "branch",
+      manualTargetValue: "release/2026-q2",
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.targetType, "branch");
+  assert.equal(response.body.targetValue, "release/2026-q2");
+  assert.equal(response.body.deploymentKey, "branch-release-2026-q2");
+  assert.equal(response.body.previewHost, "acme-widgets-branch-release-2026-q2.preview.example.com");
+
+  const dashboard = await context.agent.get("/");
+  assert.equal(dashboard.status, 200);
+  assert.match(dashboard.text, /Branch release\/2026-q2/);
+});
+
+test("manually deploys a pull request from the repo editor api", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken);
+  assert.equal(repoResponse.status, 201);
+
+  const response = await context.agent
+    .post(`/api/repos/${repoResponse.body.id}/manual-deploy`)
+    .set("X-CSRF-Token", csrfToken)
+    .send({
+      manualTargetType: "pr",
+      manualTargetValue: 27,
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.targetType, "pr");
+  assert.equal(response.body.targetValue, 27);
+  assert.equal(response.body.deploymentKey, "pr-27");
+  assert.equal(response.body.previewHost, "acme-widgets-pr-27.preview.example.com");
+});
+
 test("destroys deployments and cleans the work directory on pull request close", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

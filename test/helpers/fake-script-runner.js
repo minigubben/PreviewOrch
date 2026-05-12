@@ -1,7 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 
-const { buildPreviewHost, buildProjectName } = require("../../src/lib/utils");
+const { buildDeploymentKey, buildPreviewHost, buildProjectName } = require("../../src/lib/utils");
 
 class FakeScriptRunner {
   constructor({ baseDomain = "preview.example.com", deployDelayMs = 0 } = {}) {
@@ -58,13 +58,15 @@ class FakeScriptRunner {
     }
 
     const repoSlug = env.REPO_SLUG;
-    const prNumber = Number(env.PR_NUMBER);
-    const workDir = path.join(env.DEPLOYMENTS_DIR, repoSlug, `pr-${prNumber}`);
+    const targetType = env.TARGET_TYPE;
+    const targetValue = targetType === "pr" ? Number(env.TARGET_VALUE) : env.TARGET_VALUE;
+    const deploymentKey = env.DEPLOYMENT_KEY || buildDeploymentKey(targetType, targetValue);
+    const workDir = path.join(env.DEPLOYMENTS_DIR, repoSlug, deploymentKey);
     const composePathResolved = path.join(workDir, env.COMPOSE_PATH);
     const envFile = path.join(workDir, ".env.runtime");
     const proxyOverridePath = path.join(workDir, ".orchestrator-proxy.override.yml");
-    const previewHost = buildPreviewHost(repoSlug, prNumber, env.BASE_DOMAIN || this.baseDomain);
-    const projectName = buildProjectName(repoSlug, prNumber);
+    const previewHost = buildPreviewHost(repoSlug, deploymentKey, env.BASE_DOMAIN || this.baseDomain);
+    const projectName = buildProjectName(repoSlug, deploymentKey);
     const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}");
     const envLines = [`ORCH_PREVIEW_HOST=${previewHost}`];
 
@@ -85,12 +87,17 @@ class FakeScriptRunner {
     return {
       code: 0,
       stdout: `${JSON.stringify({
-        deploymentId: `${env.REPO_ID}-pr-${prNumber}`,
+        deploymentId: `${env.REPO_ID}-${deploymentKey}`,
+        deploymentKey,
         repoId: env.REPO_ID,
         repoSlug,
-        prNumber,
-        prBranch: env.PR_BRANCH,
-        prSha: env.PR_SHA,
+        targetType,
+        targetValue,
+        targetBranch: env.TARGET_BRANCH || "",
+        targetSha: env.TARGET_SHA || "",
+        prNumber: targetType === "pr" ? Number(targetValue) : null,
+        prBranch: targetType === "pr" ? env.TARGET_BRANCH || "" : null,
+        prSha: targetType === "pr" ? env.TARGET_SHA || "" : null,
         previewHost,
         projectName,
         workDir,
@@ -107,12 +114,17 @@ class FakeScriptRunner {
       })}\n`,
       stderr: "",
       parsed: {
-        deploymentId: `${env.REPO_ID}-pr-${prNumber}`,
+        deploymentId: `${env.REPO_ID}-${deploymentKey}`,
+        deploymentKey,
         repoId: env.REPO_ID,
         repoSlug,
-        prNumber,
-        prBranch: env.PR_BRANCH,
-        prSha: env.PR_SHA,
+        targetType,
+        targetValue,
+        targetBranch: env.TARGET_BRANCH || "",
+        targetSha: env.TARGET_SHA || "",
+        prNumber: targetType === "pr" ? Number(targetValue) : null,
+        prBranch: targetType === "pr" ? env.TARGET_BRANCH || "" : null,
+        prSha: targetType === "pr" ? env.TARGET_SHA || "" : null,
         previewHost,
         projectName,
         workDir,

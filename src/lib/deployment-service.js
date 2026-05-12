@@ -1,5 +1,5 @@
 const { RepoValidationError } = require("./repo-store");
-const { buildPreviewHost, buildProjectName, slugifyRepo } = require("./utils");
+const { buildDeploymentKey, buildPreviewHost, buildProjectName, slugifyRepo } = require("./utils");
 
 class DeploymentService {
   constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager }) {
@@ -36,19 +36,20 @@ class DeploymentService {
     const lockKey = `${repo.id}:${webhookContext.prNumber}`;
     return this.lockManager.run(lockKey, async () => {
       if (webhookContext.mappedAction === "deploy") {
-        return this.deployPullRequest({
+        return this.deployTarget({
           repo,
-          prNumber: webhookContext.prNumber,
-          prBranch: webhookContext.prBranch,
-          prSha: webhookContext.prSha,
+          targetType: "pr",
+          targetValue: webhookContext.prNumber,
+          targetBranch: webhookContext.prBranch,
+          targetSha: webhookContext.prSha,
           sourceCloneSshUrl: webhookContext.sourceCloneSshUrl || repo.cloneSshUrl,
           lastEvent: webhookContext.action,
         });
       }
 
-      return this.destroyPullRequest({
+      return this.destroyTarget({
         repo,
-        prNumber: webhookContext.prNumber,
+        deploymentKey: buildDeploymentKey("pr", webhookContext.prNumber),
         lastEvent: webhookContext.action,
       });
     });
@@ -65,12 +66,13 @@ class DeploymentService {
       throw new RepoValidationError("Repository for deployment no longer exists.");
     }
 
-    return this.lockManager.run(`${repo.id}:${metadata.prNumber}`, async () =>
-      this.deployPullRequest({
+    return this.lockManager.run(`${repo.id}:${metadata.deploymentKey}`, async () =>
+      this.deployTarget({
         repo,
-        prNumber: metadata.prNumber,
-        prBranch: metadata.prBranch,
-        prSha: metadata.prSha,
+        targetType: metadata.targetType || "pr",
+        targetValue: metadata.targetValue ?? metadata.prNumber,
+        targetBranch: metadata.targetBranch || metadata.prBranch,
+        targetSha: metadata.targetSha || metadata.prSha,
         sourceCloneSshUrl: metadata.sourceCloneSshUrl || repo.cloneSshUrl,
         lastEvent: "manual-redeploy",
       }),
@@ -88,31 +90,64 @@ class DeploymentService {
       throw new RepoValidationError("Repository for deployment no longer exists.");
     }
 
-    return this.lockManager.run(`${repo.id}:${metadata.prNumber}`, async () =>
-      this.destroyPullRequest({
+    return this.lockManager.run(`${repo.id}:${metadata.deploymentKey}`, async () =>
+      this.destroyTarget({
         repo,
-        prNumber: metadata.prNumber,
+        deploymentKey: metadata.deploymentKey,
         lastEvent: "manual-destroy",
       }),
     );
   }
 
-  async deployPullRequest({ repo, prNumber, prBranch, prSha, sourceCloneSshUrl, lastEvent }) {
+  async deployManualTarget({ repoId, manualTargetType, manualTargetValue }) {
+    const repo = await this.repoStore.getById(repoId);
+    if (!repo) {
+      throw new RepoValidationError("Repository not found.");
+    }
+    if (!repo.enabled) {
+      throw new RepoValidationError("Repository is disabled.");
+    }
+
+    const targetType = normalizeManualTargetType(manualTargetType);
+    const targetValue = normalizeManualTargetValue(targetType, manualTargetValue);
+    const deploymentKey = buildDeploymentKey(targetType, targetValue);
+    const targetBranch = targetType === "branch" ? targetValue : null;
+
+    return this.lockManager.run(`${repo.id}:${deploymentKey}`, async () =>
+      this.deployTarget({
+        repo,
+        targetType,
+        targetValue,
+        targetBranch,
+        targetSha: null,
+        sourceCloneSshUrl: repo.cloneSshUrl,
+        lastEvent: "manual-deploy",
+      }),
+    );
+  }
+
+  async deployTarget({ repo, targetType, targetValue, targetBranch, targetSha, sourceCloneSshUrl, lastEvent }) {
     const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
-    const previewHost = buildPreviewHost(repoSlug, prNumber, this.config.baseDomain);
-    const projectName = buildProjectName(repoSlug, prNumber);
-    const workDir = this.deploymentStore.getWorkDir(repoSlug, prNumber);
-    const logFile = this.deploymentStore.getLogPath(repoSlug, prNumber);
+    const deploymentKey = buildDeploymentKey(targetType, targetValue);
+    const previewHost = buildPreviewHost(repoSlug, deploymentKey, this.config.baseDomain);
+    const projectName = buildProjectName(repoSlug, deploymentKey);
+    const workDir = this.deploymentStore.getWorkDir(repoSlug, deploymentKey);
+    const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
     const composePathResolved = `${workDir}/${repo.composePath}`.replace(/\/+/g, "/");
     const now = new Date().toISOString();
 
     const seed = {
-      deploymentId: `${repo.id}-pr-${prNumber}`,
+      deploymentId: `${repo.id}-${deploymentKey}`,
+      deploymentKey,
       repoId: repo.id,
       repoSlug,
-      prNumber,
-      prBranch,
-      prSha,
+      targetType,
+      targetValue,
+      targetBranch,
+      targetSha,
+      prNumber: targetType === "pr" ? Number(targetValue) : null,
+      prBranch: targetType === "pr" ? targetBranch : null,
+      prSha: targetType === "pr" ? targetSha : null,
       previewHost,
       projectName,
       workDir,
@@ -136,10 +171,10 @@ class DeploymentService {
     }
 
     await this.deploymentStore.save(seed);
-    await this.logger.info("Starting PR deployment", {
+    await this.logger.info("Starting deployment", {
       deploymentId: seed.deploymentId,
       repoId: repo.id,
-      prNumber,
+      deploymentKey,
       lastEvent,
     });
 
@@ -160,9 +195,11 @@ class DeploymentService {
           APPEND_PROXY_SETTINGS: String(repo.appendProxySettings),
           PREVIEW_HOST_ENV_VAR_NAME: repo.previewHostEnvVarName || "",
           EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
-          PR_NUMBER: String(prNumber),
-          PR_BRANCH: prBranch,
-          PR_SHA: prSha,
+          DEPLOYMENT_KEY: deploymentKey,
+          TARGET_TYPE: targetType,
+          TARGET_VALUE: String(targetValue),
+          TARGET_BRANCH: targetBranch || "",
+          TARGET_SHA: targetSha || "",
           BASE_DOMAIN: this.config.baseDomain,
           DEPLOYMENTS_DIR: this.config.deploymentsDir,
           LOG_FILE: logFile,
@@ -182,7 +219,7 @@ class DeploymentService {
       };
 
       await this.deploymentStore.save(finalMetadata);
-      await this.logger.info("PR deployment finished", {
+      await this.logger.info("Deployment finished", {
         deploymentId: finalMetadata.deploymentId,
         previewHost: finalMetadata.previewHost,
       });
@@ -196,7 +233,7 @@ class DeploymentService {
         lastError: error.parsed?.message || error.stderr || error.message,
       };
       await this.deploymentStore.save(failed);
-      await this.logger.error("PR deployment failed", {
+      await this.logger.error("Deployment failed", {
         deploymentId: failed.deploymentId,
         error: failed.lastError,
       });
@@ -204,20 +241,25 @@ class DeploymentService {
     }
   }
 
-  async destroyPullRequest({ repo, prNumber, lastEvent }) {
+  async destroyTarget({ repo, deploymentKey, lastEvent }) {
     const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
-    const deploymentId = `${repo.id}-pr-${prNumber}`;
+    const deploymentId = `${repo.id}-${deploymentKey}`;
     const existing = await this.deploymentStore.getById(deploymentId);
-    const previewHost = buildPreviewHost(repoSlug, prNumber, this.config.baseDomain);
-    const projectName = buildProjectName(repoSlug, prNumber);
-    const workDir = this.deploymentStore.getWorkDir(repoSlug, prNumber);
+    const previewHost = buildPreviewHost(repoSlug, deploymentKey, this.config.baseDomain);
+    const projectName = buildProjectName(repoSlug, deploymentKey);
+    const workDir = this.deploymentStore.getWorkDir(repoSlug, deploymentKey);
     const composePathResolved = `${workDir}/${repo.composePath}`.replace(/\/+/g, "/");
-    const logFile = this.deploymentStore.getLogPath(repoSlug, prNumber);
+    const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
     const seed = {
       deploymentId,
+      deploymentKey,
       repoId: repo.id,
       repoSlug,
-      prNumber,
+      targetType: existing?.targetType || "pr",
+      targetValue: existing?.targetValue ?? existing?.prNumber ?? null,
+      targetBranch: existing?.targetBranch || existing?.prBranch || null,
+      targetSha: existing?.targetSha || existing?.prSha || null,
+      prNumber: existing?.prNumber || null,
       prBranch: existing?.prBranch || null,
       prSha: existing?.prSha || null,
       previewHost,
@@ -238,18 +280,18 @@ class DeploymentService {
     };
 
     await this.deploymentStore.save(seed);
-    await this.logger.info("Starting PR destroy", { deploymentId, lastEvent });
+    await this.logger.info("Starting destroy", { deploymentId, lastEvent });
 
     try {
       await this.scriptRunner.run({
         scriptPath: this.config.scripts.destroyPr,
         logFile,
         env: {
-          DEPLOYMENT_METADATA_PATH: this.deploymentStore.getMetadataPath(repoSlug, prNumber),
+          DEPLOYMENT_METADATA_PATH: this.deploymentStore.getMetadataPath(repoSlug, deploymentKey),
           DEPLOYMENT_ID: deploymentId,
         },
       });
-      await this.logger.info("PR destroy finished", { deploymentId });
+      await this.logger.info("Destroy finished", { deploymentId });
       return { destroyed: true, deploymentId };
     } catch (error) {
       const failed = {
@@ -259,10 +301,34 @@ class DeploymentService {
         lastError: error.parsed?.message || error.stderr || error.message,
       };
       await this.deploymentStore.save(failed);
-      await this.logger.error("PR destroy failed", { deploymentId, error: failed.lastError });
+      await this.logger.error("Destroy failed", { deploymentId, error: failed.lastError });
       throw error;
     }
   }
+}
+
+function normalizeManualTargetType(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized === "branch" || normalized === "pr") {
+    return normalized;
+  }
+  throw new RepoValidationError("manualTargetType must be 'branch' or 'pr'.");
+}
+
+function normalizeManualTargetValue(targetType, value) {
+  if (targetType === "pr") {
+    const prNumber = Number(value);
+    if (!Number.isInteger(prNumber) || prNumber <= 0) {
+      throw new RepoValidationError("Manual PR deployments require a positive PR number.");
+    }
+    return prNumber;
+  }
+
+  const branch = String(value || "").trim();
+  if (!branch) {
+    throw new RepoValidationError("Manual branch deployments require a branch name.");
+  }
+  return branch;
 }
 
 module.exports = {

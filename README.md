@@ -1,6 +1,6 @@
 # PR Preview Orchestrator
 
-Small Docker-based PR preview orchestration for GitHub repositories that ship a repo-owned Docker Compose file.
+Small Docker-based preview orchestration for GitHub repositories that ship a repo-owned Docker Compose file.
 
 ## What It Does
 
@@ -9,6 +9,7 @@ Small Docker-based PR preview orchestration for GitHub repositories that ship a 
 - Writes runtime env vars into `.env.runtime`.
 - Runs `docker compose up -d --build` for the PR.
 - Destroys the preview with `docker compose down -v --remove-orphans` when the PR closes.
+- Supports manual deployments of either a branch or a PR from the admin UI.
 - Exposes an admin UI behind Traefik at `orchestrator.{BASE_DOMAIN}`.
 
 ## Stack
@@ -23,7 +24,7 @@ Small Docker-based PR preview orchestration for GitHub repositories that ship a 
 - `scripts/`: validation, deploy, and destroy shell scripts
 - `src/`: Express app, file stores, webhook handling, and UI
 - `data/config/repos.json`: repo definitions
-- `data/deployments/`: per-PR clones and metadata
+- `data/deployments/`: per-deployment clones and metadata
 - `data/logs/`: app log, event log, and per-deployment logs
 
 ## Required Environment
@@ -85,7 +86,7 @@ Configure Cloudflare Tunnel ingress to forward your wildcard hostname to the Tra
 - If Cloudflare reaches the Docker network directly, point it to `http://traefik:80`
 - If Cloudflare is configured outside Docker on the same host, point it to `http://<host-ip>:80`
 
-The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and PR previews are routed at `{repoSlug}-pr-{number}.{BASE_DOMAIN}`.
+The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and previews are routed at `{repoSlug}-{deploymentKey}.{BASE_DOMAIN}`.
 
 ## Admin Workflow
 
@@ -107,7 +108,8 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and PR p
    - compose path existence
    - public service existence
    - required Traefik label contract, unless proxy settings will be appended by the orchestrator
-4. Configure a GitHub webhook to `POST /webhooks/github`.
+4. Use the repo editor to deploy a branch name or PR number manually when you need an on-demand environment outside the normal webhook flow.
+5. Configure a GitHub webhook to `POST /webhooks/github`.
 
 ## GitHub Webhook Setup
 
@@ -149,5 +151,5 @@ npm test
 ## Notes
 
 - The app stores config and deployment metadata on disk, not in a database.
-- Deployment actions are serialized per `{repoId, prNumber}` inside the Node process.
+- Deployment actions are serialized per `{repoId, deploymentKey}` inside the Node process.
 - On PR close, the preview stack is destroyed and the working directory is deleted.

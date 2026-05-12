@@ -19,7 +19,8 @@
             <h1 class="mt-2 text-4xl font-semibold text-zinc-50">minigubben</h1>
             <p class="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
               Preview hosts land at
-              <code class="text-zinc-300">{repoSlug}-pr-{number}.<%= baseDomain %></code>.
+              <code class="text-zinc-300">{repoSlug}-{deploymentKey}.<%= baseDomain %></code>
+              for PR and branch targets.
             </p>
           </div>
           <form method="post" action="/logout">
@@ -133,7 +134,7 @@
                   <div class="space-y-2 xl:col-span-2">
                     <label for="extraEnvText" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
                     <textarea id="extraEnvText" name="extraEnvText" rows="6" placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"></textarea>
-                    <p class="text-xs leading-5 text-zinc-500">One <code class="text-zinc-300">KEY=value</code> pair per line. Appended to the generated <code class="text-zinc-300">.env.runtime</code> file for each PR deployment.</p>
+                    <p class="text-xs leading-5 text-zinc-500">One <code class="text-zinc-300">KEY=value</code> pair per line. Appended to the generated <code class="text-zinc-300">.env.runtime</code> file for each deployment.</p>
                   </div>
                 </div>
                 <label class="flex items-center gap-3 text-sm text-zinc-200">
@@ -155,6 +156,27 @@
                     <p class="mt-3 text-sm leading-6 text-zinc-400">Update the repository configuration and save it back through the JSON API.</p>
                   </div>
                   <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= repo.enabled ? "enabled" : "disabled" %></span>
+                </div>
+                <div class="border border-zinc-800 bg-zinc-950/70 px-4 py-4">
+                  <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Manual Deployment</p>
+                  <form action="/api/repos/<%= repo.id %>/manual-deploy" method="post" data-method="POST" data-api-form class="grid grid-cols-1 gap-4 xl:grid-cols-[180px_minmax(0,1fr)_auto]">
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Target Type</label>
+                      <select name="manualTargetType" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
+                        <option value="branch">Branch</option>
+                        <option value="pr">Pull request</option>
+                      </select>
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Branch Name or PR Number</label>
+                      <input name="manualTargetValue" placeholder="main or 123" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="flex items-end">
+                      <button type="submit" class="border border-zinc-700 bg-zinc-100 px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-300">
+                        Deploy target
+                      </button>
+                    </div>
+                  </form>
                 </div>
                 <form action="/api/repos/<%= repo.id %>" method="post" data-method="PUT" data-api-form class="space-y-4">
                   <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -232,7 +254,7 @@
             <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Runtime</p>
             <h2 class="mt-3 text-4xl font-semibold text-zinc-50">Preview runtime details</h2>
             <p class="mt-4 max-w-4xl text-sm leading-7 text-zinc-400">
-              Use repo-owned Traefik labels, or let the orchestrator append them. Deployment logs, compose contract details, and runtime history are shown below.
+              Use repo-owned Traefik labels, or let the orchestrator append them. Deployment logs, compose contract details, and runtime history are shown below for webhook-driven PR previews and manual targets.
             </p>
           </div>
 
@@ -298,7 +320,10 @@ networks:
                     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 px-4 py-4">
                       <div>
                         <p class="text-xs uppercase tracking-[0.28em] text-zinc-500">Deployment</p>
-                        <h3 class="mt-2 text-xl font-semibold text-zinc-50"><%= deployment.repoSlug %> PR #<%= deployment.prNumber %></h3>
+                        <h3 class="mt-2 text-xl font-semibold text-zinc-50">
+                          <%= deployment.repoSlug %>
+                          <%= deployment.targetType === "branch" ? `Branch ${deployment.targetValue}` : `PR #${deployment.targetValue ?? deployment.prNumber}` %>
+                        </h3>
                       </div>
                       <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= deployment.status %></span>
                     </div>

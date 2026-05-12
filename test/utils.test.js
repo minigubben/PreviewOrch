@@ -1,16 +1,21 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildPreviewHost, buildProjectName } = require("../src/lib/utils");
+const { buildDeploymentKey, buildPreviewHost, buildProjectName } = require("../src/lib/utils");
 const { mapPullRequestAction, verifyGithubSignature } = require("../src/lib/github");
 const { buildPullRequestPayload, signPayload } = require("./helpers/test-app");
 
 test("buildPreviewHost creates the expected wildcard host", () => {
-  assert.equal(buildPreviewHost("acme-widgets", 42, "preview.example.com"), "acme-widgets-pr-42.preview.example.com");
+  assert.equal(buildPreviewHost("acme-widgets", "pr-42", "preview.example.com"), "acme-widgets-pr-42.preview.example.com");
 });
 
 test("buildProjectName creates a docker-safe project name", () => {
-  assert.equal(buildProjectName("acme-widgets", 42), "acme-widgets-pr-42");
+  assert.equal(buildProjectName("acme-widgets", "pr-42"), "acme-widgets-pr-42");
+});
+
+test("buildDeploymentKey supports branches and pull requests", () => {
+  assert.equal(buildDeploymentKey("pr", 42), "pr-42");
+  assert.equal(buildDeploymentKey("branch", "feature/Test Branch"), "branch-feature-test-branch");
 });
 
 test("verifyGithubSignature accepts a valid signature", () => {
