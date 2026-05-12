@@ -15,11 +15,15 @@ function getConfig(overrides = {}) {
   const logsDir = resolveDataPath(overrides.LOGS_DIR || process.env.LOGS_DIR, path.join(dataRoot, "logs"));
   const sshDir = resolveDataPath(overrides.SSH_DIR || process.env.SSH_DIR, path.join(dataRoot, "ssh"));
   const scriptsDir = path.join(cwd, "scripts");
+  const baseDomain = overrides.BASE_DOMAIN || process.env.BASE_DOMAIN || "preview.example.com";
 
   return {
     port: Number(overrides.PORT || process.env.PORT || 3000),
-    baseDomain: overrides.BASE_DOMAIN || process.env.BASE_DOMAIN || "preview.example.com",
-    orchestratorPublicUrl: overrides.ORCHESTRATOR_PUBLIC_URL || process.env.ORCHESTRATOR_PUBLIC_URL || "",
+    baseDomain,
+    orchestratorPublicUrl: normalizeOrchestratorPublicUrl(
+      overrides.ORCHESTRATOR_PUBLIC_URL || process.env.ORCHESTRATOR_PUBLIC_URL,
+      baseDomain,
+    ),
     adminUsername: overrides.ADMIN_USERNAME || process.env.ADMIN_USERNAME || "admin",
     adminPasswordHash: overrides.ADMIN_PASSWORD_BCRYPT_HASH || process.env.ADMIN_PASSWORD_BCRYPT_HASH || "",
     sessionSecret: overrides.SESSION_SECRET || process.env.SESSION_SECRET || "change-me",
@@ -68,6 +72,15 @@ function normalizeSessionCookieSecure(value, nodeEnv) {
   }
 
   return nodeEnv === "production" ? "auto" : false;
+}
+
+function normalizeOrchestratorPublicUrl(value, baseDomain) {
+  const explicit = String(value || "").trim();
+  if (explicit) {
+    return explicit.replace(/\/+$/, "");
+  }
+
+  return `https://orchestrator.${baseDomain}`;
 }
 
 module.exports = {

@@ -22,6 +22,7 @@ test("bootstrapFilesystem keeps settings.json aligned with environment config", 
     const first = JSON.parse(await fs.readFile(initial.settingsFile, "utf8"));
 
     assert.equal(first.baseDomain, "one.example.com");
+    assert.equal(first.orchestratorPublicUrl, "https://orchestrator.one.example.com");
     assert.equal(first.traefikNetworkName, "proxy-one");
     assert.equal(first.sourceOfTruth, "environment");
 
@@ -36,10 +37,20 @@ test("bootstrapFilesystem keeps settings.json aligned with environment config", 
     const second = JSON.parse(await fs.readFile(next.settingsFile, "utf8"));
 
     assert.equal(second.baseDomain, "two.example.com");
+    assert.equal(second.orchestratorPublicUrl, "https://orchestrator.two.example.com");
     assert.equal(second.traefikNetworkName, "proxy-two");
     assert.equal(second.sourceOfTruth, "environment");
     assert.equal(second.createdAt, first.createdAt);
     assert.ok(second.updatedAt);
+
+    const explicit = getConfig({
+      cwd: process.cwd(),
+      DATA_ROOT: path.join(root, "data"),
+      BASE_DOMAIN: "three.example.com",
+      ORCHESTRATOR_PUBLIC_URL: "https://internal.example.net/orchestrator",
+    });
+
+    assert.equal(explicit.orchestratorPublicUrl, "https://internal.example.net/orchestrator");
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }

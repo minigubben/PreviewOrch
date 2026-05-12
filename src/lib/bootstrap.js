@@ -18,6 +18,7 @@ async function syncSettingsFile(config) {
     createdAt,
     updatedAt: formatTimestamp(),
     baseDomain: config.baseDomain,
+    orchestratorPublicUrl: config.orchestratorPublicUrl,
     traefikNetworkName: config.traefikNetworkName,
     sourceOfTruth: "environment",
   });

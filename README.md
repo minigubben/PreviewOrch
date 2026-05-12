@@ -62,7 +62,7 @@ Recommended token type:
 - Repository access limited to the repos managed by the orchestrator
 - Repository permission: `Deployments` = `Read and write`
 
-`ORCHESTRATOR_PUBLIC_URL` is also optional. If set, GitHub deployment statuses will link back to the orchestrator UI log view for that deployment.
+By default, GitHub deployment statuses link back to `https://orchestrator.{BASE_DOMAIN}`. `ORCHESTRATOR_PUBLIC_URL` is optional and only needed if the orchestrator is exposed at some different external URL.
 
 ## SSH Access
 
@@ -161,7 +161,7 @@ If `GITHUB_DEPLOYMENTS_TOKEN` is configured, the orchestrator publishes preview 
   - `failure` if the preview deploy fails
   - `inactive` when the preview is destroyed
 - The preview URL is published as the deployment `environment_url`
-- If `ORCHESTRATOR_PUBLIC_URL` is set, the deployment `log_url` points back to the orchestrator UI
+- The deployment `log_url` points back to the orchestrator UI at `https://orchestrator.{BASE_DOMAIN}` by default, or `ORCHESTRATOR_PUBLIC_URL` if you override it
 
 This integration is best-effort by design. GitHub deployment publishing failures are logged, but they do not block preview creation or teardown.
 
