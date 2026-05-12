@@ -4,7 +4,7 @@ const { RepoValidationError } = require("./repo-store");
 const { buildDeploymentKey, buildPreviewHost, buildProjectName, slugifyRepo } = require("./utils");
 
 class DeploymentService {
-  constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager, runtimeInspector }) {
+  constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager, runtimeInspector, githubDeploymentPublisher }) {
     this.config = config;
     this.logger = logger;
     this.repoStore = repoStore;
@@ -12,6 +12,7 @@ class DeploymentService {
     this.scriptRunner = scriptRunner;
     this.lockManager = lockManager;
     this.runtimeInspector = runtimeInspector;
+    this.githubDeploymentPublisher = githubDeploymentPublisher;
   }
 
   async listDeployments() {
@@ -182,6 +183,7 @@ class DeploymentService {
     const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
     const composePathResolved = path.resolve(projectDirectoryResolved, repo.composePath);
     const now = new Date().toISOString();
+    const existing = await this.deploymentStore.getById(`${repo.id}-${deploymentKey}`);
 
     const seed = {
       deploymentId: `${repo.id}-${deploymentKey}`,
@@ -212,9 +214,9 @@ class DeploymentService {
       appendProxySettings: repo.appendProxySettings,
       previewHostEnvVarName: repo.previewHostEnvVarName || "",
       extraEnv: repo.extraEnv || {},
+      githubDeployment: existing?.githubDeployment || null,
     };
 
-    const existing = await this.deploymentStore.getById(seed.deploymentId);
     if (existing) {
       seed.createdAt = existing.createdAt;
     }
@@ -226,6 +228,13 @@ class DeploymentService {
       deploymentKey,
       lastEvent,
     });
+
+    const githubDeployment = await this.createGithubDeployment(repo, seed);
+    if (githubDeployment) {
+      seed.githubDeployment = githubDeployment;
+      seed.updatedAt = new Date().toISOString();
+      await this.deploymentStore.save(seed);
+    }
 
     try {
       const result = await this.scriptRunner.run({
@@ -269,6 +278,11 @@ class DeploymentService {
       };
 
       await this.deploymentStore.save(finalMetadata);
+      await this.publishGithubDeploymentStatus(repo, finalMetadata, {
+        state: "success",
+        description: "Preview deployment is ready.",
+        autoInactive: true,
+      });
       await this.logger.info("Deployment finished", {
         deploymentId: finalMetadata.deploymentId,
         previewHost: finalMetadata.previewHost,
@@ -283,6 +297,11 @@ class DeploymentService {
         lastError: error.parsed?.message || error.stderr || error.message,
       };
       await this.deploymentStore.save(failed);
+      await this.publishGithubDeploymentStatus(repo, failed, {
+        state: "failure",
+        description: failed.lastError || "Preview deployment failed.",
+        autoInactive: false,
+      });
       await this.logger.error("Deployment failed", {
         deploymentId: failed.deploymentId,
         error: failed.lastError,
@@ -330,6 +349,7 @@ class DeploymentService {
       appendProxySettings: repo.appendProxySettings,
       previewHostEnvVarName: repo.previewHostEnvVarName || "",
       extraEnv: repo.extraEnv || {},
+      githubDeployment: existing?.githubDeployment || null,
     };
 
     await this.deploymentStore.save(seed);
@@ -344,6 +364,11 @@ class DeploymentService {
           DEPLOYMENT_ID: deploymentId,
         },
       });
+      await this.publishGithubDeploymentStatus(repo, seed, {
+        state: "inactive",
+        description: "Preview deployment was destroyed.",
+        autoInactive: false,
+      });
       await this.logger.info("Destroy finished", { deploymentId });
       return { destroyed: true, deploymentId };
     } catch (error) {
@@ -356,6 +381,91 @@ class DeploymentService {
       await this.deploymentStore.save(failed);
       await this.logger.error("Destroy failed", { deploymentId, error: failed.lastError });
       throw error;
+    }
+  }
+
+  async createGithubDeployment(repo, metadata) {
+    if (!this.githubDeploymentPublisher?.isEnabled()) {
+      return null;
+    }
+
+    const ref = buildGithubDeploymentRef(metadata);
+    if (!ref) {
+      await this.logger.warn("Skipping GitHub deployment publish because no ref could be derived", {
+        deploymentId: metadata.deploymentId,
+      });
+      return null;
+    }
+
+    const environment = buildGithubEnvironmentName(metadata);
+    const description = buildGithubDeploymentDescription(metadata);
+
+    try {
+      const deployment = await this.githubDeploymentPublisher.createDeployment({
+        owner: repo.owner,
+        repo: repo.name,
+        ref,
+        environment,
+        description,
+        payload: {
+          deploymentId: metadata.deploymentId,
+          deploymentKey: metadata.deploymentKey,
+          previewHost: metadata.previewHost,
+          targetType: metadata.targetType,
+          targetValue: metadata.targetValue,
+        },
+      });
+
+      const githubDeployment = {
+        id: deployment.id,
+        owner: repo.owner,
+        repo: repo.name,
+        environment,
+        ref,
+        statusesUrl: deployment.statuses_url || "",
+      };
+
+      await this.publishGithubDeploymentStatus(repo, { ...metadata, githubDeployment }, {
+        state: "pending",
+        description: "Preview deployment is starting.",
+        autoInactive: false,
+      });
+
+      return githubDeployment;
+    } catch (error) {
+      await this.logger.warn("GitHub deployment publish failed", {
+        deploymentId: metadata.deploymentId,
+        message: error.message,
+      });
+      return null;
+    }
+  }
+
+  async publishGithubDeploymentStatus(repo, metadata, { state, description, autoInactive }) {
+    if (!this.githubDeploymentPublisher?.isEnabled() || !metadata.githubDeployment?.id) {
+      return;
+    }
+
+    try {
+      await this.githubDeploymentPublisher.createDeploymentStatus({
+        owner: repo.owner,
+        repo: repo.name,
+        deploymentId: metadata.githubDeployment.id,
+        state,
+        environment: metadata.githubDeployment.environment || buildGithubEnvironmentName(metadata),
+        environmentUrl:
+          state === "inactive" ? undefined : `http://${metadata.previewHost}`,
+        logUrl: this.githubDeploymentPublisher.buildLogUrl(metadata.deploymentId),
+        description,
+        autoInactive,
+      });
+    } catch (error) {
+      await this.logger.warn("GitHub deployment status publish failed", {
+        deploymentId: metadata.deploymentId,
+        githubDeploymentId: metadata.githubDeployment.id,
+        state,
+        message: error.message,
+      });
     }
   }
 }
@@ -382,6 +492,26 @@ function normalizeManualTargetValue(targetType, value) {
     throw new RepoValidationError("Manual branch deployments require a branch name.");
   }
   return branch;
+}
+
+function buildGithubDeploymentRef(metadata) {
+  if (metadata.targetType === "pr" && metadata.targetValue) {
+    return `refs/pull/${metadata.targetValue}/head`;
+  }
+
+  return metadata.targetSha || metadata.targetBranch || String(metadata.targetValue || "").trim() || null;
+}
+
+function buildGithubEnvironmentName(metadata) {
+  return `preview/${metadata.deploymentKey}`;
+}
+
+function buildGithubDeploymentDescription(metadata) {
+  if (metadata.targetType === "pr") {
+    return `Preview deployment for PR #${metadata.targetValue}`;
+  }
+
+  return `Preview deployment for branch ${metadata.targetValue}`;
 }
 
 module.exports = {

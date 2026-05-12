@@ -19,6 +19,7 @@ function getConfig(overrides = {}) {
   return {
     port: Number(overrides.PORT || process.env.PORT || 3000),
     baseDomain: overrides.BASE_DOMAIN || process.env.BASE_DOMAIN || "preview.example.com",
+    orchestratorPublicUrl: overrides.ORCHESTRATOR_PUBLIC_URL || process.env.ORCHESTRATOR_PUBLIC_URL || "",
     adminUsername: overrides.ADMIN_USERNAME || process.env.ADMIN_USERNAME || "admin",
     adminPasswordHash: overrides.ADMIN_PASSWORD_BCRYPT_HASH || process.env.ADMIN_PASSWORD_BCRYPT_HASH || "",
     sessionSecret: overrides.SESSION_SECRET || process.env.SESSION_SECRET || "change-me",
@@ -27,6 +28,8 @@ function getConfig(overrides = {}) {
       overrides.NODE_ENV || process.env.NODE_ENV || "development",
     ),
     githubWebhookSecret: overrides.GITHUB_WEBHOOK_SECRET || process.env.GITHUB_WEBHOOK_SECRET || "",
+    githubDeploymentsToken: overrides.GITHUB_DEPLOYMENTS_TOKEN || process.env.GITHUB_DEPLOYMENTS_TOKEN || "",
+    githubApiBaseUrl: overrides.GITHUB_API_BASE_URL || process.env.GITHUB_API_BASE_URL || "https://api.github.com",
     traefikNetworkName: overrides.TRAEFIK_NETWORK_NAME || process.env.TRAEFIK_NETWORK_NAME || "preview-proxy",
     nodeEnv: overrides.NODE_ENV || process.env.NODE_ENV || "development",
     dataRoot,

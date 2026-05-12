@@ -286,6 +286,51 @@ test("deploys on pull request opened and stores deployment metadata", async () =
   assert.equal(metadata.appendProxySettings, false);
 });
 
+test("optionally publishes GitHub deployment entries and statuses with a PAT", async () => {
+  const context = await createTestContext({
+    githubDeploymentsToken: "github_pat_test",
+  });
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken);
+  assert.equal(repoResponse.status, 201);
+
+  const payload = buildPullRequestPayload("opened", {
+    repoFullName: "acme/widgets",
+    prNumber: 22,
+    prSha: "deadbeef",
+  });
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 202);
+
+  const deployment = await waitForDeployment(context.agent, `${repoResponse.body.id}-pr-22`);
+  assert.equal(deployment.githubDeployment.id, 1000);
+  assert.equal(deployment.githubDeployment.environment, "preview/pr-22");
+
+  assert.equal(context.githubDeploymentPublisher.deployments.length, 1);
+  assert.equal(context.githubDeploymentPublisher.deployments[0].owner, "acme");
+  assert.equal(context.githubDeploymentPublisher.deployments[0].repo, "widgets");
+  assert.equal(context.githubDeploymentPublisher.deployments[0].ref, "refs/pull/22/head");
+  assert.equal(context.githubDeploymentPublisher.deployments[0].environment, "preview/pr-22");
+
+  assert.equal(context.githubDeploymentPublisher.statuses.length, 2);
+  assert.equal(context.githubDeploymentPublisher.statuses[0].state, "pending");
+  assert.equal(context.githubDeploymentPublisher.statuses[1].state, "success");
+  assert.equal(
+    context.githubDeploymentPublisher.statuses[1].environmentUrl,
+    "http://acme-widgets-pr-22.preview.example.com",
+  );
+});
+
 test("redeploys on pull request synchronize", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
@@ -522,6 +567,34 @@ test("destroys deployments and cleans the work directory on pull request close",
   });
   assert.equal(deployments.status, 200);
   assert.equal(deployments.body.length, 0);
+});
+
+test("marks GitHub deployments inactive when a preview is destroyed", async () => {
+  const context = await createTestContext({
+    githubDeploymentsToken: "github_pat_test",
+  });
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  await createRepo(context.agent, csrfToken);
+
+  for (const action of ["opened", "closed"]) {
+    const payload = buildPullRequestPayload(action, { prNumber: 18, prSha: "bead1234" });
+    const { raw, signature } = signPayload("webhook-secret", payload);
+    const response = await context.agent
+      .post("/webhooks/github")
+      .set("X-GitHub-Event", "pull_request")
+      .set("X-Hub-Signature-256", signature)
+      .set("Content-Type", "application/json")
+      .send(raw);
+    assert.equal(response.status, 202);
+  }
+
+  await waitFor(async () => {
+    const states = context.githubDeploymentPublisher.statuses.map((status) => status.state);
+    assert.deepEqual(states, ["pending", "success", "inactive"]);
+  });
 });
 
 test("handles duplicate webhook deliveries without corrupting deployment state", async () => {

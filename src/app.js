@@ -8,6 +8,7 @@ const { ensureCsrfToken, requireAuth, verifyCsrfToken, authenticate } = require(
 const { bootstrapFilesystem } = require("./lib/bootstrap");
 const { DeploymentService } = require("./lib/deployment-service");
 const { DeploymentStore } = require("./lib/deployment-store");
+const { GithubDeploymentPublisher } = require("./lib/github-deployment-publisher");
 const { buildWebhookContext, verifyGithubSignature } = require("./lib/github");
 const { LockManager } = require("./lib/lock-manager");
 const { Logger } = require("./lib/logger");
@@ -48,6 +49,14 @@ async function createApp({ config, services = {} }) {
       scriptRunner,
       lockManager: services.lockManager || new LockManager(),
       runtimeInspector: services.runtimeInspector || new RuntimeInspector({ logger }),
+      githubDeploymentPublisher:
+        services.githubDeploymentPublisher ||
+        new GithubDeploymentPublisher({
+          apiBaseUrl: config.githubApiBaseUrl,
+          token: config.githubDeploymentsToken,
+          logger,
+          orchestratorPublicUrl: config.orchestratorPublicUrl,
+        }),
     });
   const sshKeyManager = services.sshKeyManager || new SshKeyManager({ sshDir: config.sshDir, logger });
 

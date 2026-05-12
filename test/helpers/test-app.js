@@ -7,6 +7,7 @@ const request = require("supertest");
 
 const { createApp } = require("../../src/app");
 const { getConfig } = require("../../src/config");
+const { FakeGithubDeploymentPublisher } = require("./fake-github-deployment-publisher");
 const { FakeRuntimeInspector } = require("./fake-runtime-inspector");
 const { FakeScriptRunner } = require("./fake-script-runner");
 const { FakeSshKeyManager } = require("./fake-ssh-key-manager");
@@ -27,6 +28,8 @@ async function createTestContext(options = {}) {
     SESSION_SECRET: "test-session-secret",
     SESSION_COOKIE_SECURE: options.sessionCookieSecure,
     GITHUB_WEBHOOK_SECRET: "webhook-secret",
+    GITHUB_DEPLOYMENTS_TOKEN: options.githubDeploymentsToken || "",
+    ORCHESTRATOR_PUBLIC_URL: options.orchestratorPublicUrl || "https://orchestrator.preview.example.com",
     NODE_ENV: options.nodeEnv || "test",
     DOCKER_SOCKET_PATH: path.join(root, "docker.sock"),
   });
@@ -39,6 +42,12 @@ async function createTestContext(options = {}) {
   });
   const sshKeyManager = options.sshKeyManager || new FakeSshKeyManager(options.initialSshKeyStatus);
   const runtimeInspector = options.runtimeInspector || new FakeRuntimeInspector();
+  const githubDeploymentPublisher =
+    options.githubDeploymentPublisher ||
+    new FakeGithubDeploymentPublisher({
+      enabled: Boolean(options.githubDeploymentsToken),
+      orchestratorPublicUrl: config.orchestratorPublicUrl,
+    });
 
   const app = await createApp({
     config,
@@ -46,6 +55,7 @@ async function createTestContext(options = {}) {
       scriptRunner,
       sshKeyManager,
       runtimeInspector,
+      githubDeploymentPublisher,
     },
   });
 
@@ -60,6 +70,7 @@ async function createTestContext(options = {}) {
     scriptRunner,
     sshKeyManager,
     runtimeInspector,
+    githubDeploymentPublisher,
     cleanup: async () => {
       await fs.rm(root, { recursive: true, force: true });
     },
