@@ -1,7 +1,8 @@
-const path = require("path");
-
-const { RepoValidationError } = require("./repo-store");
-const { buildDeploymentKey, buildPreviewHost, buildProjectName, slugifyRepo } = require("./utils");
+const { buildGithubDeploymentDescription, buildGithubDeploymentRef, buildGithubEnvironmentName } = require("./github-deployment-metadata");
+const { buildDeploySeed, buildDestroySeed } = require("./deployment-metadata");
+const { buildDeployScriptEnv, buildDestroyScriptEnv } = require("./deployment-script-env");
+const { RepoValidationError } = require("./repo-validation-error");
+const { buildDeploymentKey } = require("./utils");
 
 class DeploymentService {
   constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager, runtimeInspector, githubDeploymentPublisher }) {
@@ -20,13 +21,7 @@ class DeploymentService {
     if (!this.runtimeInspector) {
       return deployments.map((deployment) => ({
         ...deployment,
-        runtime: {
-          available: false,
-          status: "unavailable",
-          reason: "runtime-inspector-disabled",
-          containers: [],
-          publicServiceContainer: null,
-        },
+        runtime: unavailableRuntime("runtime-inspector-disabled"),
       }));
     }
 
@@ -57,7 +52,6 @@ class DeploymentService {
     }
 
     const deploymentKey = buildDeploymentKey("pr", webhookContext.prNumber);
-    const lockKey = `${repo.id}:${deploymentKey}`;
     const task = async () => {
       if (webhookContext.mappedAction === "deploy") {
         return this.deployTarget({
@@ -78,7 +72,7 @@ class DeploymentService {
       });
     };
 
-    this.lockManager.run(lockKey, task).catch(async (error) => {
+    this.runWithDeploymentLock(repo, deploymentKey, task).catch(async (error) => {
       await this.logger.error("Queued webhook deployment failed", {
         repoId: repo.id,
         deploymentKey,
@@ -108,12 +102,8 @@ class DeploymentService {
       throw new RepoValidationError("Deployment not found.");
     }
 
-    const repo = await this.repoStore.getById(metadata.repoId);
-    if (!repo) {
-      throw new RepoValidationError("Repository for deployment no longer exists.");
-    }
-
-    return this.lockManager.run(`${repo.id}:${metadata.deploymentKey}`, async () =>
+    const repo = await this.resolveRepoForDeployment(metadata);
+    return this.runWithDeploymentLock(repo, metadata.deploymentKey, async () =>
       this.deployTarget({
         repo,
         targetType: metadata.targetType || "pr",
@@ -132,12 +122,8 @@ class DeploymentService {
       return { destroyed: false, alreadyMissing: true };
     }
 
-    const repo = await this.repoStore.getById(metadata.repoId);
-    if (!repo) {
-      throw new RepoValidationError("Repository for deployment no longer exists.");
-    }
-
-    return this.lockManager.run(`${repo.id}:${metadata.deploymentKey}`, async () =>
+    const repo = await this.resolveRepoForDeployment(metadata);
+    return this.runWithDeploymentLock(repo, metadata.deploymentKey, async () =>
       this.destroyTarget({
         repo,
         deploymentKey: metadata.deploymentKey,
@@ -160,7 +146,7 @@ class DeploymentService {
     const deploymentKey = buildDeploymentKey(targetType, targetValue);
     const targetBranch = targetType === "branch" ? targetValue : null;
 
-    return this.lockManager.run(`${repo.id}:${deploymentKey}`, async () =>
+    return this.runWithDeploymentLock(repo, deploymentKey, async () =>
       this.deployTarget({
         repo,
         targetType,
@@ -174,58 +160,25 @@ class DeploymentService {
   }
 
   async deployTarget({ repo, targetType, targetValue, targetBranch, targetSha, sourceCloneSshUrl, lastEvent }) {
-    const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
-    const deploymentKey = buildDeploymentKey(targetType, targetValue);
-    const previewHost = buildPreviewHost(repoSlug, deploymentKey, this.config.baseDomain);
-    const projectName = buildProjectName(repoSlug, deploymentKey);
-    const workDir = this.deploymentStore.getWorkDir(repoSlug, deploymentKey);
-    const projectDirectoryResolved = path.resolve(workDir, repo.workingDirectory || ".");
-    const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
-    const composePathResolved = path.resolve(projectDirectoryResolved, repo.composePath);
-    const now = new Date().toISOString();
-    const existing = await this.deploymentStore.getById(`${repo.id}-${deploymentKey}`);
-
-    const seed = {
-      deploymentId: `${repo.id}-${deploymentKey}`,
-      deploymentKey,
-      repoId: repo.id,
-      repoSlug,
+    const existing = await this.deploymentStore.getById(`${repo.id}-${buildDeploymentKey(targetType, targetValue)}`);
+    const seed = buildDeploySeed({
+      repo,
+      config: this.config,
+      deploymentStore: this.deploymentStore,
+      existing,
       targetType,
       targetValue,
       targetBranch,
       targetSha,
-      prNumber: targetType === "pr" ? Number(targetValue) : null,
-      prBranch: targetType === "pr" ? targetBranch : null,
-      prSha: targetType === "pr" ? targetSha : null,
-      previewHost,
-      projectName,
-      workDir,
-      workingDirectory: repo.workingDirectory || ".",
-      projectDirectoryResolved,
-      composePathResolved,
       sourceCloneSshUrl,
-      status: "deploying",
       lastEvent,
-      logFile,
-      createdAt: now,
-      updatedAt: now,
-      publicPort: repo.publicPort,
-      publicService: repo.publicService,
-      appendProxySettings: repo.appendProxySettings,
-      previewHostEnvVarName: repo.previewHostEnvVarName || "",
-      extraEnv: repo.extraEnv || {},
-      githubDeployment: existing?.githubDeployment || null,
-    };
-
-    if (existing) {
-      seed.createdAt = existing.createdAt;
-    }
+    });
 
     await this.deploymentStore.save(seed);
     await this.logger.info("Starting deployment", {
       deploymentId: seed.deploymentId,
       repoId: repo.id,
-      deploymentKey,
+      deploymentKey: seed.deploymentKey,
       lastEvent,
     });
 
@@ -239,33 +192,18 @@ class DeploymentService {
     try {
       const result = await this.scriptRunner.run({
         scriptPath: this.config.scripts.deployPr,
-        logFile,
-        env: {
-          REPO_ID: repo.id,
-          REPO_OWNER: repo.owner,
-          REPO_NAME: repo.name,
-          REPO_SLUG: repoSlug,
-          SOURCE_CLONE_SSH_URL: sourceCloneSshUrl,
-          DEFAULT_BRANCH: repo.defaultBranch,
-          WORKING_DIRECTORY: repo.workingDirectory || ".",
-          COMPOSE_PATH: repo.composePath,
-          PUBLIC_SERVICE: repo.publicService,
-          PUBLIC_PORT: String(repo.publicPort),
-          APPEND_PROXY_SETTINGS: String(repo.appendProxySettings),
-          PREVIEW_HOST_ENV_VAR_NAME: repo.previewHostEnvVarName || "",
-          EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
-          DEPLOYMENT_KEY: deploymentKey,
-          TARGET_TYPE: targetType,
-          TARGET_VALUE: String(targetValue),
-          TARGET_BRANCH: targetBranch || "",
-          TARGET_SHA: targetSha || "",
-          BASE_DOMAIN: this.config.baseDomain,
-          DEPLOYMENTS_DIR: this.config.deploymentsDir,
-          LOG_FILE: logFile,
-          LAST_EVENT: lastEvent,
-          TRAEFIK_NETWORK_NAME: this.config.traefikNetworkName,
-          SSH_DIR: this.config.sshDir,
-        },
+        logFile: seed.logFile,
+        env: buildDeployScriptEnv({
+          repo,
+          config: this.config,
+          seed,
+          sourceCloneSshUrl,
+          targetType,
+          targetValue,
+          targetBranch,
+          targetSha,
+          lastEvent,
+        }),
       });
 
       const finalMetadata = {
@@ -273,7 +211,7 @@ class DeploymentService {
         ...(result.parsed || {}),
         status: "running",
         lastEvent,
-        logFile,
+        logFile: seed.logFile,
         updatedAt: new Date().toISOString(),
       };
 
@@ -294,7 +232,7 @@ class DeploymentService {
         status: "failed",
         lastEvent,
         updatedAt: new Date().toISOString(),
-        lastError: error.parsed?.message || error.stderr || error.message,
+        lastError: this.getFailureMessage(error),
       };
       await this.deploymentStore.save(failed);
       await this.publishGithubDeploymentStatus(repo, failed, {
@@ -311,75 +249,46 @@ class DeploymentService {
   }
 
   async destroyTarget({ repo, deploymentKey, lastEvent }) {
-    const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
-    const deploymentId = `${repo.id}-${deploymentKey}`;
-    const existing = await this.deploymentStore.getById(deploymentId);
-    const previewHost = buildPreviewHost(repoSlug, deploymentKey, this.config.baseDomain);
-    const projectName = buildProjectName(repoSlug, deploymentKey);
-    const workDir = this.deploymentStore.getWorkDir(repoSlug, deploymentKey);
-    const projectDirectoryResolved = existing?.projectDirectoryResolved || path.resolve(workDir, repo.workingDirectory || ".");
-    const composePathResolved = existing?.composePathResolved || path.resolve(projectDirectoryResolved, repo.composePath);
-    const logFile = this.deploymentStore.getLogPath(repoSlug, deploymentKey);
-    const seed = {
-      deploymentId,
+    const existing = await this.deploymentStore.getById(`${repo.id}-${deploymentKey}`);
+    const seed = buildDestroySeed({
+      repo,
+      config: this.config,
+      deploymentStore: this.deploymentStore,
+      existing,
       deploymentKey,
-      repoId: repo.id,
-      repoSlug,
-      targetType: existing?.targetType || "pr",
-      targetValue: existing?.targetValue ?? existing?.prNumber ?? null,
-      targetBranch: existing?.targetBranch || existing?.prBranch || null,
-      targetSha: existing?.targetSha || existing?.prSha || null,
-      prNumber: existing?.prNumber || null,
-      prBranch: existing?.prBranch || null,
-      prSha: existing?.prSha || null,
-      previewHost,
-      projectName,
-      workDir,
-      workingDirectory: existing?.workingDirectory || repo.workingDirectory || ".",
-      projectDirectoryResolved,
-      composePathResolved,
-      sourceCloneSshUrl: existing?.sourceCloneSshUrl || repo.cloneSshUrl,
-      status: "destroying",
       lastEvent,
-      logFile,
-      createdAt: existing?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      publicPort: repo.publicPort,
-      publicService: repo.publicService,
-      appendProxySettings: repo.appendProxySettings,
-      previewHostEnvVarName: repo.previewHostEnvVarName || "",
-      extraEnv: repo.extraEnv || {},
-      githubDeployment: existing?.githubDeployment || null,
-    };
+    });
 
     await this.deploymentStore.save(seed);
-    await this.logger.info("Starting destroy", { deploymentId, lastEvent });
+    await this.logger.info("Starting destroy", { deploymentId: seed.deploymentId, lastEvent });
 
     try {
       await this.scriptRunner.run({
         scriptPath: this.config.scripts.destroyPr,
-        logFile,
-        env: {
-          DEPLOYMENT_METADATA_PATH: this.deploymentStore.getMetadataPath(repoSlug, deploymentKey),
-          DEPLOYMENT_ID: deploymentId,
-        },
+        logFile: seed.logFile,
+        env: buildDestroyScriptEnv({
+          deploymentStore: this.deploymentStore,
+          repoSlug: seed.repoSlug,
+          deploymentKey: seed.deploymentKey,
+          deploymentId: seed.deploymentId,
+        }),
       });
       await this.publishGithubDeploymentStatus(repo, seed, {
         state: "inactive",
         description: "Preview deployment was destroyed.",
         autoInactive: false,
       });
-      await this.logger.info("Destroy finished", { deploymentId });
-      return { destroyed: true, deploymentId };
+      await this.logger.info("Destroy finished", { deploymentId: seed.deploymentId });
+      return { destroyed: true, deploymentId: seed.deploymentId };
     } catch (error) {
       const failed = {
         ...seed,
         status: "failed",
         updatedAt: new Date().toISOString(),
-        lastError: error.parsed?.message || error.stderr || error.message,
+        lastError: this.getFailureMessage(error),
       };
       await this.deploymentStore.save(failed);
-      await this.logger.error("Destroy failed", { deploymentId, error: failed.lastError });
+      await this.logger.error("Destroy failed", { deploymentId: seed.deploymentId, error: failed.lastError });
       throw error;
     }
   }
@@ -453,8 +362,7 @@ class DeploymentService {
         deploymentId: metadata.githubDeployment.id,
         state,
         environment: metadata.githubDeployment.environment || buildGithubEnvironmentName(metadata),
-        environmentUrl:
-          state === "inactive" ? undefined : `http://${metadata.previewHost}`,
+        environmentUrl: state === "inactive" ? undefined : `http://${metadata.previewHost}`,
         logUrl: this.githubDeploymentPublisher.buildLogUrl(metadata.deploymentId),
         description,
         autoInactive,
@@ -468,6 +376,32 @@ class DeploymentService {
       });
     }
   }
+
+  async resolveRepoForDeployment(metadata) {
+    const repo = await this.repoStore.getById(metadata.repoId);
+    if (!repo) {
+      throw new RepoValidationError("Repository for deployment no longer exists.");
+    }
+    return repo;
+  }
+
+  runWithDeploymentLock(repo, deploymentKey, task) {
+    return this.lockManager.run(`${repo.id}:${deploymentKey}`, task);
+  }
+
+  getFailureMessage(error) {
+    return error.parsed?.message || error.stderr || error.message;
+  }
+}
+
+function unavailableRuntime(reason) {
+  return {
+    available: false,
+    status: "unavailable",
+    reason,
+    containers: [],
+    publicServiceContainer: null,
+  };
 }
 
 function normalizeManualTargetType(value) {
@@ -492,26 +426,6 @@ function normalizeManualTargetValue(targetType, value) {
     throw new RepoValidationError("Manual branch deployments require a branch name.");
   }
   return branch;
-}
-
-function buildGithubDeploymentRef(metadata) {
-  if (metadata.targetType === "pr" && metadata.targetValue) {
-    return `refs/pull/${metadata.targetValue}/head`;
-  }
-
-  return metadata.targetSha || metadata.targetBranch || String(metadata.targetValue || "").trim() || null;
-}
-
-function buildGithubEnvironmentName(metadata) {
-  return `preview/${metadata.deploymentKey}`;
-}
-
-function buildGithubDeploymentDescription(metadata) {
-  if (metadata.targetType === "pr") {
-    return `Preview deployment for PR #${metadata.targetValue}`;
-  }
-
-  return `Preview deployment for branch ${metadata.targetValue}`;
 }
 
 module.exports = {
