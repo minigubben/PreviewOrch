@@ -38,7 +38,7 @@ class FakeScriptRunner {
       throw error;
     }
 
-    if (env.COMPOSE_PATH === "missing-labels.yml") {
+    if (env.COMPOSE_PATH === "missing-labels.yml" && env.APPEND_PROXY_SETTINGS !== "true") {
       const error = new Error("Missing Traefik contract.");
       error.parsed = { message: "Missing required Traefik label contract token: ${ORCH_PREVIEW_HOST}" };
       throw error;
@@ -62,6 +62,7 @@ class FakeScriptRunner {
     const workDir = path.join(env.DEPLOYMENTS_DIR, repoSlug, `pr-${prNumber}`);
     const composePathResolved = path.join(workDir, env.COMPOSE_PATH);
     const envFile = path.join(workDir, ".env.runtime");
+    const proxyOverridePath = path.join(workDir, ".orchestrator-proxy.override.yml");
     const previewHost = buildPreviewHost(repoSlug, prNumber, env.BASE_DOMAIN || this.baseDomain);
     const projectName = buildProjectName(repoSlug, prNumber);
     const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}");
@@ -77,6 +78,9 @@ class FakeScriptRunner {
     await fs.mkdir(path.dirname(composePathResolved), { recursive: true });
     await fs.writeFile(composePathResolved, "services: {}\n", "utf8");
     await fs.writeFile(envFile, `${envLines.join("\n")}\n`, "utf8");
+    if (env.APPEND_PROXY_SETTINGS === "true") {
+      await fs.writeFile(proxyOverridePath, "services: {}\n", "utf8");
+    }
 
     return {
       code: 0,
@@ -93,9 +97,11 @@ class FakeScriptRunner {
         composePathResolved,
         sourceCloneSshUrl: env.SOURCE_CLONE_SSH_URL,
         envFile,
+        proxyOverridePath: env.APPEND_PROXY_SETTINGS === "true" ? proxyOverridePath : "",
         logFile: env.LOG_FILE || "",
         publicPort: Number(env.PUBLIC_PORT),
         publicService: env.PUBLIC_SERVICE,
+        appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
         previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
         extraEnv,
       })}\n`,
@@ -113,9 +119,11 @@ class FakeScriptRunner {
         composePathResolved,
         sourceCloneSshUrl: env.SOURCE_CLONE_SSH_URL,
         envFile,
+        proxyOverridePath: env.APPEND_PROXY_SETTINGS === "true" ? proxyOverridePath : "",
         logFile: env.LOG_FILE || "",
         publicPort: Number(env.PUBLIC_PORT),
         publicService: env.PUBLIC_SERVICE,
+        appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
         previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
         extraEnv,
       },

@@ -98,6 +98,7 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and PR p
    - compose file path
    - public service name
    - public port
+   - optional checkbox to append proxy settings to the selected service
    - optional preview host alias env var name, for example `APP_FQDN`
    - optional extra env vars as `KEY=value` lines
 3. The app validates:
@@ -105,7 +106,7 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and PR p
    - shallow clone of the default branch
    - compose path existence
    - public service existence
-   - required Traefik label contract
+   - required Traefik label contract, unless proxy settings will be appended by the orchestrator
 4. Configure a GitHub webhook to `POST /webhooks/github`.
 
 ## GitHub Webhook Setup
@@ -123,7 +124,7 @@ Handled actions:
 
 ## Compose Contract
 
-The repo-owned compose file must keep the Traefik labels on the configured public service.
+The repo-owned compose file can keep the Traefik labels on the configured public service, or the orchestrator can append them automatically when `Append proxy settings to this service` is enabled in the admin UI.
 
 See [docs/compose-contract.md](/home/agent/utveckling_git/pr-orchestrator/docs/compose-contract.md).
 

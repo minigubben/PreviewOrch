@@ -127,6 +127,10 @@ class RepoStore {
         throw new RepoValidationError("previewHostEnvVarName cannot duplicate a key from extraEnv.");
       }
     }
+
+    if (typeof repo.appendProxySettings !== "boolean") {
+      throw new RepoValidationError("appendProxySettings must be a boolean.");
+    }
   }
 
   assertNoDuplicate(repos, candidate, selfId = null) {
@@ -152,6 +156,7 @@ class RepoStore {
           COMPOSE_PATH: repo.composePath,
           PUBLIC_SERVICE: repo.publicService,
           PUBLIC_PORT: String(repo.publicPort),
+          APPEND_PROXY_SETTINGS: String(repo.appendProxySettings),
           PREVIEW_HOST_ENV_VAR_NAME: repo.previewHostEnvVarName || "",
           EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
           SSH_DIR: this.sshDir,
@@ -183,6 +188,7 @@ function normalizeRepoInput(input) {
     publicService: String(input.publicService || "").trim(),
     publicPort: Number(input.publicPort),
     defaultBranch: String(input.defaultBranch || "").trim(),
+    appendProxySettings: normalizeBoolean(input.appendProxySettings ?? false),
     previewHostEnvVarName: String(input.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
@@ -194,6 +200,7 @@ function hydrateStoredRepo(repo) {
   const extraEnv = normalizeExistingExtraEnv(repo.extraEnv);
   return {
     ...repo,
+    appendProxySettings: normalizeBoolean(repo.appendProxySettings ?? false),
     previewHostEnvVarName: String(repo.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),

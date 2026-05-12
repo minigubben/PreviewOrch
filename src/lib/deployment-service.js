@@ -125,6 +125,7 @@ class DeploymentService {
       updatedAt: now,
       publicPort: repo.publicPort,
       publicService: repo.publicService,
+      appendProxySettings: repo.appendProxySettings,
       previewHostEnvVarName: repo.previewHostEnvVarName || "",
       extraEnv: repo.extraEnv || {},
     };
@@ -156,6 +157,7 @@ class DeploymentService {
           COMPOSE_PATH: repo.composePath,
           PUBLIC_SERVICE: repo.publicService,
           PUBLIC_PORT: String(repo.publicPort),
+          APPEND_PROXY_SETTINGS: String(repo.appendProxySettings),
           PREVIEW_HOST_ENV_VAR_NAME: repo.previewHostEnvVarName || "",
           EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
           PR_NUMBER: String(prNumber),
@@ -230,6 +232,7 @@ class DeploymentService {
       updatedAt: new Date().toISOString(),
       publicPort: repo.publicPort,
       publicService: repo.publicService,
+      appendProxySettings: repo.appendProxySettings,
       previewHostEnvVarName: repo.previewHostEnvVarName || "",
       extraEnv: repo.extraEnv || {},
     };

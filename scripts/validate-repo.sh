@@ -51,6 +51,7 @@ const fs = require("fs");
 const YAML = require("yaml");
 
 const publicService = process.env.PUBLIC_SERVICE;
+const appendProxySettings = String(process.env.APPEND_PROXY_SETTINGS || "false").toLowerCase() === "true";
 
 function fail(message) {
   console.log(JSON.stringify({ ok: false, message }));
@@ -67,6 +68,11 @@ if (!doc || typeof doc !== "object" || !doc.services || typeof doc.services !== 
 const service = doc.services[publicService];
 if (!service) {
   fail(`Configured public service '${publicService}' was not found in compose file.`);
+}
+
+if (appendProxySettings) {
+  console.log(JSON.stringify({ ok: true, message: "Repository validation passed." }));
+  process.exit(0);
 }
 
 const labels = [];

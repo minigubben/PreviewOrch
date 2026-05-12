@@ -64,6 +64,13 @@
               <input id="publicPort" type="number" name="publicPort" value="3000" required />
             </div>
             <div class="field">
+              <label>
+                <input type="checkbox" name="appendProxySettings" value="true" />
+                Append proxy settings to this service
+              </label>
+              <p class="muted">When enabled, the orchestrator generates a compose override with Traefik labels and the external proxy network for the selected service.</p>
+            </div>
+            <div class="field">
               <label for="previewHostEnvVarName">Preview host alias env var</label>
               <input id="previewHostEnvVarName" name="previewHostEnvVarName" placeholder="APP_FQDN" />
               <p class="muted">Optional. If set, the generated preview host is written to both <code>ORCH_PREVIEW_HOST</code> and this variable.</p>
@@ -115,7 +122,7 @@
         <article class="panel stack">
           <div>
             <h2>Compose contract</h2>
-            <p class="muted">Attach preview routing in the repo-owned compose file. The orchestrator only injects env vars.</p>
+            <p class="muted">Use repo-owned Traefik labels, or let the orchestrator append them with the checkbox above.</p>
           </div>
 <pre>services:
   app:
@@ -179,6 +186,12 @@ networks:
                 <div class="field">
                   <label>Public port</label>
                   <input type="number" name="publicPort" value="<%= repo.publicPort %>" required />
+                </div>
+                <div class="field">
+                  <label>
+                    <input type="checkbox" name="appendProxySettings" value="true" <%= repo.appendProxySettings ? "checked" : "" %> />
+                    Append proxy settings to this service
+                  </label>
                 </div>
                 <div class="field">
                   <label>Preview host alias env var</label>

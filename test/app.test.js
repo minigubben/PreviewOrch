@@ -107,6 +107,7 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(response.status, 201);
   assert.equal(response.body.owner, "acme");
   assert.equal(response.body.name, "widgets");
+  assert.equal(response.body.appendProxySettings, false);
   assert.deepEqual(response.body.extraEnv, {});
   assert.equal(response.body.previewHostEnvVarName, "");
   assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length, 1);
@@ -130,6 +131,21 @@ test("stores additional env vars and preview host alias from the admin ui", asyn
     API_ORIGIN: "https://api.example.com",
   });
   assert.equal(response.body.extraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
+});
+
+test("allows a repo without traefik labels when proxy settings will be appended", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    composePath: "missing-labels.yml",
+    appendProxySettings: true,
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.appendProxySettings, true);
 });
 
 test("rejects a repository with a missing compose path", async () => {
@@ -201,6 +217,7 @@ test("deploys on pull request opened and stores deployment metadata", async () =
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
   const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
   assert.equal(metadata.previewHost, "acme-widgets-pr-17.preview.example.com");
+  assert.equal(metadata.appendProxySettings, false);
 });
 
 test("redeploys on pull request synchronize", async () => {
@@ -260,6 +277,35 @@ test("writes the preview host alias and extra env vars into the deployment env f
   assert.match(envFile, /^APP_FQDN=acme-widgets-pr-17\.preview\.example\.com$/m);
   assert.match(envFile, /^NODE_ENV=production$/m);
   assert.match(envFile, /^API_ORIGIN=https:\/\/api\.example\.com$/m);
+});
+
+test("stores a generated proxy override path when proxy settings are appended", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken, {
+    composePath: "missing-labels.yml",
+    appendProxySettings: true,
+  });
+  assert.equal(repoResponse.status, 201);
+
+  const payload = buildPullRequestPayload("opened");
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 200);
+
+  const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
+  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+  assert.equal(metadata.appendProxySettings, true);
+  assert.match(metadata.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
 });
 
 test("destroys deployments and cleans the work directory on pull request close", async () => {
