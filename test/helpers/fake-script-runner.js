@@ -64,10 +64,19 @@ class FakeScriptRunner {
     const envFile = path.join(workDir, ".env.runtime");
     const previewHost = buildPreviewHost(repoSlug, prNumber, env.BASE_DOMAIN || this.baseDomain);
     const projectName = buildProjectName(repoSlug, prNumber);
+    const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}");
+    const envLines = [`ORCH_PREVIEW_HOST=${previewHost}`];
+
+    if (env.PREVIEW_HOST_ENV_VAR_NAME) {
+      envLines.push(`${env.PREVIEW_HOST_ENV_VAR_NAME}=${previewHost}`);
+    }
+    for (const [key, value] of Object.entries(extraEnv)) {
+      envLines.push(`${key}=${value}`);
+    }
 
     await fs.mkdir(path.dirname(composePathResolved), { recursive: true });
     await fs.writeFile(composePathResolved, "services: {}\n", "utf8");
-    await fs.writeFile(envFile, `ORCH_PREVIEW_HOST=${previewHost}\n`, "utf8");
+    await fs.writeFile(envFile, `${envLines.join("\n")}\n`, "utf8");
 
     return {
       code: 0,
@@ -87,6 +96,8 @@ class FakeScriptRunner {
         logFile: env.LOG_FILE || "",
         publicPort: Number(env.PUBLIC_PORT),
         publicService: env.PUBLIC_SERVICE,
+        previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
+        extraEnv,
       })}\n`,
       stderr: "",
       parsed: {
@@ -105,6 +116,8 @@ class FakeScriptRunner {
         logFile: env.LOG_FILE || "",
         publicPort: Number(env.PUBLIC_PORT),
         publicService: env.PUBLIC_SERVICE,
+        previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
+        extraEnv,
       },
     };
   }

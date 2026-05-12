@@ -75,7 +75,29 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(response.status, 201);
   assert.equal(response.body.owner, "acme");
   assert.equal(response.body.name, "widgets");
+  assert.deepEqual(response.body.extraEnv, {});
+  assert.equal(response.body.previewHostEnvVarName, "");
   assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length, 1);
+});
+
+test("stores additional env vars and preview host alias from the admin ui", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    previewHostEnvVarName: "APP_FQDN",
+    extraEnvText: "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.previewHostEnvVarName, "APP_FQDN");
+  assert.deepEqual(response.body.extraEnv, {
+    NODE_ENV: "production",
+    API_ORIGIN: "https://api.example.com",
+  });
+  assert.equal(response.body.extraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
 });
 
 test("rejects a repository with a missing compose path", async () => {
@@ -100,6 +122,20 @@ test("rejects a repository missing the traefik label contract", async () => {
 
   assert.equal(response.status, 400);
   assert.match(response.body.error, /Missing required Traefik label contract token/);
+});
+
+test("rejects invalid additional env variable names", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    extraEnvText: "bad-name=value",
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /must be a valid environment variable name/);
 });
 
 test("deploys on pull request opened and stores deployment metadata", async () => {
@@ -161,6 +197,37 @@ test("redeploys on pull request synchronize", async () => {
   assert.equal(deployments.body.length, 1);
   assert.equal(deployments.body[0].prSha, "def456");
   assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length, 2);
+});
+
+test("writes the preview host alias and extra env vars into the deployment env file", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken, {
+    previewHostEnvVarName: "APP_FQDN",
+    extraEnvText: "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+  });
+  assert.equal(repoResponse.status, 201);
+
+  const payload = buildPullRequestPayload("opened");
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 200);
+
+  const envFilePath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", ".env.runtime");
+  const envFile = await fs.readFile(envFilePath, "utf8");
+  assert.match(envFile, /^ORCH_PREVIEW_HOST=acme-widgets-pr-17\.preview\.example\.com$/m);
+  assert.match(envFile, /^APP_FQDN=acme-widgets-pr-17\.preview\.example\.com$/m);
+  assert.match(envFile, /^NODE_ENV=production$/m);
+  assert.match(envFile, /^API_ORIGIN=https:\/\/api\.example\.com$/m);
 });
 
 test("destroys deployments and cleans the work directory on pull request close", async () => {

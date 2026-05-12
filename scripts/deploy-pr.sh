@@ -72,15 +72,39 @@ if [[ ! -f "${compose_path_resolved}" ]]; then
   exit 1
 fi
 
-cat > "${env_file}" <<EOF
-ORCH_PROJECT_NAME=${project_name}
-ORCH_PREVIEW_HOST=${preview_host}
-ORCH_PREVIEW_SERVICE_PORT=${PUBLIC_PORT}
-ORCH_PR_NUMBER=${PR_NUMBER}
-ORCH_PR_BRANCH=${PR_BRANCH}
-ORCH_PR_SHA=${PR_SHA}
-ORCH_REPO_SLUG=${REPO_SLUG}
-EOF
+PROJECT_NAME="${project_name}" \
+PREVIEW_HOST="${preview_host}" \
+ENV_FILE="${env_file}" \
+node <<'NODE'
+const fs = require("fs");
+
+const reserved = {
+  ORCH_PROJECT_NAME: process.env.PROJECT_NAME,
+  ORCH_PREVIEW_HOST: process.env.PREVIEW_HOST,
+  ORCH_PREVIEW_SERVICE_PORT: process.env.PUBLIC_PORT,
+  ORCH_PR_NUMBER: process.env.PR_NUMBER,
+  ORCH_PR_BRANCH: process.env.PR_BRANCH,
+  ORCH_PR_SHA: process.env.PR_SHA,
+  ORCH_REPO_SLUG: process.env.REPO_SLUG,
+};
+
+const lines = [];
+for (const [key, value] of Object.entries(reserved)) {
+  lines.push(`${key}=${String(value ?? "")}`);
+}
+
+const previewHostEnvVarName = String(process.env.PREVIEW_HOST_ENV_VAR_NAME || "").trim();
+if (previewHostEnvVarName) {
+  lines.push(`${previewHostEnvVarName}=${process.env.PREVIEW_HOST}`);
+}
+
+const extraEnv = JSON.parse(process.env.EXTRA_ENV_JSON || "{}");
+for (const [key, value] of Object.entries(extraEnv)) {
+  lines.push(`${key}=${String(value ?? "")}`);
+}
+
+fs.writeFileSync(process.env.ENV_FILE, `${lines.join("\n")}\n`, "utf8");
+NODE
 
 docker compose \
   --project-name "${project_name}" \

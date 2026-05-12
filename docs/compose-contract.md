@@ -13,6 +13,11 @@ The orchestrator writes these into `.env.runtime` for each PR deployment:
 - `ORCH_PR_SHA`
 - `ORCH_REPO_SLUG`
 
+The admin UI can also append:
+
+- one optional preview-host alias variable, for example `APP_FQDN`, with the same value as `ORCH_PREVIEW_HOST`
+- any additional `KEY=value` env pairs configured on the repository
+
 ## Required Service Labels
 The configured public service must include label values that reference:
 

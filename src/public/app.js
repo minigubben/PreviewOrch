@@ -4,7 +4,7 @@ async function submitForm(event) {
   const method = form.dataset.method || form.method || "POST";
   const action = form.action;
   const statusNode = document.querySelector("[data-ui-status]");
-  const body = Object.fromEntries(new FormData(form).entries());
+  const body = serializeForm(form);
 
   try {
     const response = await fetch(action, {
@@ -60,3 +60,27 @@ document.querySelectorAll("[data-api-form]").forEach((form) => {
 document.querySelectorAll("[data-api-action]").forEach((button) => {
   button.addEventListener("click", runAction);
 });
+
+function serializeForm(form) {
+  const body = {};
+  for (const field of form.elements) {
+    if (!field.name || field.disabled) {
+      continue;
+    }
+
+    if (field.type === "checkbox") {
+      body[field.name] = field.checked;
+      continue;
+    }
+
+    if (field.type === "radio") {
+      if (field.checked) {
+        body[field.name] = field.value;
+      }
+      continue;
+    }
+
+    body[field.name] = field.value;
+  }
+  return body;
+}

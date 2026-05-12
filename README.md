@@ -97,6 +97,8 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and PR p
    - compose file path
    - public service name
    - public port
+   - optional preview host alias env var name, for example `APP_FQDN`
+   - optional extra env vars as `KEY=value` lines
 3. The app validates:
    - `git ls-remote`
    - shallow clone of the default branch
@@ -123,6 +125,18 @@ Handled actions:
 The repo-owned compose file must keep the Traefik labels on the configured public service.
 
 See [docs/compose-contract.md](/home/agent/utveckling_git/pr-orchestrator/docs/compose-contract.md).
+
+## Runtime Env Behavior
+
+Each deployment always writes the generated preview host to:
+
+- `ORCH_PREVIEW_HOST`
+
+If you configure a preview host alias env var in the admin UI, for example `APP_FQDN`, the same generated host is also written to:
+
+- `APP_FQDN`
+
+This keeps `ORCH_PREVIEW_HOST` as the stable orchestrator variable while still letting the app read the env var name it expects.
 
 ## Tests
 

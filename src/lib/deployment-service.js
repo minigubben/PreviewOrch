@@ -125,6 +125,8 @@ class DeploymentService {
       updatedAt: now,
       publicPort: repo.publicPort,
       publicService: repo.publicService,
+      previewHostEnvVarName: repo.previewHostEnvVarName || "",
+      extraEnv: repo.extraEnv || {},
     };
 
     const existing = await this.deploymentStore.getById(seed.deploymentId);
@@ -154,6 +156,8 @@ class DeploymentService {
           COMPOSE_PATH: repo.composePath,
           PUBLIC_SERVICE: repo.publicService,
           PUBLIC_PORT: String(repo.publicPort),
+          PREVIEW_HOST_ENV_VAR_NAME: repo.previewHostEnvVarName || "",
+          EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
           PR_NUMBER: String(prNumber),
           PR_BRANCH: prBranch,
           PR_SHA: prSha,
@@ -226,6 +230,8 @@ class DeploymentService {
       updatedAt: new Date().toISOString(),
       publicPort: repo.publicPort,
       publicService: repo.publicService,
+      previewHostEnvVarName: repo.previewHostEnvVarName || "",
+      extraEnv: repo.extraEnv || {},
     };
 
     await this.deploymentStore.save(seed);

@@ -32,7 +32,7 @@
         <article class="panel stack">
           <div>
             <h2>Add repository</h2>
-            <p class="muted">Each repository must supply the compose file path, public service, and public port explicitly.</p>
+            <p class="muted">Each repository must supply the compose file path, public service, public port, and any app-specific env overrides explicitly.</p>
           </div>
           <form action="/api/repos" method="post" data-method="POST" data-api-form class="stack">
             <div class="field">
@@ -62,6 +62,21 @@
             <div class="field">
               <label for="publicPort">Public port</label>
               <input id="publicPort" type="number" name="publicPort" value="3000" required />
+            </div>
+            <div class="field">
+              <label for="previewHostEnvVarName">Preview host alias env var</label>
+              <input id="previewHostEnvVarName" name="previewHostEnvVarName" placeholder="APP_FQDN" />
+              <p class="muted">Optional. If set, the generated preview host is written to both <code>ORCH_PREVIEW_HOST</code> and this variable.</p>
+            </div>
+            <div class="field">
+              <label for="extraEnvText">Additional env vars</label>
+              <textarea
+                id="extraEnvText"
+                name="extraEnvText"
+                rows="6"
+                placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com"
+              ></textarea>
+              <p class="muted">One <code>KEY=value</code> pair per line. These are appended to the generated <code>.env.runtime</code> file for each PR deployment.</p>
             </div>
             <div class="field">
               <label>
@@ -140,6 +155,18 @@ networks:
                 <div class="field">
                   <label>Public port</label>
                   <input type="number" name="publicPort" value="<%= repo.publicPort %>" required />
+                </div>
+                <div class="field">
+                  <label>Preview host alias env var</label>
+                  <input name="previewHostEnvVarName" value="<%= repo.previewHostEnvVarName || "" %>" placeholder="APP_FQDN" />
+                </div>
+                <div class="field">
+                  <label>Additional env vars</label>
+                  <textarea
+                    name="extraEnvText"
+                    rows="6"
+                    placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com"
+                  ><%= repo.extraEnvText || "" %></textarea>
                 </div>
                 <div class="field">
                   <label>
