@@ -16,6 +16,7 @@ import { createAuthRouter } from "./routes/auth.js";
 import { createGithubWebhookRouter } from "./routes/github-webhooks.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createUiRouter } from "./routes/ui.js";
+import { BRANDING } from "./lib/branding.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,6 +37,10 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
   app.set("trust proxy", 1);
 
   app.use("/static", express.static(path.join(__dirname, "public")));
+  app.get("/favicon.ico", (req, res) => {
+    void req;
+    return res.redirect(BRANDING.faviconPath);
+  });
   app.use((req, res, next) => {
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("X-Content-Type-Options", "nosniff");

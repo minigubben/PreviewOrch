@@ -38,3 +38,12 @@ test("createApp can use an explicit client asset override for rendered pages", a
   assert.match(response.text, /\/static\/brand\/previeworch-favicon\.png/);
   assert.match(response.text, /\/static\/brand\/previeworch\.png/);
 });
+
+test("createApp serves the favicon from the default browser path", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  const response = await context.agent.get("/favicon.ico");
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.location, "/static/brand/previeworch-favicon.png");
+});
