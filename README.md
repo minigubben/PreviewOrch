@@ -5,6 +5,7 @@ Small Docker-based preview orchestration for GitHub repositories that ship a rep
 ## What It Does
 
 - Receives GitHub `pull_request` webhooks.
+- Accepts GitHub webhook `ping` requests so endpoint validation works when the webhook is created or edited.
 - Clones the PR head into `data/deployments/{repoSlug}/pr-{number}`.
 - Writes runtime env vars into `.env.runtime`.
 - Runs `docker compose up -d --build` for the PR.
@@ -117,9 +118,13 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and prev
 
 ## GitHub Webhook Setup
 
-- Event type: `pull_request`
+- Payload URL: `https://orchestrator.{BASE_DOMAIN}/webhooks/github`
 - Content type: `application/json`
 - Secret: same value as `GITHUB_WEBHOOK_SECRET`
+- Enable SSL verification: `true`
+- Events:
+  - If using “Let me select individual events”, select `Pull requests`
+  - GitHub will still send a `ping` event when the webhook is created or updated, and the orchestrator now responds successfully to that request
 
 Handled actions:
 
@@ -127,6 +132,11 @@ Handled actions:
 - `reopened`
 - `synchronize`
 - `closed`
+
+Webhook behavior:
+
+- `ping`: returns `200 OK` and confirms the endpoint is reachable
+- unsupported GitHub events: return `200 OK` with `{ "ignored": true }`
 
 ## Compose Contract
 

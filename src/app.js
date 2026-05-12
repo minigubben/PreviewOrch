@@ -132,16 +132,29 @@ async function createApp({ config, services = {} }) {
       return res.status(401).json({ error: "Invalid signature." });
     }
 
-    if (eventName !== "pull_request") {
-      await logger.info("Ignored unsupported GitHub event", { eventName });
-      return res.json({ ignored: true });
-    }
-
     let payload;
     try {
       payload = JSON.parse(rawBody.toString("utf8"));
     } catch {
       return res.status(400).json({ error: "Invalid JSON payload." });
+    }
+
+    if (eventName === "ping") {
+      await logger.info("Accepted GitHub webhook ping", {
+        hookId: payload.hook_id || null,
+        zen: payload.zen || "",
+      });
+      return res.json({
+        ok: true,
+        event: "ping",
+        zen: payload.zen || "",
+        hookId: payload.hook_id || null,
+      });
+    }
+
+    if (eventName !== "pull_request") {
+      await logger.info("Ignored unsupported GitHub event", { eventName });
+      return res.json({ ignored: true });
     }
 
     const webhookContext = buildWebhookContext(payload);

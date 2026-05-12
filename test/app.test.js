@@ -497,6 +497,33 @@ test("rejects invalid webhook signatures", async () => {
   assert.equal(response.body.error, "Invalid signature.");
 });
 
+test("accepts GitHub webhook ping events", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  const payload = {
+    zen: "Approachable is better than simple.",
+    hook_id: 123456,
+    repository: {
+      full_name: "acme/widgets",
+    },
+  };
+  const { raw, signature } = signPayload("webhook-secret", payload);
+
+  const response = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "ping")
+    .set("X-Hub-Signature-256", signature)
+    .set("Content-Type", "application/json")
+    .send(raw);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.ok, true);
+  assert.equal(response.body.event, "ping");
+  assert.equal(response.body.hookId, 123456);
+  assert.equal(response.body.zen, "Approachable is better than simple.");
+});
+
 test("manual redeploy and manual delete routes work from the admin ui api", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
