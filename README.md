@@ -68,6 +68,14 @@ Or start the full stack:
 docker compose up --build
 ```
 
+## Cloudflare Tunnel Target
+Configure Cloudflare Tunnel ingress to forward your wildcard hostname to the Traefik `web` entrypoint on port `80`.
+
+- If Cloudflare reaches the Docker network directly, point it to `http://traefik:80`
+- If Cloudflare is configured outside Docker on the same host, point it to `http://<host-ip>:80`
+
+The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and PR previews are routed at `{repoSlug}-pr-{number}.{BASE_DOMAIN}`.
+
 ## Admin Workflow
 1. Sign in at `orchestrator.{BASE_DOMAIN}`.
 2. Add a repository with:
