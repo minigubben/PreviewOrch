@@ -142,6 +142,7 @@ class FakeScriptRunner {
         appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
         previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
         extraEnv,
+        githubDeployment: null,
       })}\n`,
       stderr: "",
       parsed: {
@@ -171,6 +172,7 @@ class FakeScriptRunner {
         appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
         previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
         extraEnv,
+        githubDeployment: null,
       },
     };
   }

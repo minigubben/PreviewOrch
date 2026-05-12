@@ -229,6 +229,9 @@ class DeploymentService {
       const finalMetadata = {
         ...seed,
         ...(result.parsed || {}),
+        githubDeployment:
+          result.parsed?.githubDeployment ||
+          seed.githubDeployment,
         status: "running",
         lastEvent,
         logFile: seed.logFile,
