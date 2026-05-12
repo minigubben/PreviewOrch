@@ -124,7 +124,7 @@ async function createApp({ config, services = {} }) {
 
   app.post("/webhooks/github", express.raw({ type: "application/json" }), async (req, res) => {
     const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
-    const signature = req.get("x-hub-signature-256");
+    const signature = req.get("x-hub-signature-256") || req.get("x-hub-signature");
     const eventName = req.get("x-github-event");
 
     if (!verifyGithubSignature(rawBody, signature, config.githubWebhookSecret)) {

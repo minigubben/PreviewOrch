@@ -121,6 +121,7 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and prev
 - Payload URL: `https://orchestrator.{BASE_DOMAIN}/webhooks/github`
 - Content type: `application/json`
 - Secret: same value as `GITHUB_WEBHOOK_SECRET`
+  - In the orchestrator `.env` file, do not wrap `GITHUB_WEBHOOK_SECRET` in quotes
 - Enable SSL verification: `true`
 - Events:
   - If using “Let me select individual events”, select `Pull requests`

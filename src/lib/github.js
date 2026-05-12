@@ -1,12 +1,18 @@
 const crypto = require("crypto");
 
 function verifyGithubSignature(rawBody, signatureHeader, secret) {
-  if (!secret || !signatureHeader || !signatureHeader.startsWith("sha256=")) {
+  const normalizedSecret = normalizeWebhookSecret(secret);
+  if (!normalizedSecret || !signatureHeader) {
     return false;
   }
 
-  const digest = crypto.createHmac("sha256", secret).update(rawBody).digest("hex");
-  const expected = Buffer.from(`sha256=${digest}`);
+  const parsed = parseSignatureHeader(signatureHeader);
+  if (!parsed) {
+    return false;
+  }
+
+  const digest = crypto.createHmac(parsed.algorithm, normalizedSecret).update(rawBody).digest("hex");
+  const expected = Buffer.from(`${parsed.prefix}=${digest}`);
   const actual = Buffer.from(signatureHeader);
 
   if (expected.length !== actual.length) {
@@ -14,6 +20,44 @@ function verifyGithubSignature(rawBody, signatureHeader, secret) {
   }
 
   return crypto.timingSafeEqual(expected, actual);
+}
+
+function parseSignatureHeader(signatureHeader) {
+  if (typeof signatureHeader !== "string") {
+    return null;
+  }
+
+  if (signatureHeader.startsWith("sha256=")) {
+    return {
+      algorithm: "sha256",
+      prefix: "sha256",
+    };
+  }
+
+  if (signatureHeader.startsWith("sha1=")) {
+    return {
+      algorithm: "sha1",
+      prefix: "sha1",
+    };
+  }
+
+  return null;
+}
+
+function normalizeWebhookSecret(secret) {
+  const value = String(secret || "").trim();
+  if (!value) {
+    return "";
+  }
+
+  if (
+    (value.startsWith("'") && value.endsWith("'")) ||
+    (value.startsWith('"') && value.endsWith('"'))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
 }
 
 function mapPullRequestAction(action) {
@@ -49,5 +93,6 @@ function buildWebhookContext(payload) {
 module.exports = {
   buildWebhookContext,
   mapPullRequestAction,
+  normalizeWebhookSecret,
   verifyGithubSignature,
 };

@@ -1,8 +1,9 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("crypto");
 
 const { buildDeploymentKey, buildPreviewHost, buildProjectName } = require("../src/lib/utils");
-const { mapPullRequestAction, verifyGithubSignature } = require("../src/lib/github");
+const { mapPullRequestAction, normalizeWebhookSecret, verifyGithubSignature } = require("../src/lib/github");
 const { buildPullRequestPayload, signPayload } = require("./helpers/test-app");
 
 test("buildPreviewHost creates the expected wildcard host", () => {
@@ -28,6 +29,25 @@ test("verifyGithubSignature rejects an invalid signature", () => {
   const payload = buildPullRequestPayload("opened");
   const { raw } = signPayload("webhook-secret", payload);
   assert.equal(verifyGithubSignature(Buffer.from(raw), "sha256=bad", "webhook-secret"), false);
+});
+
+test("verifyGithubSignature accepts a quoted webhook secret", () => {
+  const payload = buildPullRequestPayload("opened");
+  const { raw, signature } = signPayload("webhook-secret", payload);
+  assert.equal(verifyGithubSignature(Buffer.from(raw), signature, "'webhook-secret'"), true);
+});
+
+test("verifyGithubSignature accepts a legacy sha1 signature header", () => {
+  const payload = buildPullRequestPayload("opened");
+  const raw = JSON.stringify(payload);
+  const digest = crypto.createHmac("sha1", "webhook-secret").update(raw).digest("hex");
+  assert.equal(verifyGithubSignature(Buffer.from(raw), `sha1=${digest}`, "webhook-secret"), true);
+});
+
+test("normalizeWebhookSecret strips matching surrounding quotes", () => {
+  assert.equal(normalizeWebhookSecret("'abc123'"), "abc123");
+  assert.equal(normalizeWebhookSecret('"abc123"'), "abc123");
+  assert.equal(normalizeWebhookSecret("abc123"), "abc123");
 });
 
 test("mapPullRequestAction matches the supported lifecycle events", () => {
