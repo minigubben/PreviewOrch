@@ -66,6 +66,8 @@ document.querySelectorAll("[data-api-action]").forEach((button) => {
   button.addEventListener("click", runAction);
 });
 
+initPanelSelector();
+
 function serializeForm(form) {
   const body = {};
   for (const field of form.elements) {
@@ -88,4 +90,43 @@ function serializeForm(form) {
     body[field.name] = field.value;
   }
   return body;
+}
+
+function initPanelSelector() {
+  const triggers = Array.from(document.querySelectorAll("[data-panel-trigger]"));
+  const panels = Array.from(document.querySelectorAll("[data-panel-id]"));
+
+  if (!triggers.length || !panels.length) {
+    return;
+  }
+
+  const byId = new Map(panels.map((panel) => [panel.dataset.panelId, panel]));
+
+  function activate(id) {
+    triggers.forEach((trigger) => {
+      const active = trigger.dataset.panelTarget === id;
+      trigger.dataset.active = String(active);
+      trigger.classList.toggle("bg-zinc-100", active);
+      trigger.classList.toggle("text-black", active);
+      trigger.classList.toggle("border-zinc-100", active);
+      trigger.classList.toggle("bg-zinc-900", !active);
+      trigger.classList.toggle("text-zinc-200", !active);
+      trigger.classList.toggle("border-zinc-800", !active);
+    });
+
+    panels.forEach((panel) => {
+      panel.classList.toggle("hidden", panel.dataset.panelId !== id);
+    });
+
+    if (typeof window !== "undefined") {
+      window.location.hash = id;
+    }
+  }
+
+  triggers.forEach((trigger) => {
+    trigger.addEventListener("click", () => activate(trigger.dataset.panelTarget));
+  });
+
+  const initial = window.location.hash ? window.location.hash.slice(1) : triggers[0].dataset.panelTarget;
+  activate(byId.has(initial) ? initial : triggers[0].dataset.panelTarget);
 }

@@ -11,13 +11,13 @@
     <script src="/static/app.js" defer></script>
   </head>
   <body class="min-h-screen bg-black text-zinc-100 antialiased">
-    <main class="min-h-screen lg:grid lg:grid-cols-[320px_540px_minmax(0,1fr)]">
-      <aside class="border-b border-zinc-800 lg:border-b-0 lg:border-r">
-        <div class="flex items-start justify-between gap-4 border-b border-zinc-800 px-5 py-5">
+    <main class="min-h-screen">
+      <section class="border-b border-zinc-800">
+        <div class="mx-auto flex max-w-[1800px] items-start justify-between gap-6 px-5 py-5">
           <div>
             <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Control</p>
             <h1 class="mt-2 text-4xl font-semibold text-zinc-50">minigubben</h1>
-            <p class="mt-3 max-w-xs text-sm leading-6 text-zinc-400">
+            <p class="mt-3 max-w-xl text-sm leading-6 text-zinc-400">
               Preview hosts land at
               <code class="text-zinc-300">{repoSlug}-pr-{number}.<%= baseDomain %></code>.
             </p>
@@ -29,202 +29,240 @@
             </button>
           </form>
         </div>
-
-        <div class="border-b border-zinc-800 px-5 py-4">
+        <div class="mx-auto max-w-[1800px] px-5 pb-4">
           <p class="text-sm text-zinc-300" data-ui-status></p>
-        </div>
-
-        <section class="border-b border-zinc-800 px-5 py-5">
-          <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">SSH Key</p>
-          <p class="mb-4 text-sm leading-6 text-zinc-400">Generate or rotate the GitHub access key from the UI.</p>
-          <button
-            type="button"
-            data-api-action
-            data-method="POST"
-            data-action="/api/ssh-keypair"
-            class="mb-4 w-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-left text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
-            <%= sshKeyStatus.hasKey ? 'data-confirm="An SSH key already exists. Generate a new keypair and replace the current one?"' : "" %>
-          >
-            <%= sshKeyStatus.hasKey ? "Rotate SSH keypair" : "Generate SSH keypair" %>
-          </button>
-          <% if (sshKeyStatus.hasKey) { %>
-            <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Active Key Type</p>
-            <p class="mb-4 text-sm text-zinc-300"><code><%= sshKeyStatus.algorithm %></code></p>
-            <pre class="overflow-x-auto border border-zinc-800 bg-zinc-950 px-4 py-4 text-xs leading-6 text-zinc-200"><%= sshKeyStatus.publicKey %></pre>
-          <% } else { %>
-            <p class="text-sm leading-6 text-zinc-400">No SSH keypair exists yet. Generate one, then add the public key to GitHub deploy keys or your automation account.</p>
-          <% } %>
-        </section>
-
-        <section class="px-5 py-5">
-          <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Add Repository</p>
-          <p class="mb-5 text-sm leading-6 text-zinc-400">Explicit compose path, service, proxy mode, and runtime env configuration.</p>
-          <form action="/api/repos" method="post" data-method="POST" data-api-form class="space-y-4">
-            <div class="space-y-2">
-              <label for="owner" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Owner</label>
-              <input id="owner" name="owner" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
-            <div class="space-y-2">
-              <label for="name" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Name</label>
-              <input id="name" name="name" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
-            <div class="space-y-2">
-              <label for="cloneSshUrl" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Clone SSH URL</label>
-              <input id="cloneSshUrl" name="cloneSshUrl" placeholder="git@github.com:owner/repo.git" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
-            <div class="space-y-2">
-              <label for="defaultBranch" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>
-              <input id="defaultBranch" name="defaultBranch" value="main" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
-            <div class="space-y-2">
-              <label for="composePath" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Compose Path</label>
-              <input id="composePath" name="composePath" placeholder="deploy/docker-compose.preview.yml" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div class="space-y-2">
-                <label for="publicService" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Service</label>
-                <input id="publicService" name="publicService" placeholder="web" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-              </div>
-              <div class="space-y-2">
-                <label for="publicPort" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Port</label>
-                <input id="publicPort" type="number" name="publicPort" value="3000" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-              </div>
-            </div>
-            <label class="flex items-start gap-3 border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-200">
-              <input type="checkbox" name="appendProxySettings" value="true" class="mt-1 h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
-              <span>
-                <span class="block font-medium">Append proxy settings to this service</span>
-                <span class="mt-1 block text-xs leading-5 text-zinc-500">Generate a compose override with Traefik labels and the external proxy network.</span>
-              </span>
-            </label>
-            <div class="space-y-2">
-              <label for="previewHostEnvVarName" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
-              <input id="previewHostEnvVarName" name="previewHostEnvVarName" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-              <p class="text-xs leading-5 text-zinc-500">Optional. If set, the generated preview host is written to both <code class="text-zinc-300">ORCH_PREVIEW_HOST</code> and this variable.</p>
-            </div>
-            <div class="space-y-2">
-              <label for="extraEnvText" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
-              <textarea id="extraEnvText" name="extraEnvText" rows="6" placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"></textarea>
-              <p class="text-xs leading-5 text-zinc-500">One <code class="text-zinc-300">KEY=value</code> pair per line. Appended to the generated <code class="text-zinc-300">.env.runtime</code> file for each PR deployment.</p>
-            </div>
-            <label class="flex items-center gap-3 text-sm text-zinc-200">
-              <input type="checkbox" name="enabled" value="true" checked class="h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
-              <span>Enabled</span>
-            </label>
-            <button type="submit" class="w-full border border-zinc-700 bg-zinc-100 px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-300">
-              Validate and save
-            </button>
-          </form>
-        </section>
-      </aside>
-
-      <section class="border-b border-zinc-800 lg:border-b-0 lg:border-r">
-        <div class="border-b border-zinc-800 px-5 py-5">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Entries</p>
-              <h2 class="mt-3 text-4xl font-semibold text-zinc-50">Configured repositories</h2>
-            </div>
-            <span class="border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm text-zinc-200"><%= repos.length %> configured</span>
-          </div>
-          <p class="mt-4 text-sm leading-6 text-zinc-400">Edits are saved through the JSON API after the same validation checks pass again.</p>
-        </div>
-        <div class="max-h-[calc(100vh-13rem)] overflow-y-auto">
-          <% if (!repos.length) { %>
-            <div class="px-5 py-8 text-sm text-zinc-500">No repositories configured yet.</div>
-          <% } %>
-          <% repos.forEach((repo) => { %>
-            <article class="border-b border-zinc-800 px-5 py-5">
-              <div class="mb-5 flex items-center justify-between gap-4">
-                <div>
-                  <p class="text-xs uppercase tracking-[0.28em] text-zinc-500">Repository</p>
-                  <h3 class="mt-2 text-2xl font-semibold text-zinc-50"><%= repo.owner %>/<%= repo.name %></h3>
-                </div>
-                <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200">
-                  <%= repo.enabled ? "enabled" : "disabled" %>
-                </span>
-              </div>
-              <form action="/api/repos/<%= repo.id %>" method="post" data-method="PUT" data-api-form class="space-y-4">
-                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Owner</label>
-                    <input name="owner" value="<%= repo.owner %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Name</label>
-                    <input name="name" value="<%= repo.name %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2 sm:col-span-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Clone SSH URL</label>
-                    <input name="cloneSshUrl" value="<%= repo.cloneSshUrl %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>
-                    <input name="defaultBranch" value="<%= repo.defaultBranch %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Compose Path</label>
-                    <input name="composePath" value="<%= repo.composePath %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Service</label>
-                    <input name="publicService" value="<%= repo.publicService %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Port</label>
-                    <input type="number" name="publicPort" value="<%= repo.publicPort %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2 sm:col-span-2">
-                    <label class="flex items-start gap-3 border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-200">
-                      <input type="checkbox" name="appendProxySettings" value="true" <%= repo.appendProxySettings ? "checked" : "" %> class="mt-1 h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
-                      <span>Append proxy settings to this service</span>
-                    </label>
-                  </div>
-                  <div class="space-y-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
-                    <input name="previewHostEnvVarName" value="<%= repo.previewHostEnvVarName || "" %>" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-                  </div>
-                  <div class="space-y-2 sm:col-span-2">
-                    <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
-                    <textarea name="extraEnvText" rows="6" placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"><%= repo.extraEnvText || "" %></textarea>
-                  </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-3">
-                  <label class="flex items-center gap-3 text-sm text-zinc-200">
-                    <input type="checkbox" name="enabled" value="true" <%= repo.enabled ? "checked" : "" %> class="h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
-                    <span>Enabled</span>
-                  </label>
-                  <button type="submit" class="border border-zinc-700 bg-zinc-100 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-300">
-                    Save
-                  </button>
-                  <button
-                    type="button"
-                    data-api-action
-                    data-method="DELETE"
-                    data-action="/api/repos/<%= repo.id %>"
-                    class="border border-red-950 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-900/40"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </form>
-            </article>
-          <% }) %>
         </div>
       </section>
 
-      <section>
-        <div class="border-b border-zinc-800 px-5 py-5">
-          <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Runtime</p>
-          <h2 class="mt-3 text-4xl font-semibold text-zinc-50">Preview runtime details</h2>
-          <p class="mt-4 max-w-3xl text-sm leading-7 text-zinc-400">
-            Use repo-owned Traefik labels, or let the orchestrator append them. Deployment logs, compose contract details, and runtime history are shown here.
-          </p>
-        </div>
+      <section class="mx-auto grid max-w-[1800px] lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside class="border-b border-zinc-800 lg:border-b-0 lg:border-r">
+          <section class="border-b border-zinc-800 px-5 py-5">
+            <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Repositories</p>
+            <div class="space-y-2">
+              <button
+                type="button"
+                data-panel-trigger
+                data-panel-target="add-repo"
+                class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-left text-sm font-medium text-zinc-200 transition hover:bg-zinc-800"
+              >
+                + Add repository
+              </button>
+              <% repos.forEach((repo) => { %>
+                <button
+                  type="button"
+                  data-panel-trigger
+                  data-panel-target="repo-<%= repo.id %>"
+                  class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-left transition hover:bg-zinc-800"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-medium text-zinc-100"><%= repo.owner %>/<%= repo.name %></p>
+                      <p class="mt-1 text-xs uppercase tracking-[0.24em] text-zinc-500"><%= repo.enabled ? "enabled" : "disabled" %></p>
+                    </div>
+                    <span class="mt-1 text-xs text-zinc-500">edit</span>
+                  </div>
+                </button>
+              <% }) %>
+              <% if (!repos.length) { %>
+                <p class="px-1 pt-2 text-sm text-zinc-500">No repositories configured yet.</p>
+              <% } %>
+            </div>
+          </section>
 
-        <section class="border-b border-zinc-800 px-5 py-5">
-          <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Compose Contract</p>
-          <pre class="overflow-x-auto border border-zinc-800 bg-zinc-950 px-4 py-4 text-xs leading-6 text-zinc-200">services:
+          <section class="border-b border-zinc-800 px-5 py-5">
+            <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">SSH Key</p>
+            <p class="mb-4 text-sm leading-6 text-zinc-400">Generate or rotate the GitHub access key from the UI.</p>
+            <button
+              type="button"
+              data-api-action
+              data-method="POST"
+              data-action="/api/ssh-keypair"
+              class="mb-4 w-full border border-zinc-700 bg-zinc-900 px-4 py-3 text-left text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
+              <%= sshKeyStatus.hasKey ? 'data-confirm="An SSH key already exists. Generate a new keypair and replace the current one?"' : "" %>
+            >
+              <%= sshKeyStatus.hasKey ? "Rotate SSH keypair" : "Generate SSH keypair" %>
+            </button>
+            <% if (sshKeyStatus.hasKey) { %>
+              <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Active Key Type</p>
+              <p class="mb-4 text-sm text-zinc-300"><code><%= sshKeyStatus.algorithm %></code></p>
+              <pre class="overflow-x-auto border border-zinc-800 bg-zinc-950 px-4 py-4 text-xs leading-6 text-zinc-200"><%= sshKeyStatus.publicKey %></pre>
+            <% } else { %>
+              <p class="text-sm leading-6 text-zinc-400">No SSH keypair exists yet. Generate one, then add the public key to GitHub deploy keys or your automation account.</p>
+            <% } %>
+          </section>
+        </aside>
+
+        <section>
+          <div class="border-b border-zinc-800 px-5 py-5">
+            <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Editor</p>
+            <h2 class="mt-3 text-4xl font-semibold text-zinc-50">Repository configuration</h2>
+            <p class="mt-4 max-w-3xl text-sm leading-7 text-zinc-400">
+              Select <code class="text-zinc-300">Add repository</code> to create a new config, or choose an existing repository from the left to edit it.
+            </p>
+          </div>
+
+          <div class="px-5 py-5">
+            <section data-panel-id="add-repo" class="space-y-5">
+              <div>
+                <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">New Entry</p>
+                <h3 class="mt-2 text-3xl font-semibold text-zinc-50">Add repository</h3>
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">Explicit compose path, service, proxy mode, and runtime env configuration.</p>
+              </div>
+              <form action="/api/repos" method="post" data-method="POST" data-api-form class="space-y-4">
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  <div class="space-y-2">
+                    <label for="owner" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Owner</label>
+                    <input id="owner" name="owner" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2">
+                    <label for="name" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Name</label>
+                    <input id="name" name="name" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2 xl:col-span-2">
+                    <label for="cloneSshUrl" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Clone SSH URL</label>
+                    <input id="cloneSshUrl" name="cloneSshUrl" placeholder="git@github.com:owner/repo.git" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2">
+                    <label for="defaultBranch" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>
+                    <input id="defaultBranch" name="defaultBranch" value="main" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2">
+                    <label for="composePath" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Compose Path</label>
+                    <input id="composePath" name="composePath" placeholder="deploy/docker-compose.preview.yml" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2">
+                    <label for="publicService" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Service</label>
+                    <input id="publicService" name="publicService" placeholder="web" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2">
+                    <label for="publicPort" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Port</label>
+                    <input id="publicPort" type="number" name="publicPort" value="3000" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                  </div>
+                  <div class="space-y-2 xl:col-span-2">
+                    <label class="flex items-start gap-3 border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-200">
+                      <input type="checkbox" name="appendProxySettings" value="true" class="mt-1 h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
+                      <span>
+                        <span class="block font-medium">Append proxy settings to this service</span>
+                        <span class="mt-1 block text-xs leading-5 text-zinc-500">Generate a compose override with Traefik labels and the external proxy network.</span>
+                      </span>
+                    </label>
+                  </div>
+                  <div class="space-y-2">
+                    <label for="previewHostEnvVarName" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
+                    <input id="previewHostEnvVarName" name="previewHostEnvVarName" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    <p class="text-xs leading-5 text-zinc-500">Optional. If set, the generated preview host is written to both <code class="text-zinc-300">ORCH_PREVIEW_HOST</code> and this variable.</p>
+                  </div>
+                  <div class="space-y-2 xl:col-span-2">
+                    <label for="extraEnvText" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
+                    <textarea id="extraEnvText" name="extraEnvText" rows="6" placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"></textarea>
+                    <p class="text-xs leading-5 text-zinc-500">One <code class="text-zinc-300">KEY=value</code> pair per line. Appended to the generated <code class="text-zinc-300">.env.runtime</code> file for each PR deployment.</p>
+                  </div>
+                </div>
+                <label class="flex items-center gap-3 text-sm text-zinc-200">
+                  <input type="checkbox" name="enabled" value="true" checked class="h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
+                  <span>Enabled</span>
+                </label>
+                <button type="submit" class="border border-zinc-700 bg-zinc-100 px-5 py-3 text-sm font-medium text-black transition hover:bg-zinc-300">
+                  Validate and save
+                </button>
+              </form>
+            </section>
+
+            <% repos.forEach((repo) => { %>
+              <section data-panel-id="repo-<%= repo.id %>" class="hidden space-y-5">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Existing Entry</p>
+                    <h3 class="mt-2 text-3xl font-semibold text-zinc-50"><%= repo.owner %>/<%= repo.name %></h3>
+                    <p class="mt-3 text-sm leading-6 text-zinc-400">Update the repository configuration and save it back through the JSON API.</p>
+                  </div>
+                  <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= repo.enabled ? "enabled" : "disabled" %></span>
+                </div>
+                <form action="/api/repos/<%= repo.id %>" method="post" data-method="PUT" data-api-form class="space-y-4">
+                  <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Owner</label>
+                      <input name="owner" value="<%= repo.owner %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Name</label>
+                      <input name="name" value="<%= repo.name %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2 xl:col-span-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Clone SSH URL</label>
+                      <input name="cloneSshUrl" value="<%= repo.cloneSshUrl %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>
+                      <input name="defaultBranch" value="<%= repo.defaultBranch %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Compose Path</label>
+                      <input name="composePath" value="<%= repo.composePath %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Service</label>
+                      <input name="publicService" value="<%= repo.publicService %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Public Port</label>
+                      <input type="number" name="publicPort" value="<%= repo.publicPort %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2 xl:col-span-2">
+                      <label class="flex items-start gap-3 border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-200">
+                        <input type="checkbox" name="appendProxySettings" value="true" <%= repo.appendProxySettings ? "checked" : "" %> class="mt-1 h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
+                        <span>Append proxy settings to this service</span>
+                      </label>
+                    </div>
+                    <div class="space-y-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
+                      <input name="previewHostEnvVarName" value="<%= repo.previewHostEnvVarName || "" %>" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                    </div>
+                    <div class="space-y-2 xl:col-span-2">
+                      <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Additional Env Vars</label>
+                      <textarea name="extraEnvText" rows="6" placeholder="NODE_ENV=production&#10;API_BASE_URL=https://api.example.com" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"><%= repo.extraEnvText || "" %></textarea>
+                    </div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-3">
+                    <label class="flex items-center gap-3 text-sm text-zinc-200">
+                      <input type="checkbox" name="enabled" value="true" <%= repo.enabled ? "checked" : "" %> class="h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
+                      <span>Enabled</span>
+                    </label>
+                    <button type="submit" class="border border-zinc-700 bg-zinc-100 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-zinc-300">
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      data-api-action
+                      data-method="DELETE"
+                      data-action="/api/repos/<%= repo.id %>"
+                      class="border border-red-950 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-900/40"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </form>
+              </section>
+            <% }) %>
+          </div>
+        </section>
+      </section>
+
+      <section class="border-t border-zinc-800">
+        <div class="mx-auto max-w-[1800px] px-5 py-5">
+          <div class="mb-6">
+            <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Runtime</p>
+            <h2 class="mt-3 text-4xl font-semibold text-zinc-50">Preview runtime details</h2>
+            <p class="mt-4 max-w-4xl text-sm leading-7 text-zinc-400">
+              Use repo-owned Traefik labels, or let the orchestrator append them. Deployment logs, compose contract details, and runtime history are shown below.
+            </p>
+          </div>
+
+          <div class="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <section class="space-y-6">
+              <div class="border border-zinc-800 bg-zinc-950/70 px-5 py-5">
+                <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Compose Contract</p>
+                <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200">services:
   app:
     networks:
       - default
@@ -240,59 +278,62 @@ networks:
   preview-proxy:
     external: true
     name: <%= traefikNetworkName %></pre>
-        </section>
+              </div>
 
-        <section class="border-b border-zinc-800 px-5 py-5">
-          <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Deployments</p>
-          <div class="space-y-5">
-            <% if (!deployments.length) { %>
-              <p class="text-sm text-zinc-500">No active or historical deployments yet.</p>
-            <% } %>
-            <% deployments.forEach((deployment) => { %>
-              <article class="border border-zinc-800 bg-zinc-950/70">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 px-4 py-4">
-                  <div>
-                    <p class="text-xs uppercase tracking-[0.28em] text-zinc-500">Deployment</p>
-                    <h3 class="mt-2 text-xl font-semibold text-zinc-50"><%= deployment.repoSlug %> PR #<%= deployment.prNumber %></h3>
-                  </div>
-                  <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= deployment.status %></span>
-                </div>
-                <div class="space-y-4 px-4 py-4 text-sm text-zinc-400">
-                  <div>Host: <a href="http://<%= deployment.previewHost %>" target="_blank" rel="noreferrer" class="text-zinc-100 underline decoration-zinc-700 underline-offset-4"><%= deployment.previewHost %></a></div>
-                  <div>Project: <code class="text-zinc-200"><%= deployment.projectName %></code></div>
-                  <div>Last event: <code class="text-zinc-200"><%= deployment.lastEvent %></code></div>
-                  <div class="flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      data-api-action
-                      data-method="POST"
-                      data-action="/api/deployments/<%= deployment.deploymentId %>/redeploy"
-                      class="border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
-                    >
-                      Redeploy
-                    </button>
-                    <button
-                      type="button"
-                      data-api-action
-                      data-method="DELETE"
-                      data-action="/api/deployments/<%= deployment.deploymentId %>"
-                      class="border border-red-950 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-900/40"
-                    >
-                      Destroy
-                    </button>
-                  </div>
-                  <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.logTail || "No log output yet." %></pre>
-                </div>
-              </article>
-            <% }) %>
+              <div class="border border-zinc-800 bg-zinc-950/70 px-5 py-5">
+                <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">App Log Tail</p>
+                <p class="mb-4 text-sm leading-6 text-zinc-400">Append-only operator log from <code class="text-zinc-300">data/logs/app.log</code>.</p>
+                <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= appLogTail || "No events logged yet." %></pre>
+              </div>
+            </section>
+
+            <section class="border border-zinc-800 bg-zinc-950/70 px-5 py-5">
+              <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">Deployments</p>
+              <div class="space-y-5">
+                <% if (!deployments.length) { %>
+                  <p class="text-sm text-zinc-500">No active or historical deployments yet.</p>
+                <% } %>
+                <% deployments.forEach((deployment) => { %>
+                  <article class="border border-zinc-800 bg-black/70">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 px-4 py-4">
+                      <div>
+                        <p class="text-xs uppercase tracking-[0.28em] text-zinc-500">Deployment</p>
+                        <h3 class="mt-2 text-xl font-semibold text-zinc-50"><%= deployment.repoSlug %> PR #<%= deployment.prNumber %></h3>
+                      </div>
+                      <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= deployment.status %></span>
+                    </div>
+                    <div class="space-y-4 px-4 py-4 text-sm text-zinc-400">
+                      <div>Host: <a href="http://<%= deployment.previewHost %>" target="_blank" rel="noreferrer" class="text-zinc-100 underline decoration-zinc-700 underline-offset-4"><%= deployment.previewHost %></a></div>
+                      <div>Project: <code class="text-zinc-200"><%= deployment.projectName %></code></div>
+                      <div>Last event: <code class="text-zinc-200"><%= deployment.lastEvent %></code></div>
+                      <div class="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          data-api-action
+                          data-method="POST"
+                          data-action="/api/deployments/<%= deployment.deploymentId %>/redeploy"
+                          class="border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
+                        >
+                          Redeploy
+                        </button>
+                        <button
+                          type="button"
+                          data-api-action
+                          data-method="DELETE"
+                          data-action="/api/deployments/<%= deployment.deploymentId %>"
+                          class="border border-red-950 bg-red-950/20 px-4 py-2.5 text-sm font-medium text-red-100 transition hover:bg-red-900/40"
+                        >
+                          Destroy
+                        </button>
+                      </div>
+                      <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= deployment.logTail || "No log output yet." %></pre>
+                    </div>
+                  </article>
+                <% }) %>
+              </div>
+            </section>
           </div>
-        </section>
-
-        <section class="px-5 py-5">
-          <p class="mb-3 text-xs uppercase tracking-[0.34em] text-zinc-500">App Log Tail</p>
-          <p class="mb-4 text-sm leading-6 text-zinc-400">Append-only operator log from <code class="text-zinc-300">data/logs/app.log</code>.</p>
-          <pre class="overflow-x-auto border border-zinc-800 bg-[#050505] px-4 py-4 text-xs leading-6 text-zinc-200"><%= appLogTail || "No events logged yet." %></pre>
-        </section>
+        </div>
       </section>
     </main>
   </body>
