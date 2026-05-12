@@ -48,21 +48,14 @@
         <div>
           <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">New Entry</p>
           <h3 class="mt-2 text-3xl font-semibold text-zinc-50">Add repository</h3>
-          <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">Explicit compose path, service, proxy mode, and runtime env configuration.</p>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">The GitHub owner and repo name are derived from the clone URL. Configure compose path, service, proxy mode, and runtime env here.</p>
         </div>
         <form action="/api/repos" method="post" data-method="POST" data-api-form class="space-y-4">
           <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <div class="space-y-2">
-              <label for="owner" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Owner</label>
-              <input id="owner" name="owner" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
-            <div class="space-y-2">
-              <label for="name" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Name</label>
-              <input id="name" name="name" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-            </div>
             <div class="space-y-2 xl:col-span-2">
               <label for="cloneSshUrl" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Clone SSH URL</label>
               <input id="cloneSshUrl" name="cloneSshUrl" placeholder="git@github.com:owner/repo.git" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+              <p class="text-xs leading-5 text-zinc-500">GitHub owner and repository name are taken from this URL.</p>
             </div>
             <div class="space-y-2">
               <label for="defaultBranch" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>
@@ -121,7 +114,7 @@
             <div>
               <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Existing Entry</p>
               <h3 class="mt-2 text-3xl font-semibold text-zinc-50"><%= repo.owner %>/<%= repo.name %></h3>
-              <p class="mt-3 text-sm leading-6 text-zinc-400">Update the repository configuration and save it back through the JSON API.</p>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">Repository identity is derived from the clone URL. Update deployment configuration and save it back through the JSON API.</p>
             </div>
             <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= repo.enabled ? "enabled" : "disabled" %></span>
           </div>
@@ -148,17 +141,10 @@
           </div>
           <form action="/api/repos/<%= repo.id %>" method="post" data-method="PUT" data-api-form class="space-y-4">
             <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div class="space-y-2">
-                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Owner</label>
-                <input name="owner" value="<%= repo.owner %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-              </div>
-              <div class="space-y-2">
-                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Name</label>
-                <input name="name" value="<%= repo.name %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-              </div>
               <div class="space-y-2 xl:col-span-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Clone SSH URL</label>
                 <input name="cloneSshUrl" value="<%= repo.cloneSshUrl %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                <p class="text-xs leading-5 text-zinc-500">Current derived repo: <code class="text-zinc-300"><%= repo.owner %>/<%= repo.name %></code></p>
               </div>
               <div class="space-y-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>

@@ -114,6 +114,24 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length, 1);
 });
 
+test("derives owner and repo name from the clone url", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    owner: "wrong-owner",
+    name: "wrong-name",
+    cloneSshUrl: "git@github.com:ExtronicElektronik/simcards.git",
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.owner, "ExtronicElektronik");
+  assert.equal(response.body.name, "simcards");
+  assert.equal(response.body.slug, "extronicelektronik-simcards");
+});
+
 test("stores additional env vars and preview host alias from the admin ui", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

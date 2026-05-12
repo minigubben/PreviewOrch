@@ -43,7 +43,14 @@ class RepoStore {
 
   async findByFullName(fullName) {
     const repos = await this.list();
-    return repos.find((repo) => `${repo.owner}/${repo.name}`.toLowerCase() === String(fullName).toLowerCase()) || null;
+    const normalizedFullName = String(fullName || "").toLowerCase();
+    return (
+      repos.find((repo) => {
+        const configuredFullName = `${repo.owner}/${repo.name}`.toLowerCase();
+        const cloneUrlFullName = deriveGithubFullNameFromCloneUrl(repo.cloneSshUrl);
+        return configuredFullName === normalizedFullName || cloneUrlFullName === normalizedFullName;
+      }) || null
+    );
   }
 
   async create(input) {
@@ -105,6 +112,10 @@ class RepoStore {
   }
 
   assertRepoShape(repo) {
+    if (!deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl)) {
+      throw new RepoValidationError("cloneSshUrl must be a GitHub repository URL such as git@github.com:owner/repo.git.");
+    }
+
     const requiredFields = ["owner", "name", "cloneSshUrl", "composePath", "publicService", "defaultBranch"];
     for (const field of requiredFields) {
       if (!repo[field]) {
@@ -183,10 +194,11 @@ class RepoStore {
 
 function normalizeRepoInput(input) {
   const extraEnv = parseExtraEnvText(input.extraEnvText, input.extraEnv);
+  const identity = deriveGithubRepoIdentityFromCloneUrl(input.cloneSshUrl);
   return {
     id: input.id,
-    owner: String(input.owner || "").trim(),
-    name: String(input.name || "").trim(),
+    owner: identity?.owner || "",
+    name: identity?.name || "",
     cloneSshUrl: String(input.cloneSshUrl || "").trim(),
     composePath: String(input.composePath || "").trim(),
     workingDirectory: normalizeWorkingDirectory(input.workingDirectory),
@@ -203,8 +215,14 @@ function normalizeRepoInput(input) {
 
 function hydrateStoredRepo(repo) {
   const extraEnv = normalizeExistingExtraEnv(repo.extraEnv);
+  const identity = deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl) || {
+    owner: String(repo.owner || "").trim(),
+    name: String(repo.name || "").trim(),
+  };
   return {
     ...repo,
+    owner: identity.owner,
+    name: identity.name,
     appendProxySettings: normalizeBoolean(repo.appendProxySettings ?? false),
     workingDirectory: normalizeWorkingDirectory(repo.workingDirectory),
     previewHostEnvVarName: String(repo.previewHostEnvVarName || "").trim(),
@@ -299,6 +317,39 @@ function assertWorkingDirectory(workingDirectory) {
   if (path.posix.isAbsolute(normalized) || normalized === ".." || normalized.startsWith("../")) {
     throw new RepoValidationError("workingDirectory must stay inside the repository.");
   }
+}
+
+function deriveGithubRepoIdentityFromCloneUrl(cloneUrl) {
+  const value = String(cloneUrl || "").trim();
+  if (!value) {
+    return null;
+  }
+
+  const sshMatch = value.match(/^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/i);
+  if (sshMatch) {
+    return {
+      owner: sshMatch[1],
+      name: sshMatch[2],
+    };
+  }
+
+  const httpsMatch = value.match(/^https?:\/\/github\.com\/([^/]+)\/(.+?)(?:\.git)?$/i);
+  if (httpsMatch) {
+    return {
+      owner: httpsMatch[1],
+      name: httpsMatch[2],
+    };
+  }
+
+  return null;
+}
+
+function deriveGithubFullNameFromCloneUrl(cloneUrl) {
+  const identity = deriveGithubRepoIdentityFromCloneUrl(cloneUrl);
+  if (!identity) {
+    return "";
+  }
+  return `${identity.owner}/${identity.name}`.toLowerCase();
 }
 
 module.exports = {
