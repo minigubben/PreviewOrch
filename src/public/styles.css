@@ -146,6 +146,30 @@ button.danger {
   background: #fffaf1;
 }
 
+.ssh-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.ssh-controls .actions {
+  align-items: flex-start;
+}
+
+.ssh-controls button {
+  width: 100%;
+}
+
+.ssh-key-pane {
+  min-width: 0;
+}
+
+.ssh-key-pane pre {
+  width: 100%;
+  min-height: 160px;
+}
+
 .status-chip {
   display: inline-flex;
   align-items: center;
@@ -191,5 +215,9 @@ pre {
 @media (max-width: 720px) {
   .hero {
     flex-direction: column;
+  }
+
+  .ssh-layout {
+    grid-template-columns: 1fr;
   }
 }
