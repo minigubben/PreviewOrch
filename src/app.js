@@ -158,8 +158,11 @@ async function createApp({ config, services = {} }) {
     }
 
     const webhookContext = buildWebhookContext(payload);
-    await deploymentService.handleWebhook(webhookContext);
-    return res.json({ ok: true });
+    const result = await deploymentService.handleWebhook(webhookContext);
+    if (result?.accepted) {
+      return res.status(202).json(result);
+    }
+    return res.json(result || { ignored: true });
   });
 
   app.use(express.urlencoded({ extended: false }));

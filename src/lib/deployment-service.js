@@ -55,8 +55,9 @@ class DeploymentService {
       return { ignored: true };
     }
 
-    const lockKey = `${repo.id}:${webhookContext.prNumber}`;
-    return this.lockManager.run(lockKey, async () => {
+    const deploymentKey = buildDeploymentKey("pr", webhookContext.prNumber);
+    const lockKey = `${repo.id}:${deploymentKey}`;
+    const task = async () => {
       if (webhookContext.mappedAction === "deploy") {
         return this.deployTarget({
           repo,
@@ -71,10 +72,33 @@ class DeploymentService {
 
       return this.destroyTarget({
         repo,
-        deploymentKey: buildDeploymentKey("pr", webhookContext.prNumber),
+        deploymentKey,
         lastEvent: webhookContext.action,
       });
+    };
+
+    this.lockManager.run(lockKey, task).catch(async (error) => {
+      await this.logger.error("Queued webhook deployment failed", {
+        repoId: repo.id,
+        deploymentKey,
+        action: webhookContext.action,
+        message: error.message,
+      });
     });
+
+    await this.logger.info("Queued webhook deployment", {
+      repoId: repo.id,
+      deploymentKey,
+      action: webhookContext.action,
+    });
+
+    return {
+      accepted: true,
+      queued: true,
+      repoId: repo.id,
+      deploymentKey,
+      action: webhookContext.action,
+    };
   }
 
   async redeployById(deploymentId) {

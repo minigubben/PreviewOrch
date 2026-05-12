@@ -31,6 +31,22 @@ async function createRepo(agent, csrfToken, overrides = {}) {
   return response;
 }
 
+async function waitFor(check, { timeoutMs = 2000, intervalMs = 20 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError = null;
+
+  while (Date.now() < deadline) {
+    try {
+      return await check();
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+
+  throw lastError || new Error("Timed out waiting for condition.");
+}
+
 test("rejects invalid admin credentials", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
@@ -237,21 +253,24 @@ test("deploys on pull request opened and stores deployment metadata", async () =
     .set("Content-Type", "application/json")
     .send(raw);
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
 
   const anonymousDeployments = await request(context.app).get("/api/deployments");
   assert.equal(anonymousDeployments.status, 401);
 
-  const authorizedDeployments = await context.agent.get("/api/deployments");
-  assert.equal(authorizedDeployments.status, 200);
-  assert.equal(authorizedDeployments.body.length, 1);
-  assert.equal(authorizedDeployments.body[0].status, "running");
+  const authorizedDeployments = await waitFor(async () => {
+    const result = await context.agent.get("/api/deployments");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.length, 1);
+    assert.equal(result.body[0].status, "running");
+    return result;
+  });
   assert.equal(authorizedDeployments.body[0].runtime.publicServiceContainer.name, "acme-widgets-pr-17-app-1");
   assert.deepEqual(authorizedDeployments.body[0].runtime.publicServiceContainer.networks, ["default", "preview-proxy"]);
   assert.match(authorizedDeployments.body[0].runtime.publicServiceContainer.logTail, /listening on :3000/);
 
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
-  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+  const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
   assert.equal(metadata.previewHost, "acme-widgets-pr-17.preview.example.com");
   assert.equal(metadata.appendProxySettings, false);
 });
@@ -273,15 +292,23 @@ test("redeploys on pull request synchronize", async () => {
       .set("X-Hub-Signature-256", signature)
       .set("Content-Type", "application/json")
       .send(raw);
-    assert.equal(response.status, 200);
+    assert.equal(response.status, 202);
   }
 
   const deploymentCsrf = await getDashboardCsrf(context.agent);
   assert.ok(deploymentCsrf);
-  const deployments = await context.agent.get("/api/deployments");
+  const deployments = await waitFor(async () => {
+    const result = await context.agent.get("/api/deployments");
+    assert.equal(result.body.length, 1);
+    assert.equal(result.body[0].prSha, "def456");
+    assert.equal(result.body[0].status, "running");
+    return result;
+  });
   assert.equal(deployments.body.length, 1);
   assert.equal(deployments.body[0].prSha, "def456");
-  assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length, 2);
+  await waitFor(async () => {
+    assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length, 2);
+  });
 });
 
 test("writes the preview host alias and extra env vars into the deployment env file", async () => {
@@ -305,10 +332,10 @@ test("writes the preview host alias and extra env vars into the deployment env f
     .set("Content-Type", "application/json")
     .send(raw);
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
 
   const envFilePath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", ".env.runtime");
-  const envFile = await fs.readFile(envFilePath, "utf8");
+  const envFile = await waitFor(async () => fs.readFile(envFilePath, "utf8"));
   assert.match(envFile, /^ORCH_PREVIEW_HOST=acme-widgets-pr-17\.preview\.example\.com$/m);
   assert.match(envFile, /^APP_FQDN=acme-widgets-pr-17\.preview\.example\.com$/m);
   assert.match(envFile, /^NODE_ENV=production$/m);
@@ -336,10 +363,10 @@ test("stores a generated proxy override path when proxy settings are appended", 
     .set("Content-Type", "application/json")
     .send(raw);
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
 
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
-  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+  const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
   assert.equal(metadata.appendProxySettings, true);
   assert.match(metadata.proxyOverridePath, /\.orchestrator-proxy\.override\.yml$/);
 
@@ -372,10 +399,10 @@ test("resolves compose paths from the configured working directory", async () =>
     .set("Content-Type", "application/json")
     .send(raw);
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
 
   const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
-  const metadata = JSON.parse(await fs.readFile(metadataPath, "utf8"));
+  const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
   assert.equal(metadata.workingDirectory, "ops/preview");
   assert.match(metadata.projectDirectoryResolved, /acme-widgets\/pr-17\/ops\/preview$/);
   assert.match(metadata.composePathResolved, /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/);
@@ -453,13 +480,20 @@ test("destroys deployments and cleans the work directory on pull request close",
       .set("X-Hub-Signature-256", signature)
       .set("Content-Type", "application/json")
       .send(raw);
-    assert.equal(response.status, 200);
+    assert.equal(response.status, 202);
   }
 
   const deploymentDir = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17");
-  await assert.rejects(fs.access(deploymentDir));
+  await waitFor(async () => {
+    await assert.rejects(fs.access(deploymentDir));
+  });
 
-  const deployments = await context.agent.get("/api/deployments");
+  const deployments = await waitFor(async () => {
+    const result = await context.agent.get("/api/deployments");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.length, 0);
+    return result;
+  });
   assert.equal(deployments.status, 200);
   assert.equal(deployments.body.length, 0);
 });
@@ -490,10 +524,16 @@ test("handles duplicate webhook deliveries without corrupting deployment state",
       .send(raw),
   ]);
 
-  assert.equal(first.status, 200);
-  assert.equal(second.status, 200);
+  assert.equal(first.status, 202);
+  assert.equal(second.status, 202);
 
-  const deployments = await context.agent.get("/api/deployments");
+  const deployments = await waitFor(async () => {
+    const result = await context.agent.get("/api/deployments");
+    assert.equal(result.status, 200);
+    assert.equal(result.body.length, 1);
+    assert.equal(result.body[0].status, "running");
+    return result;
+  }, { timeoutMs: 3000 });
   assert.equal(deployments.status, 200);
   assert.equal(deployments.body.length, 1);
   assert.equal(deployments.body[0].status, "running");
