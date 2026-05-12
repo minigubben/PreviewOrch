@@ -40,6 +40,8 @@ ADMIN_PASSWORD_BCRYPT_HASH=...
 SESSION_SECRET=...
 SESSION_COOKIE_SECURE=auto
 GITHUB_WEBHOOK_SECRET=...
+GITHUB_DEPLOYMENTS_TOKEN=
+ORCHESTRATOR_PUBLIC_URL=
 ```
 
 `SESSION_COOKIE_SECURE=auto` is the recommended default. It marks the cookie `Secure` when the request is actually HTTPS, but still allows local or plain-HTTP access during initial setup. Set it to `true` only if every admin request reaches the app as HTTPS through your proxy chain.
@@ -51,6 +53,16 @@ Generate the bcrypt hash with:
 ```bash
 node -e 'console.log(require("bcryptjs").hashSync("change-me", 10))'
 ```
+
+`GITHUB_DEPLOYMENTS_TOKEN` is optional. If it is set, the orchestrator will publish GitHub deployment entries and deployment statuses for previews so they appear on pull requests and in the repository deployment views. If it is unset, the orchestrator still runs normally and simply skips GitHub deployment publishing.
+
+Recommended token type:
+
+- Fine-grained personal access token
+- Repository access limited to the repos managed by the orchestrator
+- Repository permission: `Deployments` = `Read and write`
+
+`ORCHESTRATOR_PUBLIC_URL` is also optional. If set, GitHub deployment statuses will link back to the orchestrator UI log view for that deployment.
 
 ## SSH Access
 
@@ -95,8 +107,6 @@ The admin UI is then routed by Traefik at `orchestrator.{BASE_DOMAIN}`, and prev
 
 1. Sign in at `orchestrator.{BASE_DOMAIN}`.
 2. Add a repository with:
-   - owner
-   - repo name
    - clone SSH URL
    - default branch
    - working directory inside the repo, default `.`
@@ -138,6 +148,22 @@ Webhook behavior:
 
 - `ping`: returns `200 OK` and confirms the endpoint is reachable
 - unsupported GitHub events: return `200 OK` with `{ "ignored": true }`
+
+## Optional GitHub Deployment Publishing
+
+If `GITHUB_DEPLOYMENTS_TOKEN` is configured, the orchestrator publishes preview deployments back to GitHub using the Deployments API.
+
+- PR previews create a deployment against `refs/pull/<number>/head`
+- Branch previews create a deployment against the branch name or resolved SHA
+- States are published as:
+  - `pending` when the preview starts
+  - `success` when the preview is ready
+  - `failure` if the preview deploy fails
+  - `inactive` when the preview is destroyed
+- The preview URL is published as the deployment `environment_url`
+- If `ORCHESTRATOR_PUBLIC_URL` is set, the deployment `log_url` points back to the orchestrator UI
+
+This integration is best-effort by design. GitHub deployment publishing failures are logged, but they do not block preview creation or teardown.
 
 ## Compose Contract
 
