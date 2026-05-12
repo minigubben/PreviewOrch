@@ -12,6 +12,10 @@ const {
   signPayload,
 } = require("./helpers/test-app");
 
+function invoke(agent, method, url) {
+  return agent[method](url);
+}
+
 async function createRepo(agent, csrfToken, overrides = {}) {
   const response = await agent
     .post("/api/repos")
@@ -57,6 +61,52 @@ async function waitForDeployment(agent, expectedDeploymentId, { timeoutMs = 2000
     return deployment;
   }, { timeoutMs, intervalMs });
 }
+
+test("all admin api endpoints reject anonymous requests", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  const routes = [
+    ["get", "/api/repos"],
+    ["post", "/api/repos"],
+    ["put", "/api/repos/test-repo"],
+    ["delete", "/api/repos/test-repo"],
+    ["get", "/api/deployments"],
+    ["post", "/api/ssh-keypair"],
+    ["post", "/api/repos/test-repo/manual-deploy"],
+    ["post", "/api/deployments/test-deployment/redeploy"],
+    ["delete", "/api/deployments/test-deployment"],
+  ];
+
+  for (const [method, url] of routes) {
+    const response = await invoke(request(context.app), method, url).send({});
+    assert.equal(response.status, 401, `${method.toUpperCase()} ${url} should require authentication`);
+    assert.equal(response.body.error, "Authentication required.");
+  }
+});
+
+test("all state-changing admin api endpoints require csrf tokens after login", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+
+  const routes = [
+    ["post", "/api/repos"],
+    ["put", "/api/repos/test-repo"],
+    ["delete", "/api/repos/test-repo"],
+    ["post", "/api/ssh-keypair"],
+    ["post", "/api/repos/test-repo/manual-deploy"],
+    ["post", "/api/deployments/test-deployment/redeploy"],
+    ["delete", "/api/deployments/test-deployment"],
+  ];
+
+  for (const [method, url] of routes) {
+    const response = await invoke(context.agent, method, url).send({});
+    assert.equal(response.status, 403, `${method.toUpperCase()} ${url} should require a CSRF token`);
+    assert.equal(response.body.error, "Invalid CSRF token.");
+  }
+});
 
 test("rejects invalid admin credentials", async () => {
   const context = await createTestContext();
