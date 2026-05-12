@@ -1,0 +1,86 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
+import {
+  getDeploymentPaths,
+  validateComposeContract,
+  writeRuntimeEnvFile,
+} from "../src/cli/script-helper.js";
+
+test("getDeploymentPaths derives the compiled script helper paths", () => {
+  const paths = getDeploymentPaths({
+    BASE_DOMAIN: "preview.example.com",
+    COMPOSE_PATH: "deploy/preview-compose.yml",
+    DEPLOYMENTS_DIR: "/tmp/deployments",
+    DEPLOYMENT_KEY: "pr-42",
+    REPO_ID: "repo-1",
+    REPO_SLUG: "acme-widgets",
+    TARGET_TYPE: "pr",
+    TARGET_VALUE: "42",
+    WORKING_DIRECTORY: ".",
+  });
+
+  assert.equal(paths.deploymentId, "repo-1-pr-42");
+  assert.equal(paths.previewHost, "acme-widgets-pr-42.preview.example.com");
+  assert.equal(paths.metadataPath, "/tmp/deployments/acme-widgets/pr-42/deployment.json");
+});
+
+test("writeRuntimeEnvFile writes orchestrator and extra env values", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-helper-"));
+  const envFile = path.join(root, ".env.runtime");
+
+  try {
+    writeRuntimeEnvFile(
+      {
+        EXTRA_ENV_JSON: JSON.stringify({ API_ORIGIN: "https://api.example.com" }),
+        PREVIEW_HOST_ENV_VAR_NAME: "APP_FQDN",
+        PUBLIC_PORT: "3000",
+        REPO_SLUG: "acme-widgets",
+        TARGET_BRANCH: "feature/demo",
+        TARGET_SHA: "deadbeef",
+        TARGET_TYPE: "pr",
+        TARGET_VALUE: "42",
+      },
+      envFile,
+      "acme-widgets-pr-42.preview.example.com",
+      "acme-widgets-pr-42",
+    );
+
+    const contents = await fs.readFile(envFile, "utf8");
+    assert.match(contents, /ORCH_PROJECT_NAME=acme-widgets-pr-42/);
+    assert.match(contents, /APP_FQDN=acme-widgets-pr-42\.preview\.example\.com/);
+    assert.match(contents, /API_ORIGIN=https:\/\/api\.example\.com/);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});
+
+test("validateComposeContract accepts a compose file with the required label contract", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-compose-"));
+  const composePath = path.join(root, "compose.yml");
+
+  try {
+    await fs.writeFile(
+      composePath,
+      [
+        "services:",
+        "  app:",
+        "    labels:",
+        '      - "traefik.enable=true"',
+        '      - "traefik.http.routers.${ORCH_PROJECT_NAME}.rule=Host(`${ORCH_PREVIEW_HOST}`)"',
+        '      - "traefik.http.services.${ORCH_PROJECT_NAME}.loadbalancer.server.port=${ORCH_PREVIEW_SERVICE_PORT}"',
+      ].join("\n"),
+      "utf8",
+    );
+
+    assert.deepEqual(validateComposeContract(composePath, "app", false), {
+      ok: true,
+      message: "Repository validation passed.",
+    });
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
+});

@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_HELPER_PATH="${SCRIPT_ROOT}/dist/src/cli/script-helper.js"
+
 required_vars=(
   CLONE_SSH_URL
   DEFAULT_BRANCH
@@ -53,56 +56,4 @@ if [[ ! -f "${compose_file}" ]]; then
   exit 1
 fi
 
-COMPOSE_ABS_PATH="${compose_file}" node <<'NODE'
-const fs = require("fs");
-const YAML = require("yaml");
-
-const publicService = process.env.PUBLIC_SERVICE;
-const appendProxySettings = String(process.env.APPEND_PROXY_SETTINGS || "false").toLowerCase() === "true";
-
-function fail(message) {
-  console.log(JSON.stringify({ ok: false, message }));
-  process.exit(1);
-}
-
-const raw = fs.readFileSync(process.env.COMPOSE_ABS_PATH, "utf8");
-const doc = YAML.parse(raw);
-
-if (!doc || typeof doc !== "object" || !doc.services || typeof doc.services !== "object") {
-  fail("Compose file must contain a services object.");
-}
-
-const service = doc.services[publicService];
-if (!service) {
-  fail(`Configured public service '${publicService}' was not found in compose file.`);
-}
-
-if (appendProxySettings) {
-  console.log(JSON.stringify({ ok: true, message: "Repository validation passed." }));
-  process.exit(0);
-}
-
-const labels = [];
-if (Array.isArray(service.labels)) {
-  labels.push(...service.labels.map(String));
-} else if (service.labels && typeof service.labels === "object") {
-  for (const [key, value] of Object.entries(service.labels)) {
-    labels.push(`${key}=${value}`);
-  }
-}
-
-const requirements = [
-  { needle: "traefik.enable=true", label: "traefik.enable=true" },
-  { needle: "${ORCH_PREVIEW_HOST}", label: "${ORCH_PREVIEW_HOST}" },
-  { needle: "${ORCH_PROJECT_NAME}", label: "${ORCH_PROJECT_NAME}" },
-  { needle: "${ORCH_PREVIEW_SERVICE_PORT}", label: "${ORCH_PREVIEW_SERVICE_PORT}" },
-];
-
-for (const requirement of requirements) {
-  if (!labels.some((label) => label.includes(requirement.needle))) {
-    fail(`Missing required Traefik label contract token: ${requirement.label}`);
-  }
-}
-
-console.log(JSON.stringify({ ok: true, message: "Repository validation passed." }));
-NODE
+node "${SCRIPT_HELPER_PATH}" validate-compose-contract "${compose_file}" "${PUBLIC_SERVICE}" "${APPEND_PROXY_SETTINGS:-false}"

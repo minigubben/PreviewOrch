@@ -85,6 +85,7 @@ npm install
 Start the app directly:
 
 ```bash
+npm run build
 npm start
 ```
 
@@ -186,6 +187,7 @@ This keeps `ORCH_PREVIEW_HOST` as the stable orchestrator variable while still l
 ## Tests
 
 ```bash
+npm run typecheck
 npm test
 ```
 

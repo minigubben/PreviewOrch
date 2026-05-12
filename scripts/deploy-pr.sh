@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_HELPER_PATH="${SCRIPT_ROOT}/dist/src/cli/script-helper.js"
+
 required_vars=(
   REPO_ID
   REPO_OWNER
@@ -33,15 +36,15 @@ if [[ -n "${SSH_DIR:-}" ]]; then
   fi
 fi
 
-project_name="$(node -e 'const input = `${process.env.REPO_SLUG}-${process.env.DEPLOYMENT_KEY}`; process.stdout.write(input.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55));')"
-preview_host="${REPO_SLUG}-${DEPLOYMENT_KEY}.${BASE_DOMAIN}"
-deployment_id="${REPO_ID}-${DEPLOYMENT_KEY}"
-work_dir="${DEPLOYMENTS_DIR}/${REPO_SLUG}/${DEPLOYMENT_KEY}"
-project_dir="$(WORK_DIR="${work_dir}" node -e 'const path = require("path"); process.stdout.write(path.resolve(process.env.WORK_DIR, process.env.WORKING_DIRECTORY || "."));')"
-compose_path_resolved="$(PROJECT_DIR="${project_dir}" node -e 'const path = require("path"); process.stdout.write(path.resolve(process.env.PROJECT_DIR, process.env.COMPOSE_PATH));')"
-metadata_path="${work_dir}/deployment.json"
-env_file="${work_dir}/.env.runtime"
-proxy_override_path="${work_dir}/.orchestrator-proxy.override.yml"
+project_name="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field projectName)"
+preview_host="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field previewHost)"
+deployment_id="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field deploymentId)"
+work_dir="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field workDir)"
+project_dir="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field projectDir)"
+compose_path_resolved="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field composePathResolved)"
+metadata_path="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field metadataPath)"
+env_file="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field envFile)"
+proxy_override_path="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field proxyOverridePath)"
 tmp_checkout="$(mktemp -d "${DEPLOYMENTS_DIR}/.${REPO_SLUG}-${DEPLOYMENT_KEY}-checkout-XXXXXX")"
 
 cleanup() {
@@ -52,11 +55,11 @@ trap cleanup EXIT
 mkdir -p "$(dirname "${work_dir}")"
 
 if [[ -f "${metadata_path}" ]]; then
-  previous_project_name="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.projectName || ""));')"
-  previous_compose_path="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.composePathResolved || ""));')"
-  previous_project_directory_resolved="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.projectDirectoryResolved || ""));')"
-  previous_env_file="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.envFile || ""));')"
-  previous_proxy_override_path="$(METADATA_PATH="${metadata_path}" node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.METADATA_PATH, "utf8")); process.stdout.write(String(m.proxyOverridePath || ""));')"
+  previous_project_name="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" projectName)"
+  previous_compose_path="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" composePathResolved)"
+  previous_project_directory_resolved="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" projectDirectoryResolved)"
+  previous_env_file="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" envFile)"
+  previous_proxy_override_path="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" proxyOverridePath)"
 
   if [[ -n "${previous_project_name}" && -n "${previous_compose_path}" && -f "${previous_compose_path}" ]]; then
     compose_down_args=(
@@ -124,73 +127,10 @@ if [[ ! -f "${compose_path_resolved}" ]]; then
   exit 1
 fi
 
-PROJECT_NAME="${project_name}" \
-PREVIEW_HOST="${preview_host}" \
-ENV_FILE="${env_file}" \
-node <<'NODE'
-const fs = require("fs");
-
-const reserved = {
-  ORCH_PROJECT_NAME: process.env.PROJECT_NAME,
-  ORCH_PREVIEW_HOST: process.env.PREVIEW_HOST,
-  ORCH_PREVIEW_SERVICE_PORT: process.env.PUBLIC_PORT,
-  ORCH_PR_NUMBER: process.env.TARGET_TYPE === "pr" ? process.env.TARGET_VALUE : "",
-  ORCH_PR_BRANCH: process.env.TARGET_BRANCH || "",
-  ORCH_PR_SHA: process.env.TARGET_SHA || "",
-  ORCH_REPO_SLUG: process.env.REPO_SLUG,
-};
-
-const lines = [];
-for (const [key, value] of Object.entries(reserved)) {
-  lines.push(`${key}=${String(value ?? "")}`);
-}
-
-const previewHostEnvVarName = String(process.env.PREVIEW_HOST_ENV_VAR_NAME || "").trim();
-if (previewHostEnvVarName) {
-  lines.push(`${previewHostEnvVarName}=${process.env.PREVIEW_HOST}`);
-}
-
-const extraEnv = JSON.parse(process.env.EXTRA_ENV_JSON || "{}");
-for (const [key, value] of Object.entries(extraEnv)) {
-  lines.push(`${key}=${String(value ?? "")}`);
-}
-
-fs.writeFileSync(process.env.ENV_FILE, `${lines.join("\n")}\n`, "utf8");
-NODE
+node "${SCRIPT_HELPER_PATH}" write-runtime-env "${env_file}" "${preview_host}" "${project_name}"
 
 if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
-  PROJECT_NAME="${project_name}" \
-  PREVIEW_HOST="${preview_host}" \
-  PROXY_OVERRIDE_PATH="${proxy_override_path}" \
-  node <<'NODE'
-const fs = require("fs");
-const YAML = require("yaml");
-
-const doc = {
-  services: {
-    [process.env.PUBLIC_SERVICE]: {
-      networks: {
-        [process.env.TRAEFIK_NETWORK_NAME]: null,
-      },
-      labels: {
-        "traefik.enable": "true",
-        "traefik.docker.network": process.env.TRAEFIK_NETWORK_NAME,
-        [`traefik.http.routers.${process.env.PROJECT_NAME}.rule`]: `Host(\`${process.env.PREVIEW_HOST}\`)`,
-        [`traefik.http.routers.${process.env.PROJECT_NAME}.entrypoints`]: "web",
-        [`traefik.http.services.${process.env.PROJECT_NAME}.loadbalancer.server.port`]: String(process.env.PUBLIC_PORT),
-      },
-    },
-  },
-  networks: {
-    [process.env.TRAEFIK_NETWORK_NAME]: {
-      external: true,
-      name: process.env.TRAEFIK_NETWORK_NAME,
-    },
-  },
-};
-
-fs.writeFileSync(process.env.PROXY_OVERRIDE_PATH, YAML.stringify(doc), "utf8");
-NODE
+  node "${SCRIPT_HELPER_PATH}" write-proxy-override "${proxy_override_path}" "${preview_host}" "${project_name}"
 else
   rm -f "${proxy_override_path}"
 fi
@@ -206,51 +146,4 @@ if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
 fi
 docker compose "${compose_up_args[@]}" up -d --build
 
-DEPLOYMENT_ID="${deployment_id}" \
-DEPLOYMENT_KEY="${DEPLOYMENT_KEY}" \
-PREVIEW_HOST="${preview_host}" \
-PROJECT_NAME="${project_name}" \
-WORK_DIR="${work_dir}" \
-WORKING_DIRECTORY="${WORKING_DIRECTORY}" \
-PROJECT_DIRECTORY_RESOLVED="${project_dir}" \
-COMPOSE_PATH_RESOLVED="${compose_path_resolved}" \
-PROXY_OVERRIDE_PATH="${proxy_override_path}" \
-METADATA_PATH="${metadata_path}" \
-ENV_FILE="${env_file}" \
-node <<'NODE'
-const fs = require("fs");
-
-const metadata = {
-  deploymentId: process.env.DEPLOYMENT_ID,
-  deploymentKey: process.env.DEPLOYMENT_KEY,
-  repoId: process.env.REPO_ID,
-  repoSlug: process.env.REPO_SLUG,
-  targetType: process.env.TARGET_TYPE,
-  targetValue: process.env.TARGET_TYPE === "pr" ? Number(process.env.TARGET_VALUE) : process.env.TARGET_VALUE,
-  targetBranch: process.env.TARGET_BRANCH || "",
-  targetSha: process.env.TARGET_SHA || "",
-  prNumber: process.env.TARGET_TYPE === "pr" ? Number(process.env.TARGET_VALUE) : null,
-  prBranch: process.env.TARGET_TYPE === "pr" ? process.env.TARGET_BRANCH || "" : null,
-  prSha: process.env.TARGET_TYPE === "pr" ? process.env.TARGET_SHA || "" : null,
-  previewHost: process.env.PREVIEW_HOST,
-  projectName: process.env.PROJECT_NAME,
-  workDir: process.env.WORK_DIR,
-  workingDirectory: process.env.WORKING_DIRECTORY || ".",
-  projectDirectoryResolved: process.env.PROJECT_DIRECTORY_RESOLVED || process.env.WORK_DIR,
-  composePathResolved: process.env.COMPOSE_PATH_RESOLVED,
-  proxyOverridePath: process.env.APPEND_PROXY_SETTINGS === "true" ? process.env.PROXY_OVERRIDE_PATH : "",
-  sourceCloneSshUrl: process.env.SOURCE_CLONE_SSH_URL,
-  status: "running",
-  lastEvent: process.env.LAST_EVENT || "deploy",
-  envFile: process.env.ENV_FILE,
-  logFile: process.env.LOG_FILE || "",
-  publicService: process.env.PUBLIC_SERVICE,
-  publicPort: Number(process.env.PUBLIC_PORT),
-  appendProxySettings: process.env.APPEND_PROXY_SETTINGS === "true",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
-
-fs.writeFileSync(process.env.METADATA_PATH, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
-console.log(JSON.stringify(metadata));
-NODE
+node "${SCRIPT_HELPER_PATH}" write-deployment-metadata "${metadata_path}"

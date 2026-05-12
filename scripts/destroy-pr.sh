@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_HELPER_PATH="${SCRIPT_ROOT}/dist/src/cli/script-helper.js"
+
 if [[ -z "${DEPLOYMENT_METADATA_PATH:-}" ]]; then
   echo "{\"ok\":false,\"message\":\"Missing required environment variable: DEPLOYMENT_METADATA_PATH\"}"
   exit 1
@@ -11,13 +14,13 @@ if [[ ! -f "${DEPLOYMENT_METADATA_PATH}" ]]; then
   exit 0
 fi
 
-deployment_id="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.deploymentId || ""));')"
-project_name="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.projectName || ""));')"
-compose_path_resolved="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.composePathResolved || ""));')"
-project_directory_resolved="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.projectDirectoryResolved || ""));')"
-work_dir="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.workDir || ""));')"
-env_file="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.envFile || ""));')"
-proxy_override_path="$(node -e 'const fs = require("fs"); const m = JSON.parse(fs.readFileSync(process.env.DEPLOYMENT_METADATA_PATH, "utf8")); process.stdout.write(String(m.proxyOverridePath || ""));')"
+deployment_id="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" deploymentId)"
+project_name="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" projectName)"
+compose_path_resolved="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" composePathResolved)"
+project_directory_resolved="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" projectDirectoryResolved)"
+work_dir="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" workDir)"
+env_file="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" envFile)"
+proxy_override_path="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" proxyOverridePath)"
 
 if [[ -n "${project_name}" && -n "${compose_path_resolved}" && -f "${compose_path_resolved}" ]]; then
   compose_down_args=(

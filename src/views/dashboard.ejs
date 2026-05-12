@@ -4,11 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PR Preview Orchestrator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <% (clientAssets?.css || []).forEach((href) => { %>
+      <link rel="stylesheet" href="<%= href %>" />
+    <% }) %>
     <script>
       window.CSRF_TOKEN = "<%= csrfToken %>";
     </script>
-    <script src="/static/app.js?v=<%= assetVersion %>" defer></script>
+    <% (clientAssets?.js || []).forEach((src) => { %>
+      <script src="<%= src %>" type="module"></script>
+    <% }) %>
   </head>
   <body class="min-h-screen bg-black text-zinc-100 antialiased">
     <main class="min-h-screen">
