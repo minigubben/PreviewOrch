@@ -9,6 +9,7 @@ data/logs/app.log
 data/logs/events.jsonl
 data/logs/deployments/*.log
 data/deployments/*
+data/ssh/*
 !data/deployments/.gitkeep
 !data/logs/deployments/.gitkeep
 !data/config/.gitkeep
