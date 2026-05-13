@@ -22,9 +22,9 @@ branches_text="$(
 )"
 
 prs_text="$(
-  git ls-remote "${CLONE_SSH_URL}" "refs/pull/*/head" \
+  git ls-remote "${CLONE_SSH_URL}" "refs/pull/*/merge" \
     | awk '{print $2}' \
-    | sed -n 's#^refs/pull/\([0-9]\+\)/head$#\1#p' \
+    | sed -n 's#^refs/pull/\([0-9]\+\)/merge$#\1#p' \
     | sort -n -u
 )"
 
