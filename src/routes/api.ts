@@ -85,6 +85,15 @@ function createApiRouter({ deploymentService, repoStore, sshKeyManager }) {
     }),
   );
 
+  router.get(
+    "/api/repos/:id/manual-target-options",
+    requireAuth,
+    asyncHandler(async (req, res) => {
+      const options = await deploymentService.listManualTargets(req.params.id);
+      res.json(options);
+    }),
+  );
+
   router.post(
     "/api/deployments/:id/redeploy",
     requireAuth,

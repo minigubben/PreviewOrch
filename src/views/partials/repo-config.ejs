@@ -140,22 +140,43 @@
           </div>
           <div class="border border-zinc-800 bg-zinc-950/70 px-4 py-4">
             <p class="mb-3 text-xs uppercase tracking-[0.28em] text-zinc-500">Manual Deployment</p>
-            <form action="/api/repos/<%= repo.id %>/manual-deploy" method="post" data-method="POST" data-api-form class="grid grid-cols-1 gap-4 xl:grid-cols-[180px_minmax(0,1fr)_auto]">
+            <form
+              action="/api/repos/<%= repo.id %>/manual-deploy"
+              method="post"
+              data-method="POST"
+              data-api-form
+              data-manual-target-form
+              data-repo-id="<%= repo.id %>"
+              data-default-branch="<%= repo.defaultBranch %>"
+              class="grid grid-cols-1 gap-4 xl:grid-cols-[180px_minmax(0,1fr)_auto_auto]"
+            >
               <div class="space-y-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Target Type</label>
-                <select name="manualTargetType" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
+                <select name="manualTargetType" data-manual-target-type class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
                   <option value="default-branch">Default branch</option>
                   <option value="branch">Branch</option>
                   <option value="pr">Pull request</option>
                 </select>
               </div>
               <div class="space-y-2">
-                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Branch Name or PR Number</label>
-                <input name="manualTargetValue" placeholder="Ignored for default branch, otherwise main or 123" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Branch or PR</label>
+                <select name="manualTargetValue" data-manual-target-value class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
+                  <option value="">Loading targets...</option>
+                </select>
+                <p class="text-xs leading-5 text-zinc-500" data-manual-target-status>Loading branches and PR refs from git.</p>
               </div>
               <div class="flex items-end">
                 <button type="submit" class="border border-zinc-700 bg-zinc-100 px-4 py-3 text-sm font-medium text-black transition hover:bg-zinc-300">
                   Deploy target
+                </button>
+              </div>
+              <div class="flex items-end">
+                <button
+                  type="button"
+                  data-manual-target-refresh
+                  class="border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
+                >
+                  Refresh refs
                 </button>
               </div>
             </form>

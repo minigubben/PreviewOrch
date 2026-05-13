@@ -16,6 +16,7 @@ test("all admin api endpoints reject anonymous requests", async () => {
     ["put", "/api/repos/test-repo"],
     ["delete", "/api/repos/test-repo"],
     ["get", "/api/deployments"],
+    ["get", "/api/repos/test-repo/manual-target-options"],
     ["post", "/api/ssh-keypair"],
     ["post", "/api/repos/test-repo/manual-deploy"],
     ["post", "/api/deployments/test-deployment/redeploy"],

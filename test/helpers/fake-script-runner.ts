@@ -24,6 +24,9 @@ class FakeScriptRunner {
     if (scriptName === "destroy-pr.sh") {
       return this.destroy(env);
     }
+    if (scriptName === "list-manual-targets.sh") {
+      return this.listManualTargets(env);
+    }
 
     throw new Error(`Unexpected script: ${scriptName}`);
   }
@@ -196,6 +199,19 @@ class FakeScriptRunner {
       stdout: `${JSON.stringify({ ok: true, destroyed: true, deploymentId })}\n`,
       stderr: "",
       parsed: { ok: true, destroyed: true, deploymentId },
+    };
+  }
+
+  async listManualTargets(env) {
+    const defaultBranch = String(env.DEFAULT_BRANCH || "main").trim() || "main";
+    const branches = Array.from(new Set([defaultBranch, "develop", "release/2026-q2"]));
+    const pullRequests = [17, 27].map((number) => ({ number, label: `PR #${number}` }));
+
+    return {
+      code: 0,
+      stdout: `${JSON.stringify({ ok: true, branches, pullRequests })}\n`,
+      stderr: "",
+      parsed: { ok: true, branches, pullRequests },
     };
   }
 }
