@@ -71,11 +71,23 @@ if [[ -f "${metadata_path}" ]]; then
     if [[ -n "${previous_proxy_override_path}" && -f "${previous_proxy_override_path}" ]]; then
       compose_down_args+=(-f "${previous_proxy_override_path}")
     fi
-    docker compose "${compose_down_args[@]}" down -v --remove-orphans || true
+    docker compose "${compose_down_args[@]}" down --remove-orphans || true
   fi
 fi
 
 case "${TARGET_TYPE}" in
+  default-branch)
+    git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
+    if [[ -n "${TARGET_SHA:-}" ]]; then
+      (
+        cd "${tmp_checkout}"
+        if ! git checkout "${TARGET_SHA}" >/dev/null 2>&1; then
+          git fetch --depth 1 origin "${TARGET_SHA}" >/dev/null 2>&1
+          git checkout "${TARGET_SHA}" >/dev/null 2>&1
+        fi
+      )
+    fi
+    ;;
   branch)
     git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
     if [[ -n "${TARGET_SHA:-}" ]]; then

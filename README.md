@@ -10,9 +10,10 @@ Docker-based preview orchestration for GitHub repositories that ship a repo-owne
 
 - Receives GitHub `pull_request` webhooks and validates their signatures.
 - Lets an operator manage repositories and trigger manual branch or PR deploys from the admin UI.
+- Supports one dedicated default-branch deployment per repository with its own env vars and optional custom FQDN.
 - Clones the target revision into `data/deployments/{repoSlug}/{deploymentKey}`.
 - Writes `.env.runtime`, optionally appends a Traefik override, and runs `docker compose up -d --build`.
-- Destroys preview stacks with `docker compose down -v --remove-orphans` when PRs close or an operator destroys them.
+- Destroys preview stacks with `docker compose down --remove-orphans` when PRs close or an operator destroys them.
 - Stores repo config, deployment metadata, SSH keys, and logs on disk.
 
 ## How It Works

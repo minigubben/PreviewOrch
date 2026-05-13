@@ -17,7 +17,8 @@ function buildDeploySeed({
 }) {
   const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
   const deploymentKey = existing?.deploymentKey || buildDeploymentKey(targetType, targetValue);
-  const previewHost = buildPreviewHost(repoSlug, deploymentKey, config.baseDomain);
+  const resolvedTarget = resolveTargetConfig({ repo, repoSlug, deploymentKey, config, targetType, targetBranch, targetValue });
+  const previewHost = resolvedTarget.previewHost;
   const projectName = buildProjectName(repoSlug, deploymentKey);
   const workDir = deploymentStore.getWorkDir(repoSlug, deploymentKey);
   const projectDirectoryResolved = path.resolve(workDir, repo.workingDirectory || ".");
@@ -32,10 +33,10 @@ function buildDeploySeed({
     repoSlug,
     targetType,
     targetValue,
-    targetBranch,
+    targetBranch: resolvedTarget.targetBranch,
     targetSha,
     prNumber: targetType === "pr" ? Number(targetValue) : null,
-    prBranch: targetType === "pr" ? targetBranch : null,
+    prBranch: targetType === "pr" ? resolvedTarget.targetBranch : null,
     prSha: targetType === "pr" ? targetSha : null,
     previewHost,
     projectName,
@@ -52,7 +53,7 @@ function buildDeploySeed({
     publicPort: repo.publicPort,
     publicService: repo.publicService,
     appendProxySettings: repo.appendProxySettings,
-    extraEnv: repo.extraEnv || {},
+    extraEnv: resolvedTarget.extraEnv,
     githubDeployment: existing?.githubDeployment || null,
   };
 }
@@ -60,7 +61,18 @@ function buildDeploySeed({
 function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentKey, lastEvent }) {
   const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
   const deploymentId = `${repo.id}-${deploymentKey}`;
-  const previewHost = buildPreviewHost(repoSlug, deploymentKey, config.baseDomain);
+  const resolvedTarget =
+    existing?.targetType === "default-branch"
+      ? resolveTargetConfig({
+          repo,
+          repoSlug,
+          deploymentKey,
+          config,
+          targetType: "default-branch",
+          targetValue: existing?.targetValue || repo.defaultBranch,
+        })
+      : null;
+  const previewHost = existing?.previewHost || resolvedTarget?.previewHost || buildPreviewHost(repoSlug, deploymentKey, config.baseDomain);
   const projectName = buildProjectName(repoSlug, deploymentKey);
   const workDir = deploymentStore.getWorkDir(repoSlug, deploymentKey);
   const projectDirectoryResolved = existing?.projectDirectoryResolved || path.resolve(workDir, repo.workingDirectory || ".");
@@ -94,8 +106,24 @@ function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentK
     publicPort: repo.publicPort,
     publicService: repo.publicService,
     appendProxySettings: repo.appendProxySettings,
-    extraEnv: repo.extraEnv || {},
+    extraEnv: existing?.extraEnv || resolvedTarget?.extraEnv || repo.extraEnv || {},
     githubDeployment: existing?.githubDeployment || null,
+  };
+}
+
+function resolveTargetConfig({ repo, repoSlug, deploymentKey, config, targetType, targetBranch, targetValue }) {
+  if (targetType === "default-branch") {
+    return {
+      previewHost: buildPreviewHost(repoSlug, deploymentKey, config.baseDomain, repo.defaultBranchCustomHost),
+      targetBranch: repo.defaultBranch || targetBranch || String(targetValue || "").trim() || null,
+      extraEnv: repo.defaultBranchExtraEnv || {},
+    };
+  }
+
+  return {
+    previewHost: buildPreviewHost(repoSlug, deploymentKey, config.baseDomain),
+    targetBranch: targetBranch || null,
+    extraEnv: repo.extraEnv || {},
   };
 }
 

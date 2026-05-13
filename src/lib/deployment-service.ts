@@ -162,6 +162,20 @@ class DeploymentService {
     }
 
     const targetType = normalizeManualTargetType(manualTargetType);
+    if (targetType === "default-branch") {
+      return this.runWithDeploymentLock(repo, buildDeploymentKey(targetType, repo.defaultBranch), async () =>
+        this.deployTarget({
+          repo,
+          targetType,
+          targetValue: repo.defaultBranch,
+          targetBranch: repo.defaultBranch,
+          targetSha: null,
+          sourceCloneSshUrl: repo.cloneSshUrl,
+          lastEvent: "manual-deploy",
+        }),
+      );
+    }
+
     const targetValue = normalizeManualTargetValue(targetType, manualTargetValue);
     const deploymentKey = buildDeploymentKey(targetType, targetValue);
     const targetBranch = targetType === "branch" ? targetValue : null;
@@ -470,10 +484,10 @@ function getAllowedAuthorAssociations(prDeploymentAccess) {
 
 function normalizeManualTargetType(value) {
   const normalized = String(value || "").toLowerCase();
-  if (normalized === "branch" || normalized === "pr") {
+  if (normalized === "branch" || normalized === "pr" || normalized === "default-branch") {
     return normalized;
   }
-  throw new RepoValidationError("manualTargetType must be 'branch' or 'pr'.");
+  throw new RepoValidationError("manualTargetType must be 'branch', 'default-branch', or 'pr'.");
 }
 
 function normalizeManualTargetValue(targetType, value) {

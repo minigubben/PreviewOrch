@@ -11,6 +11,10 @@ test("buildPreviewHost creates the expected wildcard host", () => {
   assert.equal(buildPreviewHost("acme-widgets", "pr-42", "preview.example.com"), "acme-widgets-pr-42.preview.example.com");
 });
 
+test("buildPreviewHost prefers a custom fqdn when provided", () => {
+  assert.equal(buildPreviewHost("acme-widgets", "default-branch", "preview.example.com", "app.example.com"), "app.example.com");
+});
+
 test("buildProjectName creates a docker-safe project name", () => {
   assert.equal(buildProjectName("acme-widgets", "pr-42"), "acme-widgets-pr-42");
 });
@@ -18,6 +22,7 @@ test("buildProjectName creates a docker-safe project name", () => {
 test("buildDeploymentKey supports branches and pull requests", () => {
   assert.equal(buildDeploymentKey("pr", 42), "pr-42");
   assert.equal(buildDeploymentKey("branch", "feature/Test Branch"), "branch-feature-test-branch");
+  assert.equal(buildDeploymentKey("default-branch", "main"), "default-branch");
 });
 
 test("verifyGithubSignature accepts a valid signature", () => {

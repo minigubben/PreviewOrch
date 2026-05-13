@@ -24,6 +24,8 @@ test("normalizeRepoInput derives owner and name from clone url", () => {
   assert.equal(repo.name, "simcards");
   assert.equal(repo.workingDirectory, ".");
   assert.equal(repo.extraEnvText, "");
+  assert.equal(repo.defaultBranchCustomHost, "");
+  assert.equal(repo.defaultBranchExtraEnvText, "");
   assert.equal(repo.prDeploymentAccess, "anyone");
   assert.equal(repo.prDeploymentAllowedLoginsText, "");
 });
@@ -39,6 +41,10 @@ test("hydrateStoredRepo normalizes stored env and working directory fields", () 
       NODE_ENV: "production",
       NULLISH: null,
     },
+    defaultBranchCustomHost: "APP.EXAMPLE.COM",
+    defaultBranchExtraEnv: {
+      NODE_ENV: "staging",
+    },
     prDeploymentAccess: "contributors",
     prDeploymentAllowedLogins: ["Dependabot[bot]", "release-bot"],
   });
@@ -48,6 +54,8 @@ test("hydrateStoredRepo normalizes stored env and working directory fields", () 
   assert.equal(repo.workingDirectory, "ops/preview");
   assert.equal(repo.appendProxySettings, true);
   assert.equal(repo.extraEnvText, "NODE_ENV=production\nNULLISH=");
+  assert.equal(repo.defaultBranchCustomHost, "app.example.com");
+  assert.equal(repo.defaultBranchExtraEnvText, "NODE_ENV=staging");
   assert.equal(repo.prDeploymentAccess, "contributors");
   assert.equal(repo.prDeploymentAllowedLoginsText, "dependabot[bot]\nrelease-bot");
 });
@@ -95,6 +103,29 @@ test("normalizeRepoInput parses PR trigger allowlist and access policy", () => {
   assert.equal(repo.prDeploymentAccess, "contributors");
   assert.deepEqual(repo.prDeploymentAllowedLogins, ["dependabot[bot]", "release-bot"]);
   assert.equal(repo.prDeploymentAllowedLoginsText, "dependabot[bot]\nrelease-bot");
+});
+
+test("validateRepoShape rejects invalid default branch custom fqdn", () => {
+  assert.throws(
+    () =>
+      validateRepoShape({
+        owner: "acme",
+        name: "widgets",
+        cloneSshUrl: "git@github.com:acme/widgets.git",
+        composePath: "deploy/preview-compose.yml",
+        workingDirectory: ".",
+        publicService: "app",
+        publicPort: 3000,
+        defaultBranch: "main",
+        appendProxySettings: false,
+        extraEnv: {},
+        defaultBranchExtraEnv: {},
+        defaultBranchCustomHost: "https://app.example.com",
+        prDeploymentAccess: "anyone",
+        prDeploymentAllowedLogins: [],
+      }),
+    RepoValidationError,
+  );
 });
 
 test("validateRepoShape rejects invalid PR trigger allowlist entries", () => {

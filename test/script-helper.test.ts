@@ -33,6 +33,25 @@ test("getDeploymentPaths derives the compiled script helper paths", () => {
   assert.equal(paths.metadataPath, "/tmp/deployments/acme-widgets/pr-42/deployment.json");
 });
 
+test("getDeploymentPaths honors a custom preview host override", () => {
+  const paths = getDeploymentPaths({
+    BASE_DOMAIN: "preview.example.com",
+    COMPOSE_PATH: "deploy/preview-compose.yml",
+    DEPLOYMENTS_DIR: "/tmp/deployments",
+    DEPLOYMENT_KEY: "default-branch",
+    PREVIEW_HOST: "app.example.com",
+    REPO_ID: "repo-1",
+    REPO_SLUG: "acme-widgets",
+    TARGET_TYPE: "default-branch",
+    TARGET_VALUE: "main",
+    WORKING_DIRECTORY: ".",
+  });
+
+  assert.equal(paths.deploymentId, "repo-1-default-branch");
+  assert.equal(paths.previewHost, "app.example.com");
+  assert.equal(paths.metadataPath, "/tmp/deployments/acme-widgets/default-branch/deployment.json");
+});
+
 test("script helper CLI supports resolve-deploy-field for shell-script compatibility", async () => {
   const scriptPath = new URL("../src/cli/script-helper.js", import.meta.url);
   const { stdout } = await execFile(process.execPath, [scriptPath.pathname, "resolve-deploy-field", "projectName"], {

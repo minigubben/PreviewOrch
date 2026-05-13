@@ -1,6 +1,6 @@
 export type SessionCookieSecure = boolean | "auto";
 
-export type TargetType = "pr" | "branch";
+export type TargetType = "pr" | "branch" | "default-branch";
 export type WebhookMappedAction = "deploy" | "destroy" | null;
 export type DeploymentStatus = "deploying" | "running" | "destroying" | "failed";
 export type GithubDeploymentState = "pending" | "success" | "failure" | "inactive";
@@ -60,6 +60,9 @@ export interface RepoRecord {
   appendProxySettings: boolean;
   extraEnv: Record<string, string>;
   extraEnvText: string;
+  defaultBranchCustomHost: string;
+  defaultBranchExtraEnv: Record<string, string>;
+  defaultBranchExtraEnvText: string;
   prDeploymentAccess: PrDeploymentAccess;
   prDeploymentAllowedLogins: string[];
   prDeploymentAllowedLoginsText: string;
