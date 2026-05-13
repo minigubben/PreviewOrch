@@ -193,6 +193,50 @@ class DeploymentService {
     );
   }
 
+  async listManualTargets(repoId) {
+    const repo = await this.repoStore.getById(repoId);
+    if (!repo) {
+      throw new RepoValidationError("Repository not found.");
+    }
+
+    try {
+      const result = await this.scriptRunner.run({
+        scriptPath: this.config.scripts.listManualTargets,
+        env: {
+          CLONE_SSH_URL: repo.cloneSshUrl,
+          SSH_DIR: this.config.sshDir,
+          DEFAULT_BRANCH: repo.defaultBranch,
+        },
+      });
+
+      const branches = Array.isArray(result.parsed?.branches) ? result.parsed.branches.map(String) : [];
+      const pullRequests = Array.isArray(result.parsed?.pullRequests)
+        ? result.parsed.pullRequests
+            .map((item) => ({
+              number: Number(item?.number),
+              label: String(item?.label || `PR #${item?.number ?? ""}`).trim(),
+            }))
+            .filter((item) => Number.isInteger(item.number) && item.number > 0 && item.label)
+        : [];
+
+      return {
+        defaultBranch: repo.defaultBranch,
+        branches,
+        pullRequests,
+      };
+    } catch (error) {
+      await this.logger.warn("Unable to list manual deploy targets", {
+        repoId,
+        message: error.message,
+      });
+      return {
+        defaultBranch: repo.defaultBranch,
+        branches: [repo.defaultBranch].filter(Boolean),
+        pullRequests: [],
+      };
+    }
+  }
+
   async deployTarget({ repo, targetType, targetValue, targetBranch, targetSha, sourceCloneSshUrl, lastEvent }) {
     const existing = await this.deploymentStore.getById(`${repo.id}-${buildDeploymentKey(targetType, targetValue)}`);
     const seed = buildDeploySeed({

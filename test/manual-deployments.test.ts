@@ -5,6 +5,25 @@ import assert from "node:assert/strict";
 import { createRepo } from "./helpers/app-test-helpers.js";
 import { createTestContext, getDashboardCsrf, login, signPayload, buildPullRequestPayload } from "./helpers/test-app.js";
 
+test("lists manual deploy branch and PR targets for a repository", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken, {
+    defaultBranch: "main",
+  });
+  assert.equal(repoResponse.status, 201);
+
+  const response = await context.agent.get(`/api/repos/${repoResponse.body.id}/manual-target-options`);
+  assert.equal(response.status, 200);
+  assert.equal(response.body.defaultBranch, "main");
+  assert.ok(response.body.branches.includes("main"));
+  assert.ok(response.body.branches.includes("develop"));
+  assert.deepEqual(response.body.pullRequests[0], { number: 17, label: "PR #17" });
+});
+
 test("manually deploys the default branch from the repo editor api", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

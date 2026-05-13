@@ -53,6 +53,7 @@ function getConfig(overrides = {}) {
       validateRepo: path.join(scriptsDir, "validate-repo.sh"),
       deployPr: path.join(scriptsDir, "deploy-pr.sh"),
       destroyPr: path.join(scriptsDir, "destroy-pr.sh"),
+      listManualTargets: path.join(scriptsDir, "list-manual-targets.sh"),
     },
   };
 }

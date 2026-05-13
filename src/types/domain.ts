@@ -39,6 +39,7 @@ export interface AppConfig {
     validateRepo: string;
     deployPr: string;
     destroyPr: string;
+    listManualTargets: string;
   };
 }
 

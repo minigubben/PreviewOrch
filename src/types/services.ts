@@ -93,4 +93,9 @@ export interface DeploymentServiceLike {
     manualTargetType: string;
     manualTargetValue: string;
   }): Promise<DeploymentMetadata>;
+  listManualTargets(repoId: string): Promise<{
+    defaultBranch: string;
+    branches: string[];
+    pullRequests: Array<{ number: number; label: string }>;
+  }>;
 }
