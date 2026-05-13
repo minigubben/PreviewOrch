@@ -36,7 +36,12 @@ export function getDeploymentPaths(env: CliEnvironment): {
   const projectDir = path.resolve(workDir, env.WORKING_DIRECTORY || ".");
   const composePathResolved = path.resolve(projectDir, required(env.COMPOSE_PATH, "COMPOSE_PATH"));
   const deploymentId = `${required(env.REPO_ID, "REPO_ID")}-${deploymentKey}`;
-  const previewHost = buildPreviewHost(repoSlug, deploymentKey, required(env.BASE_DOMAIN, "BASE_DOMAIN"));
+  const previewHost = buildPreviewHost(
+    repoSlug,
+    deploymentKey,
+    required(env.BASE_DOMAIN, "BASE_DOMAIN"),
+    env.PREVIEW_HOST || "",
+  );
   const projectName = buildProjectName(repoSlug, deploymentKey);
 
   return {

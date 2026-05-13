@@ -5,6 +5,34 @@ import assert from "node:assert/strict";
 import { createRepo } from "./helpers/app-test-helpers.js";
 import { createTestContext, getDashboardCsrf, login, signPayload, buildPullRequestPayload } from "./helpers/test-app.js";
 
+test("manually deploys the default branch from the repo editor api", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const repoResponse = await createRepo(context.agent, csrfToken, {
+    defaultBranchCustomHost: "app.example.com",
+    defaultBranchExtraEnvText: "NODE_ENV=production",
+  });
+  assert.equal(repoResponse.status, 201);
+
+  const response = await context.agent
+    .post(`/api/repos/${repoResponse.body.id}/manual-deploy`)
+    .set("X-CSRF-Token", csrfToken)
+    .send({
+      manualTargetType: "default-branch",
+      manualTargetValue: "",
+    });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.targetType, "default-branch");
+  assert.equal(response.body.targetValue, "main");
+  assert.equal(response.body.deploymentKey, "default-branch");
+  assert.equal(response.body.previewHost, "app.example.com");
+  assert.deepEqual(response.body.extraEnv, { NODE_ENV: "production" });
+});
+
 test("manually deploys a branch from the repo editor api", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

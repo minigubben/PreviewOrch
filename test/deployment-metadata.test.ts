@@ -18,6 +18,8 @@ function createRepo() {
     publicService: "app",
     appendProxySettings: true,
     extraEnv: { NODE_ENV: "production" },
+    defaultBranchCustomHost: "app.example.com",
+    defaultBranchExtraEnv: { NODE_ENV: "staging" },
   };
 }
 
@@ -60,6 +62,27 @@ test("buildDeploySeed preserves createdAt from an existing deployment", () => {
   assert.equal(seed.projectDirectoryResolved, path.join("/tmp/deployments", "acme-widgets", "pr-17", "ops/preview"));
   assert.equal(seed.composePathResolved, path.join("/tmp/deployments", "acme-widgets", "pr-17", "ops/preview", "docker-compose.preview.yml"));
   assert.deepEqual(seed.githubDeployment, { id: 1000 });
+});
+
+test("buildDeploySeed uses dedicated host and env for default branch deployments", () => {
+  const seed = buildDeploySeed({
+    repo: createRepo(),
+    config: createConfig(),
+    deploymentStore: createDeploymentStore(),
+    existing: null,
+    targetType: "default-branch",
+    targetValue: "main",
+    targetBranch: "main",
+    targetSha: null,
+    sourceCloneSshUrl: "git@github.com:acme/widgets.git",
+    lastEvent: "manual-deploy",
+  });
+
+  assert.equal(seed.deploymentId, "repo-1-default-branch");
+  assert.equal(seed.deploymentKey, "default-branch");
+  assert.equal(seed.previewHost, "app.example.com");
+  assert.equal(seed.targetBranch, "main");
+  assert.deepEqual(seed.extraEnv, { NODE_ENV: "staging" });
 });
 
 test("buildDestroySeed falls back correctly when existing metadata is partial", () => {

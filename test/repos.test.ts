@@ -18,6 +18,8 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(response.body.name, "widgets");
   assert.equal(response.body.appendProxySettings, false);
   assert.deepEqual(response.body.extraEnv, {});
+  assert.equal(response.body.defaultBranchCustomHost, "");
+  assert.deepEqual(response.body.defaultBranchExtraEnv, {});
   assert.equal(response.body.workingDirectory, ".");
   assert.equal(response.body.prDeploymentAccess, "anyone");
   assert.deepEqual(response.body.prDeploymentAllowedLogins, []);
@@ -58,6 +60,26 @@ test("stores additional env vars from the admin ui", async () => {
     API_ORIGIN: "https://api.example.com",
   });
   assert.equal(response.body.extraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
+});
+
+test("stores default branch deployment host and env vars from the admin ui", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    defaultBranchCustomHost: "app.example.com",
+    defaultBranchExtraEnvText: "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+  });
+
+  assert.equal(response.status, 201);
+  assert.equal(response.body.defaultBranchCustomHost, "app.example.com");
+  assert.deepEqual(response.body.defaultBranchExtraEnv, {
+    NODE_ENV: "production",
+    API_ORIGIN: "https://api.example.com",
+  });
+  assert.equal(response.body.defaultBranchExtraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
 });
 
 test("stores PR trigger policy and allowlist from the admin ui", async () => {
@@ -128,6 +150,20 @@ test("rejects invalid additional env variable names", async () => {
 
   assert.equal(response.status, 400);
   assert.match(response.body.error, /must be a valid environment variable name/);
+});
+
+test("rejects an invalid default branch fqdn", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, {
+    defaultBranchCustomHost: "https://app.example.com",
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /must be a valid fully qualified domain name/);
 });
 
 test("rejects invalid PR trigger allowlist entries", async () => {

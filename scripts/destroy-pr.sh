@@ -32,7 +32,7 @@ if [[ -n "${project_name}" && -n "${compose_path_resolved}" && -f "${compose_pat
   if [[ -n "${proxy_override_path}" && -f "${proxy_override_path}" ]]; then
     compose_down_args+=(-f "${proxy_override_path}")
   fi
-  docker compose "${compose_down_args[@]}" down -v --remove-orphans || true
+  docker compose "${compose_down_args[@]}" down --remove-orphans || true
 fi
 
 if [[ -n "${work_dir}" ]]; then

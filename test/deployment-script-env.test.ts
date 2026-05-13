@@ -28,6 +28,9 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
       deploymentKey: "pr-17",
       repoSlug: "acme-widgets",
       logFile: "/tmp/logs/acme-widgets-pr-17.log",
+      previewHost: "acme-widgets-pr-17.preview.example.com",
+      extraEnv: { NODE_ENV: "staging" },
+      targetBranch: "feature/test",
     },
     sourceCloneSshUrl: "git@github.com:acme/widgets.git",
     targetType: "pr",
@@ -40,7 +43,8 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
   assert.equal(env.REPO_ID, "repo-1");
   assert.equal(env.PUBLIC_PORT, "3000");
   assert.equal(env.APPEND_PROXY_SETTINGS, "true");
-  assert.equal(env.EXTRA_ENV_JSON, JSON.stringify({ NODE_ENV: "production" }));
+  assert.equal(env.EXTRA_ENV_JSON, JSON.stringify({ NODE_ENV: "staging" }));
+  assert.equal(env.PREVIEW_HOST, "acme-widgets-pr-17.preview.example.com");
   assert.equal(env.TARGET_VALUE, "17");
 });
 

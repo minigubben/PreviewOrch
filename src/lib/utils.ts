@@ -22,10 +22,16 @@ function buildDeploymentKey(targetType, targetValue) {
   if (targetType === "branch") {
     return `branch-${slugifyValue(targetValue).slice(0, 32)}`;
   }
+  if (targetType === "default-branch") {
+    return "default-branch";
+  }
   throw new Error(`Unsupported targetType: ${targetType}`);
 }
 
-function buildPreviewHost(repoSlug, deploymentKey, baseDomain) {
+function buildPreviewHost(repoSlug, deploymentKey, baseDomain, customHost = "") {
+  if (customHost) {
+    return String(customHost).trim().toLowerCase();
+  }
   return `${repoSlug}-${deploymentKey}.${baseDomain}`;
 }
 

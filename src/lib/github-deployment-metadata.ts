@@ -16,6 +16,10 @@ function buildGithubDeploymentDescription(metadata) {
     return `Preview deployment for PR #${metadata.targetValue}`;
   }
 
+  if (metadata.targetType === "default-branch") {
+    return `Preview deployment for default branch ${metadata.targetValue}`;
+  }
+
   return `Preview deployment for branch ${metadata.targetValue}`;
 }
 

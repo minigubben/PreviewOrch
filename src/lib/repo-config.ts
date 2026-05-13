@@ -17,6 +17,7 @@ const PR_DEPLOYMENT_ACCESS_VALUES = new Set(["anyone", "members", "collaborators
 
 function normalizeRepoInput(input = {}) {
   const extraEnv = parseExtraEnvText(input.extraEnvText, input.extraEnv);
+  const defaultBranchExtraEnv = parseExtraEnvText(input.defaultBranchExtraEnvText, input.defaultBranchExtraEnv);
   const prDeploymentAllowedLogins = parseGithubLoginListText(
     input.prDeploymentAllowedLoginsText,
     input.prDeploymentAllowedLogins,
@@ -35,6 +36,9 @@ function normalizeRepoInput(input = {}) {
     appendProxySettings: normalizeBoolean(input.appendProxySettings ?? false),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
+    defaultBranchCustomHost: normalizeFqdn(input.defaultBranchCustomHost),
+    defaultBranchExtraEnv,
+    defaultBranchExtraEnvText: stringifyExtraEnv(defaultBranchExtraEnv),
     prDeploymentAccess: normalizePrDeploymentAccess(input.prDeploymentAccess),
     prDeploymentAllowedLogins,
     prDeploymentAllowedLoginsText: stringifyGithubLoginList(prDeploymentAllowedLogins),
@@ -45,6 +49,7 @@ function normalizeRepoInput(input = {}) {
 
 function hydrateStoredRepo(repo = {}) {
   const extraEnv = normalizeExistingExtraEnv(repo.extraEnv);
+  const defaultBranchExtraEnv = normalizeExistingExtraEnv(repo.defaultBranchExtraEnv);
   const prDeploymentAllowedLogins = normalizeExistingGithubLoginList(repo.prDeploymentAllowedLogins);
   const identity = deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl) || {
     owner: String(repo.owner || "").trim(),
@@ -59,6 +64,9 @@ function hydrateStoredRepo(repo = {}) {
     workingDirectory: normalizeWorkingDirectory(repo.workingDirectory),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
+    defaultBranchCustomHost: normalizeFqdn(repo.defaultBranchCustomHost),
+    defaultBranchExtraEnv,
+    defaultBranchExtraEnvText: stringifyExtraEnv(defaultBranchExtraEnv),
     prDeploymentAccess: normalizePrDeploymentAccess(repo.prDeploymentAccess),
     prDeploymentAllowedLogins,
     prDeploymentAllowedLoginsText: stringifyGithubLoginList(prDeploymentAllowedLogins),
@@ -83,8 +91,10 @@ function validateRepoShape(repo) {
   }
 
   validateEnvMap(repo.extraEnv);
+  validateEnvMap(repo.defaultBranchExtraEnv);
   validatePrDeploymentAccess(repo.prDeploymentAccess);
   validateGithubLoginList(repo.prDeploymentAllowedLogins, "prDeploymentAllowedLogins");
+  validateFqdn(repo.defaultBranchCustomHost, "defaultBranchCustomHost");
 
   if (typeof repo.appendProxySettings !== "boolean") {
     throw new RepoValidationError("appendProxySettings must be a boolean.");
@@ -96,6 +106,25 @@ function validateRepoShape(repo) {
 function normalizePrDeploymentAccess(value) {
   const normalized = String(value || "").trim().toLowerCase();
   return PR_DEPLOYMENT_ACCESS_VALUES.has(normalized) ? normalized : "anyone";
+}
+
+function normalizeFqdn(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function validateFqdn(value, label) {
+  const normalized = normalizeFqdn(value);
+  if (!normalized) {
+    return;
+  }
+
+  if (
+    !/^(?=.{1,253}$)(?!-)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])$/.test(
+      normalized,
+    )
+  ) {
+    throw new RepoValidationError(`${label} must be a valid fully qualified domain name.`);
+  }
 }
 
 function validatePrDeploymentAccess(value) {
