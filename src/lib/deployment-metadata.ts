@@ -52,7 +52,6 @@ function buildDeploySeed({
     publicPort: repo.publicPort,
     publicService: repo.publicService,
     appendProxySettings: repo.appendProxySettings,
-    previewHostEnvVarName: repo.previewHostEnvVarName || "",
     extraEnv: repo.extraEnv || {},
     githubDeployment: existing?.githubDeployment || null,
   };
@@ -95,7 +94,6 @@ function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentK
     publicPort: repo.publicPort,
     publicService: repo.publicService,
     appendProxySettings: repo.appendProxySettings,
-    previewHostEnvVarName: repo.previewHostEnvVarName || "",
     extraEnv: repo.extraEnv || {},
     githubDeployment: existing?.githubDeployment || null,
   };

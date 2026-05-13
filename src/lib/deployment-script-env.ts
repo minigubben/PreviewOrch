@@ -12,7 +12,6 @@ function buildDeployScriptEnv({ repo, config, seed, sourceCloneSshUrl, targetTyp
     PUBLIC_SERVICE: repo.publicService,
     PUBLIC_PORT: String(repo.publicPort),
     APPEND_PROXY_SETTINGS: String(repo.appendProxySettings),
-    PREVIEW_HOST_ENV_VAR_NAME: repo.previewHostEnvVarName || "",
     EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
     DEPLOYMENT_KEY: seed.deploymentKey,
     TARGET_TYPE: targetType,

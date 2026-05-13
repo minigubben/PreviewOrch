@@ -82,11 +82,6 @@ export function writeRuntimeEnvFile(env: CliEnvironment, targetPath: string, pre
     `ORCH_REPO_SLUG=${required(env.REPO_SLUG, "REPO_SLUG")}`,
   ];
 
-  const previewHostEnvVarName = String(env.PREVIEW_HOST_ENV_VAR_NAME || "").trim();
-  if (previewHostEnvVarName) {
-    lines.push(`${previewHostEnvVarName}=${previewHost}`);
-  }
-
   const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}") as Record<string, unknown>;
   for (const [key, value] of Object.entries(extraEnv)) {
     lines.push(`${key}=${String(value ?? "")}`);
@@ -158,7 +153,6 @@ export function buildDeploymentMetadata(env: CliEnvironment, paths: ReturnType<t
     publicService: required(env.PUBLIC_SERVICE, "PUBLIC_SERVICE"),
     publicPort: Number(required(env.PUBLIC_PORT, "PUBLIC_PORT")),
     appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
-    previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
     extraEnv,
     githubDeployment: null,
     createdAt: new Date().toISOString(),

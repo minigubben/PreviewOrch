@@ -78,9 +78,6 @@ class FakeScriptRunner {
     const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}");
     const envLines = [`ORCH_PREVIEW_HOST=${previewHost}`];
 
-    if (env.PREVIEW_HOST_ENV_VAR_NAME) {
-      envLines.push(`${env.PREVIEW_HOST_ENV_VAR_NAME}=${previewHost}`);
-    }
     for (const [key, value] of Object.entries(extraEnv)) {
       envLines.push(`${key}=${value}`);
     }
@@ -140,7 +137,6 @@ class FakeScriptRunner {
         publicPort: Number(env.PUBLIC_PORT),
         publicService: env.PUBLIC_SERVICE,
         appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
-        previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
         extraEnv,
         githubDeployment: null,
       })}\n`,
@@ -170,7 +166,6 @@ class FakeScriptRunner {
         publicPort: Number(env.PUBLIC_PORT),
         publicService: env.PUBLIC_SERVICE,
         appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
-        previewHostEnvVarName: env.PREVIEW_HOST_ENV_VAR_NAME || "",
         extraEnv,
         githubDeployment: null,
       },

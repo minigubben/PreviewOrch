@@ -60,8 +60,10 @@ test("writeRuntimeEnvFile writes orchestrator and extra env values", async () =>
   try {
     writeRuntimeEnvFile(
       {
-        EXTRA_ENV_JSON: JSON.stringify({ API_ORIGIN: "https://api.example.com" }),
-        PREVIEW_HOST_ENV_VAR_NAME: "APP_FQDN",
+        EXTRA_ENV_JSON: JSON.stringify({
+          FQDN: "${ORCH_PREVIEW_HOST}",
+          API_ORIGIN: "https://api.example.com",
+        }),
         PUBLIC_PORT: "3000",
         REPO_SLUG: "acme-widgets",
         TARGET_BRANCH: "feature/demo",
@@ -76,7 +78,7 @@ test("writeRuntimeEnvFile writes orchestrator and extra env values", async () =>
 
     const contents = await fs.readFile(envFile, "utf8");
     assert.match(contents, /ORCH_PROJECT_NAME=acme-widgets-pr-42/);
-    assert.match(contents, /APP_FQDN=acme-widgets-pr-42\.preview\.example\.com/);
+    assert.match(contents, /FQDN=\$\{ORCH_PREVIEW_HOST\}/);
     assert.match(contents, /API_ORIGIN=https:\/\/api\.example\.com/);
   } finally {
     await fs.rm(root, { recursive: true, force: true });

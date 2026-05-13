@@ -65,7 +65,6 @@ test("validateRepoShape rejects reserved env names and path escapes", () => {
         publicPort: 3000,
         defaultBranch: "main",
         appendProxySettings: false,
-        previewHostEnvVarName: "",
         extraEnv: {
           ORCH_PREVIEW_HOST: "bad",
         },
@@ -111,7 +110,6 @@ test("validateRepoShape rejects invalid PR trigger allowlist entries", () => {
         publicPort: 3000,
         defaultBranch: "main",
         appendProxySettings: false,
-        previewHostEnvVarName: "",
         extraEnv: {},
         prDeploymentAccess: "members",
         prDeploymentAllowedLogins: ["bad login"],

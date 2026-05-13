@@ -18,10 +18,13 @@ The orchestrator writes these into `.env.runtime` for each PR deployment:
 - `ORCH_PR_SHA`
 - `ORCH_REPO_SLUG`
 
-The admin UI can also append:
+The admin UI can also append any additional `KEY=value` env pairs configured on the repository.
 
-- one optional preview-host alias variable, for example `APP_FQDN`, with the same value as `ORCH_PREVIEW_HOST`
-- any additional `KEY=value` env pairs configured on the repository
+If a repo wants an alias such as `FQDN`, define it in additional env vars:
+
+```env
+FQDN=${ORCH_PREVIEW_HOST}
+```
 
 ## Repo-Owned Service Labels
 When `Append proxy settings to this service` is disabled, the configured public service must include label values that reference:

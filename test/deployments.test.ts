@@ -7,15 +7,14 @@ import path from "node:path";
 import { createRepo, waitFor } from "./helpers/app-test-helpers.js";
 import { buildPullRequestPayload, createTestContext, getDashboardCsrf, login, signPayload } from "./helpers/test-app.js";
 
-test("writes the preview host alias and extra env vars into the deployment env file", async () => {
+test("writes extra env vars into the deployment env file", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
   const csrfToken = await getDashboardCsrf(context.agent);
   const repoResponse = await createRepo(context.agent, csrfToken, {
-    previewHostEnvVarName: "APP_FQDN",
-    extraEnvText: "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+    extraEnvText: "FQDN=${ORCH_PREVIEW_HOST}\nNODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
   });
   assert.equal(repoResponse.status, 201);
 
@@ -33,7 +32,7 @@ test("writes the preview host alias and extra env vars into the deployment env f
   const envFilePath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", ".env.runtime");
   const envFile = await waitFor(async () => fs.readFile(envFilePath, "utf8"));
   assert.match(envFile, /^ORCH_PREVIEW_HOST=acme-widgets-pr-17\.preview\.example\.com$/m);
-  assert.match(envFile, /^APP_FQDN=acme-widgets-pr-17\.preview\.example\.com$/m);
+  assert.match(envFile, /^FQDN=\$\{ORCH_PREVIEW_HOST\}$/m);
   assert.match(envFile, /^NODE_ENV=production$/m);
   assert.match(envFile, /^API_ORIGIN=https:\/\/api\.example\.com$/m);
 });

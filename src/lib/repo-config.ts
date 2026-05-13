@@ -33,7 +33,6 @@ function normalizeRepoInput(input = {}) {
     publicPort: Number(input.publicPort),
     defaultBranch: String(input.defaultBranch || "").trim(),
     appendProxySettings: normalizeBoolean(input.appendProxySettings ?? false),
-    previewHostEnvVarName: String(input.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
     prDeploymentAccess: normalizePrDeploymentAccess(input.prDeploymentAccess),
@@ -58,7 +57,6 @@ function hydrateStoredRepo(repo = {}) {
     slug: repo.slug || slugifyRepo(identity.owner, identity.name),
     appendProxySettings: normalizeBoolean(repo.appendProxySettings ?? false),
     workingDirectory: normalizeWorkingDirectory(repo.workingDirectory),
-    previewHostEnvVarName: String(repo.previewHostEnvVarName || "").trim(),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
     prDeploymentAccess: normalizePrDeploymentAccess(repo.prDeploymentAccess),
@@ -87,16 +85,6 @@ function validateRepoShape(repo) {
   validateEnvMap(repo.extraEnv);
   validatePrDeploymentAccess(repo.prDeploymentAccess);
   validateGithubLoginList(repo.prDeploymentAllowedLogins, "prDeploymentAllowedLogins");
-
-  if (repo.previewHostEnvVarName) {
-    assertEnvVarName(repo.previewHostEnvVarName, "previewHostEnvVarName");
-    if (RESERVED_ENV_NAMES.has(repo.previewHostEnvVarName)) {
-      throw new RepoValidationError("previewHostEnvVarName cannot reuse an ORCH_* reserved variable name.");
-    }
-    if (Object.prototype.hasOwnProperty.call(repo.extraEnv, repo.previewHostEnvVarName)) {
-      throw new RepoValidationError("previewHostEnvVarName cannot duplicate a key from extraEnv.");
-    }
-  }
 
   if (typeof repo.appendProxySettings !== "boolean") {
     throw new RepoValidationError("appendProxySettings must be a boolean.");
