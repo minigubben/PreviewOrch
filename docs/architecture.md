@@ -39,7 +39,7 @@ flowchart TD
     S --> N
 
     T --> N
-    T --> Z[docker compose down --remove-orphans]
+    T --> Z[docker compose down (-v for PR/branch)]
     T --> AA[remove work directory]
 
     C -->|poll /ui/repo-config + /ui/deployments| AB[UI Routes]

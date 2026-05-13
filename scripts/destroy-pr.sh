@@ -15,6 +15,7 @@ if [[ ! -f "${DEPLOYMENT_METADATA_PATH}" ]]; then
 fi
 
 deployment_id="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" deploymentId)"
+target_type="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" targetType)"
 project_name="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" projectName)"
 compose_path_resolved="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" composePathResolved)"
 project_directory_resolved="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" projectDirectoryResolved)"
@@ -32,7 +33,11 @@ if [[ -n "${project_name}" && -n "${compose_path_resolved}" && -f "${compose_pat
   if [[ -n "${proxy_override_path}" && -f "${proxy_override_path}" ]]; then
     compose_down_args+=(-f "${proxy_override_path}")
   fi
-  docker compose "${compose_down_args[@]}" down --remove-orphans || true
+  if [[ "${target_type}" == "default-branch" ]]; then
+    docker compose "${compose_down_args[@]}" down --remove-orphans || true
+  else
+    docker compose "${compose_down_args[@]}" down -v --remove-orphans || true
+  fi
 fi
 
 if [[ -n "${work_dir}" ]]; then

@@ -56,6 +56,7 @@ mkdir -p "$(dirname "${work_dir}")"
 
 if [[ -f "${metadata_path}" ]]; then
   previous_project_name="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" projectName)"
+  previous_target_type="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" targetType)"
   previous_compose_path="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" composePathResolved)"
   previous_project_directory_resolved="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" projectDirectoryResolved)"
   previous_env_file="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" envFile)"
@@ -71,7 +72,11 @@ if [[ -f "${metadata_path}" ]]; then
     if [[ -n "${previous_proxy_override_path}" && -f "${previous_proxy_override_path}" ]]; then
       compose_down_args+=(-f "${previous_proxy_override_path}")
     fi
-    docker compose "${compose_down_args[@]}" down --remove-orphans || true
+    if [[ "${previous_target_type}" == "default-branch" ]]; then
+      docker compose "${compose_down_args[@]}" down --remove-orphans || true
+    else
+      docker compose "${compose_down_args[@]}" down -v --remove-orphans || true
+    fi
   fi
 fi
 

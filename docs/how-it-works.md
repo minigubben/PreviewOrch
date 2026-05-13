@@ -93,7 +93,7 @@ Destroy is triggered by:
 - A `pull_request.closed` webhook
 - The dashboard `Destroy` action
 
-`scripts/destroy-pr.sh` reads the stored deployment metadata, reconstructs the Compose command, runs `docker compose down --remove-orphans`, and removes the working directory.
+`scripts/destroy-pr.sh` reads the stored deployment metadata, reconstructs the Compose command, and removes the working directory. It uses `docker compose down -v --remove-orphans` for PR/branch previews, while default-branch deployments use `docker compose down --remove-orphans` to keep volumes.
 
 ## Dashboard Runtime View
 
