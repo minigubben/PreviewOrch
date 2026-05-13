@@ -18,7 +18,6 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(response.body.name, "widgets");
   assert.equal(response.body.appendProxySettings, false);
   assert.deepEqual(response.body.extraEnv, {});
-  assert.equal(response.body.previewHostEnvVarName, "");
   assert.equal(response.body.workingDirectory, ".");
   assert.equal(response.body.prDeploymentAccess, "anyone");
   assert.deepEqual(response.body.prDeploymentAllowedLogins, []);
@@ -43,19 +42,17 @@ test("derives owner and repo name from the clone url", async () => {
   assert.equal(response.body.slug, "extronicelektronik-simcards");
 });
 
-test("stores additional env vars and preview host alias from the admin ui", async () => {
+test("stores additional env vars from the admin ui", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
   const csrfToken = await getDashboardCsrf(context.agent);
   const response = await createRepo(context.agent, csrfToken, {
-    previewHostEnvVarName: "APP_FQDN",
     extraEnvText: "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
   });
 
   assert.equal(response.status, 201);
-  assert.equal(response.body.previewHostEnvVarName, "APP_FQDN");
   assert.deepEqual(response.body.extraEnv, {
     NODE_ENV: "production",
     API_ORIGIN: "https://api.example.com",

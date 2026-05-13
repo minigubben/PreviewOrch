@@ -17,7 +17,6 @@ function createRepo() {
     publicPort: 3000,
     publicService: "app",
     appendProxySettings: true,
-    previewHostEnvVarName: "APP_FQDN",
     extraEnv: { NODE_ENV: "production" },
   };
 }

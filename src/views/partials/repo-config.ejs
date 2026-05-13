@@ -88,11 +88,6 @@
               </label>
             </div>
             <div class="space-y-2">
-              <label for="previewHostEnvVarName" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
-              <input id="previewHostEnvVarName" name="previewHostEnvVarName" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
-              <p class="text-xs leading-5 text-zinc-500">Optional. If set, the generated preview host is written to both <code class="text-zinc-300">ORCH_PREVIEW_HOST</code> and this variable.</p>
-            </div>
-            <div class="space-y-2">
               <label for="prDeploymentAccess" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">PR Trigger Policy</label>
               <select id="prDeploymentAccess" name="prDeploymentAccess" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
                 <option value="anyone">Anyone</option>
@@ -186,10 +181,6 @@
                   <input type="checkbox" name="appendProxySettings" value="true" <%= repo.appendProxySettings ? "checked" : "" %> class="mt-1 h-4 w-4 border-zinc-700 bg-black text-zinc-100 focus:ring-0" />
                   <span>Append proxy settings to this service</span>
                 </label>
-              </div>
-              <div class="space-y-2">
-                <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Preview Host Alias Env Var</label>
-                <input name="previewHostEnvVarName" value="<%= repo.previewHostEnvVarName || "" %>" placeholder="APP_FQDN" class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
               </div>
               <div class="space-y-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">PR Trigger Policy</label>

@@ -58,7 +58,6 @@ export interface RepoRecord {
   publicPort: number;
   defaultBranch: string;
   appendProxySettings: boolean;
-  previewHostEnvVarName: string;
   extraEnv: Record<string, string>;
   extraEnvText: string;
   prDeploymentAccess: PrDeploymentAccess;
@@ -133,7 +132,6 @@ export interface DeploymentMetadata {
   publicPort: number;
   publicService: string;
   appendProxySettings: boolean;
-  previewHostEnvVarName: string;
   extraEnv: Record<string, string>;
   githubDeployment: GithubDeploymentRecord | null;
   createdAt: string;

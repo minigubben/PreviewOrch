@@ -16,7 +16,6 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
       publicService: "app",
       publicPort: 3000,
       appendProxySettings: true,
-      previewHostEnvVarName: "APP_FQDN",
       extraEnv: { NODE_ENV: "production" },
     },
     config: {
@@ -43,7 +42,6 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
   assert.equal(env.APPEND_PROXY_SETTINGS, "true");
   assert.equal(env.EXTRA_ENV_JSON, JSON.stringify({ NODE_ENV: "production" }));
   assert.equal(env.TARGET_VALUE, "17");
-  assert.equal(env.PREVIEW_HOST_ENV_VAR_NAME, "APP_FQDN");
 });
 
 test("buildDestroyScriptEnv uses the deployment store metadata path format", () => {
