@@ -12,9 +12,12 @@
     "build": "npm run build:node && npm run build:client",
     "dev": "npm run build && (tsc -p tsconfig.node.json --watch --preserveWatchOutput & TSC_PID=$!; trap 'kill $TSC_PID' EXIT INT TERM; node --env-file=.env --watch --watch-preserve-output dist/src/server.js)",
     "lint": "eslint .",
+    "lint:shell": "scripts/run-shell-lint-format.sh shellcheck scripts/*.sh",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,js,json,css,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,css,md,yml,yaml}\"",
+    "format:shell": "scripts/run-shell-lint-format.sh shfmt -w -i 2 -ci scripts/*.sh",
+    "format:shell:check": "scripts/run-shell-lint-format.sh shfmt -d -i 2 -ci scripts/*.sh",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "npm run build:node && node --test dist/test/*.test.js"
   },
