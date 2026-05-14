@@ -104,3 +104,13 @@ Handled PR actions:
 npm run typecheck
 npm test
 ```
+
+## Shell Scripts
+
+The scripts in `scripts/` can be checked with `shellcheck` and formatted with `shfmt` when those tools are installed:
+
+```bash
+npm run lint:shell
+npm run format:shell:check
+npm run format:shell
+```

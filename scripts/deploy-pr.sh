@@ -41,7 +41,6 @@ fi
 # deployment IDs, hostnames, and filesystem layout.
 project_name="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field projectName)"
 preview_host="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field previewHost)"
-deployment_id="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field deploymentId)"
 work_dir="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field workDir)"
 project_dir="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field projectDir)"
 compose_path_resolved="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field composePathResolved)"
