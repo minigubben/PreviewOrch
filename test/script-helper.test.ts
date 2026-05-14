@@ -54,20 +54,24 @@ test("getDeploymentPaths honors a custom preview host override", () => {
 
 test("script helper CLI supports resolve-deploy-field for shell-script compatibility", async () => {
   const scriptPath = new URL("../src/cli/script-helper.js", import.meta.url);
-  const { stdout } = await execFile(process.execPath, [scriptPath.pathname, "resolve-deploy-field", "projectName"], {
-    env: {
-      ...process.env,
-      BASE_DOMAIN: "preview.example.com",
-      COMPOSE_PATH: "deploy/preview-compose.yml",
-      DEPLOYMENTS_DIR: "/tmp/deployments",
-      DEPLOYMENT_KEY: "pr-42",
-      REPO_ID: "repo-1",
-      REPO_SLUG: "acme-widgets",
-      TARGET_TYPE: "pr",
-      TARGET_VALUE: "42",
-      WORKING_DIRECTORY: ".",
+  const { stdout } = await execFile(
+    process.execPath,
+    [scriptPath.pathname, "resolve-deploy-field", "projectName"],
+    {
+      env: {
+        ...process.env,
+        BASE_DOMAIN: "preview.example.com",
+        COMPOSE_PATH: "deploy/preview-compose.yml",
+        DEPLOYMENTS_DIR: "/tmp/deployments",
+        DEPLOYMENT_KEY: "pr-42",
+        REPO_ID: "repo-1",
+        REPO_SLUG: "acme-widgets",
+        TARGET_TYPE: "pr",
+        TARGET_VALUE: "42",
+        WORKING_DIRECTORY: ".",
+      },
     },
-  });
+  );
 
   assert.equal(stdout, "acme-widgets-pr-42");
 });
@@ -112,11 +116,7 @@ test("writeProxyOverride preserves existing compose networking by only adding la
   try {
     await fs.writeFile(
       composePath,
-      [
-        "services:",
-        "  app:",
-        "    image: nginx:latest",
-      ].join("\n"),
+      ["services:", "  app:", "    image: nginx:latest"].join("\n"),
       "utf8",
     );
 

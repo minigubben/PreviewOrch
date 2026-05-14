@@ -25,7 +25,4 @@ async function writeJson(filePath, value) {
   await fs.rename(tmp, filePath);
 }
 
-export {
-  readJson,
-  writeJson,
-};
+export { readJson, writeJson };

@@ -36,14 +36,20 @@ class RuntimeInspector {
       const inspectRaw = await runDocker(["inspect", ...ids]);
       const inspected = JSON.parse(inspectRaw);
       const containers = (
-        await Promise.all(inspected.map((item) => mapContainer(item, { logTailLines: this.logTailLines })))
-      ).sort((left, right) => left.service.localeCompare(right.service) || left.name.localeCompare(right.name));
+        await Promise.all(
+          inspected.map((item) => mapContainer(item, { logTailLines: this.logTailLines })),
+        )
+      ).sort(
+        (left, right) =>
+          left.service.localeCompare(right.service) || left.name.localeCompare(right.name),
+      );
 
       return {
         available: true,
         status: "ok",
         containers,
-        publicServiceContainer: containers.find((container) => container.service === deployment.publicService) || null,
+        publicServiceContainer:
+          containers.find((container) => container.service === deployment.publicService) || null,
       };
     } catch (error) {
       await this.logger.warn("Runtime inspection failed", {
@@ -111,6 +117,4 @@ async function readContainerLogs(containerId, tailLines) {
   }
 }
 
-export {
-  RuntimeInspector,
-};
+export { RuntimeInspector };

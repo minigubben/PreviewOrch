@@ -12,7 +12,10 @@ function verifyGithubSignature(rawBody, signatureHeader, secret) {
     return false;
   }
 
-  const digest = crypto.createHmac(parsed.algorithm, normalizedSecret).update(rawBody).digest("hex");
+  const digest = crypto
+    .createHmac(parsed.algorithm, normalizedSecret)
+    .update(rawBody)
+    .digest("hex");
   const expected = Buffer.from(`${parsed.prefix}=${digest}`);
   const actual = Buffer.from(signatureHeader);
 
@@ -94,9 +97,4 @@ function buildWebhookContext(payload) {
   };
 }
 
-export {
-  buildWebhookContext,
-  mapPullRequestAction,
-  normalizeWebhookSecret,
-  verifyGithubSignature,
-};
+export { buildWebhookContext, mapPullRequestAction, normalizeWebhookSecret, verifyGithubSignature };

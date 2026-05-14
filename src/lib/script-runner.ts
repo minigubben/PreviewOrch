@@ -21,7 +21,11 @@ class ScriptRunner {
 
     if (logFile) {
       await fs.mkdir(path.dirname(logFile), { recursive: true });
-      await fs.appendFile(logFile, `\n[script-start] ${new Date().toISOString()} ${scriptPath}\n`, "utf8");
+      await fs.appendFile(
+        logFile,
+        `\n[script-start] ${new Date().toISOString()} ${scriptPath}\n`,
+        "utf8",
+      );
     }
 
     return new Promise((resolve, reject) => {
@@ -116,7 +120,4 @@ function parseTrailingJson(stdout) {
   }
 }
 
-export {
-  ScriptError,
-  ScriptRunner,
-};
+export { ScriptError, ScriptRunner };

@@ -14,7 +14,9 @@ function createHealthRouter({ config, scriptRunner }) {
         isReadable(config.reposFile),
         isReadable(config.settingsFile),
         isReadable(config.dockerSocketPath).then((socketReady) =>
-          socketReady ? scriptRunner.checkCommand("docker", ["version", "--format", "{{.Server.Version}}"]) : false,
+          socketReady
+            ? scriptRunner.checkCommand("docker", ["version", "--format", "{{.Server.Version}}"])
+            : false,
         ),
       ]);
 
@@ -43,6 +45,4 @@ async function isReadable(filePath) {
   }
 }
 
-export {
-  createHealthRouter,
-};
+export { createHealthRouter };

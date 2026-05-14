@@ -5,7 +5,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { createRepo, waitFor } from "./helpers/app-test-helpers.js";
-import { buildPullRequestPayload, createTestContext, getDashboardCsrf, login, signPayload } from "./helpers/test-app.js";
+import {
+  buildPullRequestPayload,
+  createTestContext,
+  getDashboardCsrf,
+  login,
+  signPayload,
+} from "./helpers/test-app.js";
 
 test("uses dedicated env vars and custom fqdn for default branch deployments", async () => {
   const context = await createTestContext();
@@ -30,14 +36,24 @@ test("uses dedicated env vars and custom fqdn for default branch deployments", a
 
   assert.equal(response.status, 200);
 
-  const envFilePath = path.join(context.config.deploymentsDir, "acme-widgets", "default-branch", ".env.runtime");
+  const envFilePath = path.join(
+    context.config.deploymentsDir,
+    "acme-widgets",
+    "default-branch",
+    ".env.runtime",
+  );
   const envFile = await waitFor(async () => fs.readFile(envFilePath, "utf8"));
   assert.match(envFile, /^ORCH_PREVIEW_HOST=app\.example\.com$/m);
   assert.match(envFile, /^NODE_ENV=production$/m);
   assert.match(envFile, /^API_ORIGIN=https:\/\/api\.example\.com$/m);
   assert.doesNotMatch(envFile, /^NODE_ENV=preview$/m);
 
-  const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "default-branch", "deployment.json");
+  const metadataPath = path.join(
+    context.config.deploymentsDir,
+    "acme-widgets",
+    "default-branch",
+    "deployment.json",
+  );
   const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
   assert.equal(metadata.previewHost, "app.example.com");
   assert.equal(metadata.targetType, "default-branch");
@@ -54,7 +70,8 @@ test("writes extra env vars into the deployment env file", async () => {
   await login(context.agent, context.password);
   const csrfToken = await getDashboardCsrf(context.agent);
   const repoResponse = await createRepo(context.agent, csrfToken, {
-    extraEnvText: "FQDN=${ORCH_PREVIEW_HOST}\nNODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+    extraEnvText:
+      "FQDN=${ORCH_PREVIEW_HOST}\nNODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
   });
   assert.equal(repoResponse.status, 201);
 
@@ -69,7 +86,12 @@ test("writes extra env vars into the deployment env file", async () => {
 
   assert.equal(response.status, 202);
 
-  const envFilePath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", ".env.runtime");
+  const envFilePath = path.join(
+    context.config.deploymentsDir,
+    "acme-widgets",
+    "pr-17",
+    ".env.runtime",
+  );
   const envFile = await waitFor(async () => fs.readFile(envFilePath, "utf8"));
   assert.match(envFile, /^ORCH_PREVIEW_HOST=acme-widgets-pr-17\.preview\.example\.com$/m);
   assert.match(envFile, /^FQDN=\$\{ORCH_PREVIEW_HOST\}$/m);
@@ -100,7 +122,12 @@ test("stores a generated proxy override path when proxy settings are appended", 
 
   assert.equal(response.status, 202);
 
-  const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
+  const metadataPath = path.join(
+    context.config.deploymentsDir,
+    "acme-widgets",
+    "pr-17",
+    "deployment.json",
+  );
   const metadata = await waitFor(async () => {
     const value = JSON.parse(await fs.readFile(metadataPath, "utf8"));
     assert.equal(value.status, "running");
@@ -114,8 +141,14 @@ test("stores a generated proxy override path when proxy settings are appended", 
   const overrideFile = await fs.readFile(metadata.proxyOverridePath, "utf8");
   assert.match(overrideFile, /traefik\.enable: "true"/);
   assert.match(overrideFile, /traefik\.docker\.network: preview-proxy/);
-  assert.match(overrideFile, /traefik\.http\.routers\.acme-widgets-pr-17\.rule: Host\(`acme-widgets-pr-17\.preview\.example\.com`\)/);
-  assert.match(overrideFile, /traefik\.http\.services\.acme-widgets-pr-17\.loadbalancer\.server\.port: "3000"/);
+  assert.match(
+    overrideFile,
+    /traefik\.http\.routers\.acme-widgets-pr-17\.rule: Host\(`acme-widgets-pr-17\.preview\.example\.com`\)/,
+  );
+  assert.match(
+    overrideFile,
+    /traefik\.http\.services\.acme-widgets-pr-17\.loadbalancer\.server\.port: "3000"/,
+  );
   assert.match(overrideFile, /services:\s+app:\s+networks:\s+- default\s+- preview-proxy/s);
   assert.match(overrideFile, /preview-proxy:\s+[\s\S]*external: true/);
   assert.match(overrideFile, /preview-proxy:\s+[\s\S]*name: preview-proxy/);
@@ -144,16 +177,27 @@ test("resolves compose paths from the configured working directory", async () =>
 
   assert.equal(response.status, 202);
 
-  const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
+  const metadataPath = path.join(
+    context.config.deploymentsDir,
+    "acme-widgets",
+    "pr-17",
+    "deployment.json",
+  );
   const metadata = await waitFor(async () => {
     const value = JSON.parse(await fs.readFile(metadataPath, "utf8"));
     assert.equal(value.status, "running");
     assert.equal(value.workingDirectory, "ops/preview");
     assert.match(value.projectDirectoryResolved, /acme-widgets\/pr-17\/ops\/preview$/);
-    assert.match(value.composePathResolved, /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/);
+    assert.match(
+      value.composePathResolved,
+      /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/,
+    );
     return value;
   });
   assert.equal(metadata.workingDirectory, "ops/preview");
   assert.match(metadata.projectDirectoryResolved, /acme-widgets\/pr-17\/ops\/preview$/);
-  assert.match(metadata.composePathResolved, /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/);
+  assert.match(
+    metadata.composePathResolved,
+    /acme-widgets\/pr-17\/ops\/preview\/docker-compose\.preview\.yml$/,
+  );
 });

@@ -10,7 +10,9 @@ import { ScriptRunner } from "./script-runner.js";
 import { SshKeyManager } from "./ssh-key-manager.js";
 
 function buildAppServices({ config, services = {} }) {
-  const logger = services.logger || new Logger({ appLogFile: config.appLogFile, eventsLogFile: config.eventsLogFile });
+  const logger =
+    services.logger ||
+    new Logger({ appLogFile: config.appLogFile, eventsLogFile: config.eventsLogFile });
   const scriptRunner = services.scriptRunner || new ScriptRunner({ logger });
   const repoStore =
     services.repoStore ||
@@ -46,7 +48,8 @@ function buildAppServices({ config, services = {} }) {
           orchestratorPublicUrl: config.orchestratorPublicUrl,
         }),
     });
-  const sshKeyManager = services.sshKeyManager || new SshKeyManager({ sshDir: config.sshDir, logger });
+  const sshKeyManager =
+    services.sshKeyManager || new SshKeyManager({ sshDir: config.sshDir, logger });
 
   return {
     deploymentService,
@@ -58,6 +61,4 @@ function buildAppServices({ config, services = {} }) {
   };
 }
 
-export {
-  buildAppServices,
-};
+export { buildAppServices };

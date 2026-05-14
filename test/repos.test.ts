@@ -23,7 +23,10 @@ test("adds a repository with valid configuration", async () => {
   assert.equal(response.body.workingDirectory, ".");
   assert.equal(response.body.prDeploymentAccess, "anyone");
   assert.deepEqual(response.body.prDeploymentAllowedLogins, []);
-  assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length, 1);
+  assert.equal(
+    context.scriptRunner.calls.filter((call) => call.scriptName === "validate-repo.sh").length,
+    1,
+  );
 });
 
 test("derives owner and repo name from the clone url", async () => {
@@ -59,7 +62,10 @@ test("stores additional env vars from the admin ui", async () => {
     NODE_ENV: "production",
     API_ORIGIN: "https://api.example.com",
   });
-  assert.equal(response.body.extraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
+  assert.equal(
+    response.body.extraEnvText,
+    "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+  );
 });
 
 test("stores default branch deployment host and env vars from the admin ui", async () => {
@@ -79,7 +85,10 @@ test("stores default branch deployment host and env vars from the admin ui", asy
     NODE_ENV: "production",
     API_ORIGIN: "https://api.example.com",
   });
-  assert.equal(response.body.defaultBranchExtraEnvText, "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com");
+  assert.equal(
+    response.body.defaultBranchExtraEnvText,
+    "NODE_ENV=production\nAPI_ORIGIN=https://api.example.com",
+  );
 });
 
 test("stores PR trigger policy and allowlist from the admin ui", async () => {
@@ -120,7 +129,9 @@ test("rejects a repository with a missing compose path", async () => {
 
   await login(context.agent, context.password);
   const csrfToken = await getDashboardCsrf(context.agent);
-  const response = await createRepo(context.agent, csrfToken, { composePath: "missing-compose.yml" });
+  const response = await createRepo(context.agent, csrfToken, {
+    composePath: "missing-compose.yml",
+  });
 
   assert.equal(response.status, 400);
   assert.match(response.body.error, /Compose file does not exist/);
@@ -132,7 +143,9 @@ test("rejects a repository missing the traefik label contract", async () => {
 
   await login(context.agent, context.password);
   const csrfToken = await getDashboardCsrf(context.agent);
-  const response = await createRepo(context.agent, csrfToken, { composePath: "missing-labels.yml" });
+  const response = await createRepo(context.agent, csrfToken, {
+    composePath: "missing-labels.yml",
+  });
 
   assert.equal(response.status, 400);
   assert.match(response.body.error, /Missing required Traefik label contract token/);

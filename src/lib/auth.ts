@@ -44,9 +44,4 @@ async function authenticate(username, password, config) {
   return bcrypt.compare(password, config.adminPasswordHash);
 }
 
-export {
-  authenticate,
-  ensureCsrfToken,
-  requireAuth,
-  verifyCsrfToken,
-};
+export { authenticate, ensureCsrfToken, requireAuth, verifyCsrfToken };

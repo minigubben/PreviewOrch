@@ -25,7 +25,11 @@ test("all admin api endpoints reject anonymous requests", async () => {
 
   for (const [method, url] of routes) {
     const response = await invoke(request(context.app), method, url).send({});
-    assert.equal(response.status, 401, `${method.toUpperCase()} ${url} should require authentication`);
+    assert.equal(
+      response.status,
+      401,
+      `${method.toUpperCase()} ${url} should require authentication`,
+    );
     assert.equal(response.body.error, "Authentication required.");
   }
 });
@@ -48,7 +52,11 @@ test("all state-changing admin api endpoints require csrf tokens after login", a
 
   for (const [method, url] of routes) {
     const response = await invoke(context.agent, method, url).send({});
-    assert.equal(response.status, 403, `${method.toUpperCase()} ${url} should require a CSRF token`);
+    assert.equal(
+      response.status,
+      403,
+      `${method.toUpperCase()} ${url} should require a CSRF token`,
+    );
     assert.equal(response.body.error, "Invalid CSRF token.");
   }
 });
@@ -57,7 +65,9 @@ test("rejects invalid admin credentials", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
 
-  const csrfToken = await context.agent.get("/login").then((response) => response.text.match(/name="_csrf" value="([^"]+)"/)[1]);
+  const csrfToken = await context.agent
+    .get("/login")
+    .then((response) => response.text.match(/name="_csrf" value="([^"]+)"/)[1]);
   const response = await context.agent.post("/login").type("form").send({
     username: "admin",
     password: "wrong-password",
@@ -86,7 +96,10 @@ test("admin can generate an ssh keypair from the ui api", async () => {
 
   await login(context.agent, context.password);
   const csrfToken = await getDashboardCsrf(context.agent);
-  const response = await context.agent.post("/api/ssh-keypair").set("X-CSRF-Token", csrfToken).send({});
+  const response = await context.agent
+    .post("/api/ssh-keypair")
+    .set("X-CSRF-Token", csrfToken)
+    .send({});
 
   assert.equal(response.status, 200);
   assert.equal(response.body.hasKey, true);
@@ -107,7 +120,9 @@ test("allows login in production mode when session cookie secure is auto", async
   });
   test.after(() => context.cleanup());
 
-  const csrfToken = await context.agent.get("/login").then((response) => response.text.match(/name="_csrf" value="([^"]+)"/)[1]);
+  const csrfToken = await context.agent
+    .get("/login")
+    .then((response) => response.text.match(/name="_csrf" value="([^"]+)"/)[1]);
   const response = await context.agent.post("/login").type("form").send({
     username: "admin",
     password: context.password,

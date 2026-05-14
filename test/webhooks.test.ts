@@ -6,7 +6,13 @@ import path from "node:path";
 import request from "supertest";
 
 import { createRepo, waitFor, waitForDeployment } from "./helpers/app-test-helpers.js";
-import { buildPullRequestPayload, createTestContext, getDashboardCsrf, login, signPayload } from "./helpers/test-app.js";
+import {
+  buildPullRequestPayload,
+  createTestContext,
+  getDashboardCsrf,
+  login,
+  signPayload,
+} from "./helpers/test-app.js";
 
 test("deploys on pull request opened and stores deployment metadata", async () => {
   const context = await createTestContext();
@@ -38,11 +44,25 @@ test("deploys on pull request opened and stores deployment metadata", async () =
     assert.equal(result.body[0].status, "running");
     return result;
   });
-  assert.equal(authorizedDeployments.body[0].runtime.publicServiceContainer.name, "acme-widgets-pr-17-app-1");
-  assert.deepEqual(authorizedDeployments.body[0].runtime.publicServiceContainer.networks, ["default", "preview-proxy"]);
-  assert.match(authorizedDeployments.body[0].runtime.publicServiceContainer.logTail, /listening on :3000/);
+  assert.equal(
+    authorizedDeployments.body[0].runtime.publicServiceContainer.name,
+    "acme-widgets-pr-17-app-1",
+  );
+  assert.deepEqual(authorizedDeployments.body[0].runtime.publicServiceContainer.networks, [
+    "default",
+    "preview-proxy",
+  ]);
+  assert.match(
+    authorizedDeployments.body[0].runtime.publicServiceContainer.logTail,
+    /listening on :3000/,
+  );
 
-  const metadataPath = path.join(context.config.deploymentsDir, "acme-widgets", "pr-17", "deployment.json");
+  const metadataPath = path.join(
+    context.config.deploymentsDir,
+    "acme-widgets",
+    "pr-17",
+    "deployment.json",
+  );
   const metadata = await waitFor(async () => JSON.parse(await fs.readFile(metadataPath, "utf8")));
   assert.equal(metadata.previewHost, "acme-widgets-pr-17.preview.example.com");
   assert.equal(metadata.appendProxySettings, false);
@@ -102,7 +122,9 @@ test("redeploys on pull request synchronize", async () => {
   await createRepo(context.agent, csrfToken);
 
   for (const action of ["opened", "synchronize"]) {
-    const payload = buildPullRequestPayload(action, { prSha: action === "opened" ? "abc123" : "def456" });
+    const payload = buildPullRequestPayload(action, {
+      prSha: action === "opened" ? "abc123" : "def456",
+    });
     const { raw, signature } = signPayload("webhook-secret", payload);
     const response = await context.agent
       .post("/webhooks/github")
@@ -125,7 +147,10 @@ test("redeploys on pull request synchronize", async () => {
   assert.equal(deployments.body.length, 1);
   assert.equal(deployments.body[0].prSha, "def456");
   await waitFor(async () => {
-    assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length, 2);
+    assert.equal(
+      context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length,
+      2,
+    );
   });
 });
 
@@ -155,7 +180,10 @@ test("ignores webhook deploys when the PR author does not satisfy the repo trigg
   assert.equal(response.status, 200);
   assert.equal(response.body.ignored, true);
   assert.match(response.body.reason, /not allowed by members policy/);
-  assert.equal(context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length, 0);
+  assert.equal(
+    context.scriptRunner.calls.filter((call) => call.scriptName === "deploy-pr.sh").length,
+    0,
+  );
 
   const deployments = await context.agent.get("/api/deployments");
   assert.equal(deployments.status, 200);
@@ -285,13 +313,16 @@ test("handles duplicate webhook deliveries without corrupting deployment state",
   assert.equal(first.status, 202);
   assert.equal(second.status, 202);
 
-  const deployments = await waitFor(async () => {
-    const result = await context.agent.get("/api/deployments");
-    assert.equal(result.status, 200);
-    assert.equal(result.body.length, 1);
-    assert.equal(result.body[0].status, "running");
-    return result;
-  }, { timeoutMs: 3000 });
+  const deployments = await waitFor(
+    async () => {
+      const result = await context.agent.get("/api/deployments");
+      assert.equal(result.status, 200);
+      assert.equal(result.body.length, 1);
+      assert.equal(result.body[0].status, "running");
+      return result;
+    },
+    { timeoutMs: 3000 },
+  );
   assert.equal(deployments.status, 200);
   assert.equal(deployments.body.length, 1);
   assert.equal(deployments.body[0].status, "running");

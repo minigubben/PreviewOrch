@@ -1,6 +1,4 @@
-export function serializeForm(
-  form: HTMLFormElement,
-): Record<string, string | boolean> {
+export function serializeForm(form: HTMLFormElement): Record<string, string | boolean> {
   const body: Record<string, string | boolean> = {};
   for (const element of Array.from(form.elements)) {
     if (

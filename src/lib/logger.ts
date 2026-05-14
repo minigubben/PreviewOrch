@@ -43,6 +43,4 @@ class Logger {
   }
 }
 
-export {
-  Logger,
-};
+export { Logger };

@@ -42,7 +42,9 @@ function createApiRouter({ deploymentService, repoStore, sshKeyManager }) {
     asyncHandler(async (req, res) => {
       const activeDeployments = await deploymentService.listDeployments();
       if (activeDeployments.some((deployment) => deployment.repoId === req.params.id)) {
-        return res.status(409).json({ error: "Destroy active deployments before deleting the repository." });
+        return res
+          .status(409)
+          .json({ error: "Destroy active deployments before deleting the repository." });
       }
 
       const removed = await repoStore.remove(req.params.id);
@@ -117,6 +119,4 @@ function createApiRouter({ deploymentService, repoStore, sshKeyManager }) {
   return router;
 }
 
-export {
-  createApiRouter,
-};
+export { createApiRouter };

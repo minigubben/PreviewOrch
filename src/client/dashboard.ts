@@ -46,9 +46,7 @@ async function submitForm(event: SubmitEvent): Promise<void> {
     }
 
     if (isRepoMutation(actionPath)) {
-      const preferredPanelId = payload?.id
-        ? `repo-${payload.id}`
-        : getCurrentPanelId();
+      const preferredPanelId = payload?.id ? `repo-${payload.id}` : getCurrentPanelId();
       if (statusNode) {
         statusNode.textContent = "Saved.";
       }
@@ -69,8 +67,7 @@ async function submitForm(event: SubmitEvent): Promise<void> {
     }
   } catch (error) {
     if (statusNode) {
-      statusNode.textContent =
-        error instanceof Error ? error.message : "Request failed.";
+      statusNode.textContent = error instanceof Error ? error.message : "Request failed.";
     }
   }
 }
@@ -114,9 +111,7 @@ async function runAction(event: MouseEvent): Promise<void> {
     if (isDeploymentAction(actionPath)) {
       if (statusNode) {
         statusNode.textContent =
-          button.dataset.method === "DELETE"
-            ? "Deployment destroyed."
-            : "Redeploy started.";
+          button.dataset.method === "DELETE" ? "Deployment destroyed." : "Redeploy started.";
       }
       await refreshDeployments();
       return;
@@ -135,8 +130,7 @@ async function runAction(event: MouseEvent): Promise<void> {
     }
   } catch (error) {
     if (statusNode) {
-      statusNode.textContent =
-        error instanceof Error ? error.message : "Action failed.";
+      statusNode.textContent = error instanceof Error ? error.message : "Action failed.";
     }
   }
 }
@@ -154,15 +148,13 @@ function bindApiForms(root: ParentNode): void {
 }
 
 function bindApiActions(root: ParentNode): void {
-  root
-    .querySelectorAll<HTMLButtonElement>("[data-api-action]")
-    .forEach((button) => {
-      if (button.dataset.bound === "true") {
-        return;
-      }
-      button.dataset.bound = "true";
-      button.addEventListener("click", (event) => {
-        void runAction(event);
-      });
+  root.querySelectorAll<HTMLButtonElement>("[data-api-action]").forEach((button) => {
+    if (button.dataset.bound === "true") {
+      return;
+    }
+    button.dataset.bound = "true";
+    button.addEventListener("click", (event) => {
+      void runAction(event);
     });
+  });
 }

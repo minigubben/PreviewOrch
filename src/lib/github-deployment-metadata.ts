@@ -4,7 +4,9 @@ function buildGithubDeploymentRef(metadata) {
     return `refs/pull/${metadata.targetValue}/head`;
   }
 
-  return metadata.targetSha || metadata.targetBranch || String(metadata.targetValue || "").trim() || null;
+  return (
+    metadata.targetSha || metadata.targetBranch || String(metadata.targetValue || "").trim() || null
+  );
 }
 
 function buildGithubEnvironmentName(metadata) {
@@ -23,8 +25,4 @@ function buildGithubDeploymentDescription(metadata) {
   return `Preview deployment for branch ${metadata.targetValue}`;
 }
 
-export {
-  buildGithubDeploymentDescription,
-  buildGithubDeploymentRef,
-  buildGithubEnvironmentName,
-};
+export { buildGithubDeploymentDescription, buildGithubDeploymentRef, buildGithubEnvironmentName };

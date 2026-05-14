@@ -48,7 +48,10 @@ class DeploymentStore {
           continue;
         }
 
-        const metadata = await readJson(path.join(this.deploymentsDir, repoEntry.name, prEntry.name, "deployment.json"), null);
+        const metadata = await readJson(
+          path.join(this.deploymentsDir, repoEntry.name, prEntry.name, "deployment.json"),
+          null,
+        );
         if (metadata) {
           deployments.push(metadata);
         }
@@ -67,7 +70,10 @@ class DeploymentStore {
     return Promise.all(
       deployments.map(async (deployment) => ({
         ...deployment,
-        logTail: await readLogTail(this.getLogPath(deployment.repoSlug, deployment.deploymentKey), maxLines),
+        logTail: await readLogTail(
+          this.getLogPath(deployment.repoSlug, deployment.deploymentKey),
+          maxLines,
+        ),
       })),
     );
   }
@@ -84,6 +90,4 @@ async function safeReadDir(directory) {
   }
 }
 
-export {
-  DeploymentStore,
-};
+export { DeploymentStore };

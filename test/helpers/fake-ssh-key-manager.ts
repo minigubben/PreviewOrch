@@ -1,13 +1,12 @@
 // @ts-nocheck
 class FakeSshKeyManager {
   constructor(initialStatus = null) {
-    this.status =
-      initialStatus || {
-        hasKey: false,
-        algorithm: null,
-        publicKey: "",
-        publicKeyPath: null,
-      };
+    this.status = initialStatus || {
+      hasKey: false,
+      algorithm: null,
+      publicKey: "",
+      publicKeyPath: null,
+    };
     this.generateCalls = 0;
   }
 
@@ -27,6 +26,4 @@ class FakeSshKeyManager {
   }
 }
 
-export {
-  FakeSshKeyManager,
-};
+export { FakeSshKeyManager };

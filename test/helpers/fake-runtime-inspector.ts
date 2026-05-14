@@ -21,7 +21,9 @@ class FakeRuntimeInspector {
         "traefik.docker.network": "preview-proxy",
         [`traefik.http.routers.${deployment.projectName}.entrypoints`]: "web",
         [`traefik.http.routers.${deployment.projectName}.rule`]: `Host(\`${deployment.previewHost}\`)`,
-        [`traefik.http.services.${deployment.projectName}.loadbalancer.server.port`]: String(deployment.publicPort),
+        [`traefik.http.services.${deployment.projectName}.loadbalancer.server.port`]: String(
+          deployment.publicPort,
+        ),
       },
       logTail: [
         "2026-05-12T16:00:00.000000000Z booting application",
@@ -38,6 +40,4 @@ class FakeRuntimeInspector {
   }
 }
 
-export {
-  FakeRuntimeInspector,
-};
+export { FakeRuntimeInspector };

@@ -8,14 +8,26 @@ function resolveDataPath(envValue, fallback) {
 
 function getConfig(overrides = {}) {
   const cwd = overrides.cwd || process.cwd();
-  const dataRoot = resolveDataPath(overrides.DATA_ROOT || process.env.DATA_ROOT, path.join(cwd, "data"));
-  const configDir = resolveDataPath(overrides.CONFIG_DIR || process.env.CONFIG_DIR, path.join(dataRoot, "config"));
+  const dataRoot = resolveDataPath(
+    overrides.DATA_ROOT || process.env.DATA_ROOT,
+    path.join(cwd, "data"),
+  );
+  const configDir = resolveDataPath(
+    overrides.CONFIG_DIR || process.env.CONFIG_DIR,
+    path.join(dataRoot, "config"),
+  );
   const deploymentsDir = resolveDataPath(
     overrides.DEPLOYMENTS_DIR || process.env.DEPLOYMENTS_DIR,
     path.join(dataRoot, "deployments"),
   );
-  const logsDir = resolveDataPath(overrides.LOGS_DIR || process.env.LOGS_DIR, path.join(dataRoot, "logs"));
-  const sshDir = resolveDataPath(overrides.SSH_DIR || process.env.SSH_DIR, path.join(dataRoot, "ssh"));
+  const logsDir = resolveDataPath(
+    overrides.LOGS_DIR || process.env.LOGS_DIR,
+    path.join(dataRoot, "logs"),
+  );
+  const sshDir = resolveDataPath(
+    overrides.SSH_DIR || process.env.SSH_DIR,
+    path.join(dataRoot, "ssh"),
+  );
   const scriptsDir = path.join(cwd, "scripts");
   const baseDomain = overrides.BASE_DOMAIN || process.env.BASE_DOMAIN || "preview.example.com";
 
@@ -27,23 +39,28 @@ function getConfig(overrides = {}) {
       baseDomain,
     ),
     adminUsername: overrides.ADMIN_USERNAME || process.env.ADMIN_USERNAME || "admin",
-    adminPasswordHash: overrides.ADMIN_PASSWORD_BCRYPT_HASH || process.env.ADMIN_PASSWORD_BCRYPT_HASH || "",
+    adminPasswordHash:
+      overrides.ADMIN_PASSWORD_BCRYPT_HASH || process.env.ADMIN_PASSWORD_BCRYPT_HASH || "",
     sessionSecret: overrides.SESSION_SECRET || process.env.SESSION_SECRET || "change-me",
     sessionCookieSecure: normalizeSessionCookieSecure(
       overrides.SESSION_COOKIE_SECURE || process.env.SESSION_COOKIE_SECURE,
       overrides.NODE_ENV || process.env.NODE_ENV || "development",
     ),
     githubWebhookSecret: overrides.GITHUB_WEBHOOK_SECRET || process.env.GITHUB_WEBHOOK_SECRET || "",
-    githubDeploymentsToken: overrides.GITHUB_DEPLOYMENTS_TOKEN || process.env.GITHUB_DEPLOYMENTS_TOKEN || "",
-    githubApiBaseUrl: overrides.GITHUB_API_BASE_URL || process.env.GITHUB_API_BASE_URL || "https://api.github.com",
-    traefikNetworkName: overrides.TRAEFIK_NETWORK_NAME || process.env.TRAEFIK_NETWORK_NAME || "preview-proxy",
+    githubDeploymentsToken:
+      overrides.GITHUB_DEPLOYMENTS_TOKEN || process.env.GITHUB_DEPLOYMENTS_TOKEN || "",
+    githubApiBaseUrl:
+      overrides.GITHUB_API_BASE_URL || process.env.GITHUB_API_BASE_URL || "https://api.github.com",
+    traefikNetworkName:
+      overrides.TRAEFIK_NETWORK_NAME || process.env.TRAEFIK_NETWORK_NAME || "preview-proxy",
     nodeEnv: overrides.NODE_ENV || process.env.NODE_ENV || "development",
     dataRoot,
     configDir,
     deploymentsDir,
     logsDir,
     sshDir,
-    dockerSocketPath: overrides.DOCKER_SOCKET_PATH || process.env.DOCKER_SOCKET_PATH || "/var/run/docker.sock",
+    dockerSocketPath:
+      overrides.DOCKER_SOCKET_PATH || process.env.DOCKER_SOCKET_PATH || "/var/run/docker.sock",
     reposFile: path.join(configDir, "repos.json"),
     settingsFile: path.join(configDir, "settings.json"),
     appLogFile: path.join(logsDir, "app.log"),
@@ -86,6 +103,4 @@ function normalizeOrchestratorPublicUrl(value, baseDomain) {
   return `https://${BRANDING.subdomain}.${baseDomain}`;
 }
 
-export {
-  getConfig,
-};
+export { getConfig };

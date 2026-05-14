@@ -1,6 +1,9 @@
 // @ts-nocheck
 class FakeGithubDeploymentPublisher {
-  constructor({ enabled = true, orchestratorPublicUrl = "https://previeworch.preview.example.com" } = {}) {
+  constructor({
+    enabled = true,
+    orchestratorPublicUrl = "https://previeworch.preview.example.com",
+  } = {}) {
     this.enabledValue = enabled;
     this.orchestratorPublicUrl = orchestratorPublicUrl.replace(/\/+$/, "");
     this.deployments = [];
@@ -40,6 +43,4 @@ class FakeGithubDeploymentPublisher {
   }
 }
 
-export {
-  FakeGithubDeploymentPublisher,
-};
+export { FakeGithubDeploymentPublisher };

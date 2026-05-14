@@ -1,12 +1,25 @@
 // @ts-nocheck
-import { buildGithubDeploymentDescription, buildGithubDeploymentRef, buildGithubEnvironmentName } from "./github-deployment-metadata.js";
+import {
+  buildGithubDeploymentDescription,
+  buildGithubDeploymentRef,
+  buildGithubEnvironmentName,
+} from "./github-deployment-metadata.js";
 import { buildDeploySeed, buildDestroySeed } from "./deployment-metadata.js";
 import { buildDeployScriptEnv, buildDestroyScriptEnv } from "./deployment-script-env.js";
 import { RepoValidationError } from "./repo-validation-error.js";
 import { buildDeploymentKey } from "./utils.js";
 
 class DeploymentService {
-  constructor({ config, logger, repoStore, deploymentStore, scriptRunner, lockManager, runtimeInspector, githubDeploymentPublisher }) {
+  constructor({
+    config,
+    logger,
+    repoStore,
+    deploymentStore,
+    scriptRunner,
+    lockManager,
+    runtimeInspector,
+    githubDeploymentPublisher,
+  }) {
     this.config = config;
     this.logger = logger;
     this.repoStore = repoStore;
@@ -163,16 +176,19 @@ class DeploymentService {
 
     const targetType = normalizeManualTargetType(manualTargetType);
     if (targetType === "default-branch") {
-      return this.runWithDeploymentLock(repo, buildDeploymentKey(targetType, repo.defaultBranch), async () =>
-        this.deployTarget({
-          repo,
-          targetType,
-          targetValue: repo.defaultBranch,
-          targetBranch: repo.defaultBranch,
-          targetSha: null,
-          sourceCloneSshUrl: repo.cloneSshUrl,
-          lastEvent: "manual-deploy",
-        }),
+      return this.runWithDeploymentLock(
+        repo,
+        buildDeploymentKey(targetType, repo.defaultBranch),
+        async () =>
+          this.deployTarget({
+            repo,
+            targetType,
+            targetValue: repo.defaultBranch,
+            targetBranch: repo.defaultBranch,
+            targetSha: null,
+            sourceCloneSshUrl: repo.cloneSshUrl,
+            lastEvent: "manual-deploy",
+          }),
       );
     }
 
@@ -209,7 +225,9 @@ class DeploymentService {
         },
       });
 
-      const branches = Array.isArray(result.parsed?.branches) ? result.parsed.branches.map(String) : [];
+      const branches = Array.isArray(result.parsed?.branches)
+        ? result.parsed.branches.map(String)
+        : [];
       const pullRequests = Array.isArray(result.parsed?.pullRequests)
         ? result.parsed.pullRequests
             .map((item) => ({
@@ -237,8 +255,18 @@ class DeploymentService {
     }
   }
 
-  async deployTarget({ repo, targetType, targetValue, targetBranch, targetSha, sourceCloneSshUrl, lastEvent }) {
-    const existing = await this.deploymentStore.getById(`${repo.id}-${buildDeploymentKey(targetType, targetValue)}`);
+  async deployTarget({
+    repo,
+    targetType,
+    targetValue,
+    targetBranch,
+    targetSha,
+    sourceCloneSshUrl,
+    lastEvent,
+  }) {
+    const existing = await this.deploymentStore.getById(
+      `${repo.id}-${buildDeploymentKey(targetType, targetValue)}`,
+    );
     const seed = buildDeploySeed({
       repo,
       config: this.config,
@@ -287,9 +315,7 @@ class DeploymentService {
       const finalMetadata = {
         ...seed,
         ...(result.parsed || {}),
-        githubDeployment:
-          result.parsed?.githubDeployment ||
-          seed.githubDeployment,
+        githubDeployment: result.parsed?.githubDeployment || seed.githubDeployment,
         status: "running",
         lastEvent,
         logFile: seed.logFile,
@@ -369,7 +395,10 @@ class DeploymentService {
         lastError: this.getFailureMessage(error),
       };
       await this.deploymentStore.save(failed);
-      await this.logger.error("Destroy failed", { deploymentId: seed.deploymentId, error: failed.lastError });
+      await this.logger.error("Destroy failed", {
+        deploymentId: seed.deploymentId,
+        error: failed.lastError,
+      });
       throw error;
     }
   }
@@ -415,11 +444,15 @@ class DeploymentService {
         statusesUrl: deployment.statuses_url || "",
       };
 
-      await this.publishGithubDeploymentStatus(repo, { ...metadata, githubDeployment }, {
-        state: "pending",
-        description: "Preview deployment is starting.",
-        autoInactive: false,
-      });
+      await this.publishGithubDeploymentStatus(
+        repo,
+        { ...metadata, githubDeployment },
+        {
+          state: "pending",
+          description: "Preview deployment is starting.",
+          autoInactive: false,
+        },
+      );
 
       return githubDeployment;
     } catch (error) {
@@ -471,11 +504,20 @@ class DeploymentService {
   }
 
   authorizePrDeploymentTrigger(repo, webhookContext) {
-    const authorLogin = String(webhookContext.prAuthorLogin || "").trim().toLowerCase();
-    const senderLogin = String(webhookContext.senderLogin || "").trim().toLowerCase();
-    const allowedLogins = new Set((repo.prDeploymentAllowedLogins || []).map((login) => String(login).toLowerCase()));
+    const authorLogin = String(webhookContext.prAuthorLogin || "")
+      .trim()
+      .toLowerCase();
+    const senderLogin = String(webhookContext.senderLogin || "")
+      .trim()
+      .toLowerCase();
+    const allowedLogins = new Set(
+      (repo.prDeploymentAllowedLogins || []).map((login) => String(login).toLowerCase()),
+    );
 
-    if ((authorLogin && allowedLogins.has(authorLogin)) || (senderLogin && allowedLogins.has(senderLogin))) {
+    if (
+      (authorLogin && allowedLogins.has(authorLogin)) ||
+      (senderLogin && allowedLogins.has(senderLogin))
+    ) {
       return { allowed: true, reason: "allowlisted-login" };
     }
 
@@ -483,7 +525,9 @@ class DeploymentService {
       return { allowed: true, reason: "anyone" };
     }
 
-    const association = String(webhookContext.prAuthorAssociation || "").trim().toUpperCase();
+    const association = String(webhookContext.prAuthorAssociation || "")
+      .trim()
+      .toUpperCase();
     const allowedAssociations = getAllowedAuthorAssociations(repo.prDeploymentAccess);
     if (allowedAssociations.has(association)) {
       return { allowed: true, reason: association.toLowerCase() };
@@ -550,6 +594,4 @@ function normalizeManualTargetValue(targetType, value) {
   return branch;
 }
 
-export {
-  DeploymentService,
-};
+export { DeploymentService };
