@@ -28,6 +28,7 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
+# Prefer a repo-specific SSH key when the app has mounted one for deployment.
 if [[ -n "${SSH_DIR:-}" ]]; then
   if [[ -f "${SSH_DIR}/id_ed25519" ]]; then
     export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
@@ -36,6 +37,8 @@ if [[ -n "${SSH_DIR:-}" ]]; then
   fi
 fi
 
+# Resolve names and paths through the helper so shell and TypeScript agree on
+# deployment IDs, hostnames, and filesystem layout.
 project_name="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field projectName)"
 preview_host="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field previewHost)"
 deployment_id="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field deploymentId)"
@@ -54,6 +57,8 @@ trap cleanup EXIT
 
 mkdir -p "$(dirname "${work_dir}")"
 
+# If this target was already deployed, stop the previous stack before replacing
+# its working copy. Default-branch volumes are preserved for persistent state.
 if [[ -f "${metadata_path}" ]]; then
   previous_project_name="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" projectName)"
   previous_target_type="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${metadata_path}" targetType)"
@@ -80,6 +85,7 @@ if [[ -f "${metadata_path}" ]]; then
   fi
 fi
 
+# TARGET_SHA pins webhook/manual deploys to the exact revision when available.
 case "${TARGET_TYPE}" in
   default-branch)
     git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
@@ -130,6 +136,7 @@ case "${TARGET_TYPE}" in
     ;;
 esac
 
+# Preserve deployment.json while replacing the checked-out source tree.
 mkdir -p "${work_dir}"
 find "${work_dir}" -mindepth 1 -maxdepth 1 ! -name 'deployment.json' -exec rm -rf {} +
 cp -a "${tmp_checkout}/." "${work_dir}/"
@@ -144,6 +151,7 @@ if [[ ! -f "${compose_path_resolved}" ]]; then
   exit 1
 fi
 
+# Generate runtime files after clone so Compose sees paths inside the final checkout.
 node "${SCRIPT_HELPER_PATH}" write-runtime-env "${env_file}" "${preview_host}" "${project_name}"
 
 if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
@@ -162,6 +170,7 @@ compose_up_args=(
 if [[ "${APPEND_PROXY_SETTINGS:-false}" == "true" ]]; then
   compose_up_args+=(-f "${proxy_override_path}")
 fi
+
 docker compose "${compose_up_args[@]}" up -d --build
 
 node "${SCRIPT_HELPER_PATH}" write-deployment-metadata "${metadata_path}"

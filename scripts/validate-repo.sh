@@ -4,6 +4,8 @@ set -euo pipefail
 SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT_HELPER_PATH="${SCRIPT_ROOT}/dist/src/cli/script-helper.js"
 
+# These scripts return JSON because the Node script runner forwards stdout
+# directly to the app.
 required_vars=(
   CLONE_SSH_URL
   DEFAULT_BRANCH
@@ -20,6 +22,7 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
+# Prefer a repo-specific SSH key when the app has mounted one for validation.
 if [[ -n "${SSH_DIR:-}" ]]; then
   if [[ -f "${SSH_DIR}/id_ed25519" ]]; then
     export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
@@ -28,6 +31,7 @@ if [[ -n "${SSH_DIR:-}" ]]; then
   fi
 fi
 
+# Clone into a disposable checkout so validation never mutates deployment state.
 tmp_dir="$(mktemp -d)"
 cleanup() {
   rm -rf "${tmp_dir}"
@@ -56,4 +60,5 @@ if [[ ! -f "${compose_file}" ]]; then
   exit 1
 fi
 
+# Let the TypeScript helper parse Compose YAML and enforce the preview contract.
 node "${SCRIPT_HELPER_PATH}" validate-compose-contract "${compose_file}" "${PUBLIC_SERVICE}" "${APPEND_PROXY_SETTINGS:-false}"
