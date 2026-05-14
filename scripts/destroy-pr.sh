@@ -9,11 +9,14 @@ if [[ -z "${DEPLOYMENT_METADATA_PATH:-}" ]]; then
   exit 1
 fi
 
+# Missing metadata means the deployment was already removed or never completed.
 if [[ ! -f "${DEPLOYMENT_METADATA_PATH}" ]]; then
   echo "{\"ok\":true,\"destroyed\":false,\"reason\":\"metadata-missing\"}"
   exit 0
 fi
 
+# Metadata stores resolved paths from deploy time, so destroy does not depend on
+# later repository config edits.
 deployment_id="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" deploymentId)"
 target_type="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" targetType)"
 project_name="$(node "${SCRIPT_HELPER_PATH}" read-metadata-field "${DEPLOYMENT_METADATA_PATH}" projectName)"
@@ -34,12 +37,14 @@ if [[ -n "${project_name}" && -n "${compose_path_resolved}" && -f "${compose_pat
     compose_down_args+=(-f "${proxy_override_path}")
   fi
   if [[ "${target_type}" == "default-branch" ]]; then
+    # Default-branch deployments keep volumes because they may hold long-lived state.
     docker compose "${compose_down_args[@]}" down --remove-orphans || true
   else
     docker compose "${compose_down_args[@]}" down -v --remove-orphans || true
   fi
 fi
 
+# Remove the checked-out working copy after Compose has been asked to stop.
 if [[ -n "${work_dir}" ]]; then
   rm -rf "${work_dir}"
 fi
