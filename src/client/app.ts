@@ -45,7 +45,9 @@ async function submitForm(event: SubmitEvent): Promise<void> {
     }
 
     if (isRepoMutation(actionPath)) {
-      const preferredPanelId = payload?.id ? `repo-${payload.id}` : getCurrentPanelId();
+      const preferredPanelId = payload?.id
+        ? `repo-${payload.id}`
+        : getCurrentPanelId();
       if (statusNode) {
         statusNode.textContent = "Saved.";
       }
@@ -66,7 +68,8 @@ async function submitForm(event: SubmitEvent): Promise<void> {
     }
   } catch (error) {
     if (statusNode) {
-      statusNode.textContent = error instanceof Error ? error.message : "Request failed.";
+      statusNode.textContent =
+        error instanceof Error ? error.message : "Request failed.";
     }
   }
 }
@@ -109,7 +112,10 @@ async function runAction(event: MouseEvent): Promise<void> {
 
     if (isDeploymentAction(actionPath)) {
       if (statusNode) {
-        statusNode.textContent = button.dataset.method === "DELETE" ? "Deployment destroyed." : "Redeploy started.";
+        statusNode.textContent =
+          button.dataset.method === "DELETE"
+            ? "Deployment destroyed."
+            : "Redeploy started.";
       }
       await refreshDeployments();
       return;
@@ -128,7 +134,8 @@ async function runAction(event: MouseEvent): Promise<void> {
     }
   } catch (error) {
     if (statusNode) {
-      statusNode.textContent = error instanceof Error ? error.message : "Action failed.";
+      statusNode.textContent =
+        error instanceof Error ? error.message : "Action failed.";
     }
   }
 }
@@ -152,167 +159,224 @@ function bindApiForms(root: ParentNode): void {
 }
 
 function bindApiActions(root: ParentNode): void {
-  root.querySelectorAll<HTMLButtonElement>("[data-api-action]").forEach((button) => {
-    if (button.dataset.bound === "true") {
-      return;
-    }
-    button.dataset.bound = "true";
-    button.addEventListener("click", (event) => {
-      void runAction(event);
+  root
+    .querySelectorAll<HTMLButtonElement>("[data-api-action]")
+    .forEach((button) => {
+      if (button.dataset.bound === "true") {
+        return;
+      }
+      button.dataset.bound = "true";
+      button.addEventListener("click", (event) => {
+        void runAction(event);
+      });
     });
-  });
 }
 
 function bindManualTargetForms(root: ParentNode): void {
-  root.querySelectorAll<HTMLFormElement>("[data-manual-target-form]").forEach((form) => {
-    if (form.dataset.boundManualTargets === "true") {
-      return;
-    }
-    form.dataset.boundManualTargets = "true";
+  root
+    .querySelectorAll<HTMLFormElement>("[data-manual-target-form]")
+    .forEach((form) => {
+      if (form.dataset.boundManualTargets === "true") {
+        return;
+      }
+      form.dataset.boundManualTargets = "true";
 
-    const repoId = form.dataset.repoId;
-    const repoDefaultBranch = String(form.dataset.defaultBranch || "main").trim() || "main";
-    const targetTypeInput = form.querySelector<HTMLSelectElement>("[data-manual-target-type]");
-    const targetValueInput = form.querySelector<HTMLSelectElement>("[data-manual-target-value]");
-    const statusNode = form.querySelector<HTMLElement>("[data-manual-target-status]");
-    const refreshButton = form.querySelector<HTMLButtonElement>("[data-manual-target-refresh]");
-    if (!repoId || !targetTypeInput || !targetValueInput || !statusNode) {
-      return;
-    }
-
-    let options: { defaultBranch: string; branches: string[]; pullRequests: Array<{ number: number; label: string }> } = {
-      defaultBranch: repoDefaultBranch,
-      branches: [],
-      pullRequests: [],
-    };
-    let optionsLoaded = false;
-
-    const setOptions = (): void => {
-      const targetType = targetTypeInput.value;
-      const currentValue = targetValueInput.value;
-      targetValueInput.innerHTML = "";
-
-      if (targetType === "default-branch") {
-        const option = document.createElement("option");
-        option.value = options.defaultBranch;
-        option.textContent = options.defaultBranch ? `Default (${options.defaultBranch})` : "Default branch";
-        targetValueInput.append(option);
-        targetValueInput.value = options.defaultBranch;
-        targetValueInput.disabled = true;
-        statusNode.textContent = "Deploys the configured default branch.";
+      const repoId = form.dataset.repoId;
+      const repoDefaultBranch =
+        String(form.dataset.defaultBranch || "main").trim() || "main";
+      const targetTypeInput = form.querySelector<HTMLSelectElement>(
+        "[data-manual-target-type]",
+      );
+      const targetValueInput = form.querySelector<HTMLSelectElement>(
+        "[data-manual-target-value]",
+      );
+      const statusNode = form.querySelector<HTMLElement>(
+        "[data-manual-target-status]",
+      );
+      const refreshButton = form.querySelector<HTMLButtonElement>(
+        "[data-manual-target-refresh]",
+      );
+      if (!repoId || !targetTypeInput || !targetValueInput || !statusNode) {
         return;
       }
 
-      const source =
-        targetType === "pr"
-          ? options.pullRequests.map((entry) => ({ value: String(entry.number), label: entry.label }))
-          : options.branches.map((branch) => ({ value: branch, label: branch }));
-      if (!source.length) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = targetType === "pr" ? "No PR refs found" : "No branch refs found";
-        targetValueInput.append(option);
-        targetValueInput.disabled = true;
-        statusNode.textContent = "No deployable refs were returned from git.";
-        return;
-      }
+      let options: {
+        defaultBranch: string;
+        branches: string[];
+        pullRequests: Array<{ number: number; label: string }>;
+      } = {
+        defaultBranch: repoDefaultBranch,
+        branches: [],
+        pullRequests: [],
+      };
+      let optionsLoaded = false;
 
-      for (const item of source) {
-        const option = document.createElement("option");
-        option.value = item.value;
-        option.textContent = item.label;
-        targetValueInput.append(option);
-      }
+      const setOptions = (): void => {
+        const targetType = targetTypeInput.value;
+        const currentValue = targetValueInput.value;
+        targetValueInput.innerHTML = "";
 
-      const hasCurrent = source.some((item) => item.value === currentValue);
-      targetValueInput.value = hasCurrent ? currentValue : source[0].value;
-      targetValueInput.disabled = false;
-      statusNode.textContent =
-        targetType === "pr"
-          ? `Loaded ${source.length} PR refs from git.`
-          : `Loaded ${source.length} branch refs from git.`;
-    };
-
-    const loadOptions = async (): Promise<void> => {
-      statusNode.textContent = "Loading branches and PR refs from git...";
-      targetValueInput.disabled = true;
-      targetValueInput.innerHTML = `<option value="">Loading targets...</option>`;
-
-      try {
-        const response = await fetch(`/api/repos/${repoId}/manual-target-options`, {
-          headers: {
-            "X-Requested-With": "fetch",
-          },
-        });
-        const payload = (await readResponsePayload(response)) as
-          | { defaultBranch?: string; branches?: string[]; pullRequests?: Array<{ number?: number; label?: string }>; error?: string }
-          | null;
-
-        if (!response.ok) {
-          throw new Error(payload?.error || "Unable to load manual deploy targets.");
+        if (targetType === "default-branch") {
+          const option = document.createElement("option");
+          option.value = options.defaultBranch;
+          option.textContent = options.defaultBranch
+            ? `Default (${options.defaultBranch})`
+            : "Default branch";
+          targetValueInput.append(option);
+          targetValueInput.value = options.defaultBranch;
+          targetValueInput.disabled = true;
+          statusNode.textContent = "Deploys the configured default branch.";
+          return;
         }
 
-        options = {
-          defaultBranch: String(payload?.defaultBranch || repoDefaultBranch).trim() || repoDefaultBranch,
-          branches: Array.isArray(payload?.branches) ? payload.branches.map(String) : [],
-          pullRequests: Array.isArray(payload?.pullRequests)
-            ? payload.pullRequests
-                .map((entry) => ({
-                  number: Number(entry?.number),
-                  label: String(entry?.label || `PR #${entry?.number ?? ""}`).trim(),
-                }))
-                .filter((entry) => Number.isInteger(entry.number) && entry.number > 0 && entry.label)
-            : [],
-        };
-        optionsLoaded = true;
-      } catch (error) {
-        options = {
-          defaultBranch: repoDefaultBranch,
-          branches: [],
-          pullRequests: [],
-        };
-        statusNode.textContent = error instanceof Error ? error.message : "Unable to load manual deploy targets.";
-      }
+        const source =
+          targetType === "pr"
+            ? options.pullRequests.map((entry) => ({
+                value: String(entry.number),
+                label: entry.label,
+              }))
+            : options.branches.map((branch) => ({
+                value: branch,
+                label: branch,
+              }));
+        if (!source.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent =
+            targetType === "pr" ? "No PR refs found" : "No branch refs found";
+          targetValueInput.append(option);
+          targetValueInput.disabled = true;
+          statusNode.textContent = "No deployable refs were returned from git.";
+          return;
+        }
 
-      setOptions();
-    };
+        for (const item of source) {
+          const option = document.createElement("option");
+          option.value = item.value;
+          option.textContent = item.label;
+          targetValueInput.append(option);
+        }
 
-    targetTypeInput.addEventListener("change", () => {
-      if (!optionsLoaded) {
+        const hasCurrent = source.some((item) => item.value === currentValue);
+        targetValueInput.value = hasCurrent ? currentValue : source[0].value;
+        targetValueInput.disabled = false;
+        statusNode.textContent =
+          targetType === "pr"
+            ? `Loaded ${source.length} PR refs from git.`
+            : `Loaded ${source.length} branch refs from git.`;
+      };
+
+      const loadOptions = async (): Promise<void> => {
+        statusNode.textContent = "Loading branches and PR refs from git...";
+        targetValueInput.disabled = true;
+        targetValueInput.innerHTML = `<option value="">Loading targets...</option>`;
+
+        try {
+          const response = await fetch(
+            `/api/repos/${repoId}/manual-target-options`,
+            {
+              headers: {
+                "X-Requested-With": "fetch",
+              },
+            },
+          );
+          const payload = (await readResponsePayload(response)) as {
+            defaultBranch?: string;
+            branches?: string[];
+            pullRequests?: Array<{ number?: number; label?: string }>;
+            error?: string;
+          } | null;
+
+          if (!response.ok) {
+            throw new Error(
+              payload?.error || "Unable to load manual deploy targets.",
+            );
+          }
+
+          options = {
+            defaultBranch:
+              String(payload?.defaultBranch || repoDefaultBranch).trim() ||
+              repoDefaultBranch,
+            branches: Array.isArray(payload?.branches)
+              ? payload.branches.map(String)
+              : [],
+            pullRequests: Array.isArray(payload?.pullRequests)
+              ? payload.pullRequests
+                  .map((entry) => ({
+                    number: Number(entry?.number),
+                    label: String(
+                      entry?.label || `PR #${entry?.number ?? ""}`,
+                    ).trim(),
+                  }))
+                  .filter(
+                    (entry) =>
+                      Number.isInteger(entry.number) &&
+                      entry.number > 0 &&
+                      entry.label,
+                  )
+              : [],
+          };
+          optionsLoaded = true;
+        } catch (error) {
+          options = {
+            defaultBranch: repoDefaultBranch,
+            branches: [],
+            pullRequests: [],
+          };
+          statusNode.textContent =
+            error instanceof Error
+              ? error.message
+              : "Unable to load manual deploy targets.";
+        }
+
+        setOptions();
+      };
+
+      targetTypeInput.addEventListener("change", () => {
+        if (!optionsLoaded) {
+          void loadOptions();
+          return;
+        }
+        setOptions();
+      });
+
+      targetTypeInput.addEventListener("focus", () => {
+        if (!optionsLoaded) {
+          void loadOptions();
+        }
+      });
+
+      targetValueInput.addEventListener("focus", () => {
+        if (!optionsLoaded) {
+          void loadOptions();
+        }
+      });
+
+      refreshButton?.addEventListener("click", () => {
         void loadOptions();
-        return;
-      }
-      setOptions();
-    });
+      });
 
-    targetTypeInput.addEventListener("focus", () => {
-      if (!optionsLoaded) {
+      statusNode.textContent =
+        "Load branch and PR refs from git before deploying.";
+      const panel = form.closest<HTMLElement>("[data-panel-id]");
+      if (!panel || !panel.classList.contains("hidden")) {
         void loadOptions();
       }
     });
-
-    targetValueInput.addEventListener("focus", () => {
-      if (!optionsLoaded) {
-        void loadOptions();
-      }
-    });
-
-    refreshButton?.addEventListener("click", () => {
-      void loadOptions();
-    });
-
-    statusNode.textContent = "Load branch and PR refs from git before deploying.";
-    const panel = form.closest<HTMLElement>("[data-panel-id]");
-    if (!panel || !panel.classList.contains("hidden")) {
-      void loadOptions();
-    }
-  });
 }
 
-function serializeForm(form: HTMLFormElement): Record<string, string | boolean> {
+function serializeForm(
+  form: HTMLFormElement,
+): Record<string, string | boolean> {
   const body: Record<string, string | boolean> = {};
   for (const element of Array.from(form.elements)) {
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement)) {
+    if (
+      !(
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLTextAreaElement ||
+        element instanceof HTMLSelectElement
+      )
+    ) {
       continue;
     }
     if (!element.name || element.disabled) {
@@ -337,8 +401,12 @@ function serializeForm(form: HTMLFormElement): Record<string, string | boolean> 
 }
 
 function initPanelSelector(): void {
-  const triggers = Array.from(document.querySelectorAll<HTMLElement>("[data-panel-trigger]"));
-  const panels = Array.from(document.querySelectorAll<HTMLElement>("[data-panel-id]"));
+  const triggers = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-panel-trigger]"),
+  );
+  const panels = Array.from(
+    document.querySelectorAll<HTMLElement>("[data-panel-id]"),
+  );
 
   if (!triggers.length || !panels.length) {
     return;
@@ -351,7 +419,7 @@ function initPanelSelector(): void {
       const active = trigger.dataset.panelTarget === id;
       trigger.dataset.active = String(active);
       trigger.setAttribute("aria-selected", String(active));
-      trigger.classList.toggle("bg-zinc-100", active);
+      trigger.classList.toggle("bg-zinc-800", active);
       trigger.classList.toggle("text-black", active);
       trigger.classList.toggle("border-zinc-100", active);
       trigger.classList.toggle("bg-zinc-900", !active);
@@ -384,19 +452,25 @@ function initPanelSelector(): void {
     window.__panelHashListenerBound = true;
     window.addEventListener("hashchange", () => {
       const target = window.location.hash.slice(1);
-      const currentPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-panel-id]"));
+      const currentPanels = Array.from(
+        document.querySelectorAll<HTMLElement>("[data-panel-id]"),
+      );
       if (currentPanels.some((panel) => panel.dataset.panelId === target)) {
         initPanelSelector();
       }
     });
   }
 
-  const initial = window.location.hash ? window.location.hash.slice(1) : triggers[0]?.dataset.panelTarget;
+  const initial = window.location.hash
+    ? window.location.hash.slice(1)
+    : triggers[0]?.dataset.panelTarget;
   const fallback = triggers[0]?.dataset.panelTarget || "add-repo";
   activate(initial && byId.has(initial) ? initial : fallback);
 }
 
-async function refreshRepoConfig({ preferredPanelId }: { preferredPanelId?: string } = {}): Promise<void> {
+async function refreshRepoConfig({
+  preferredPanelId,
+}: { preferredPanelId?: string } = {}): Promise<void> {
   const root = document.querySelector<HTMLElement>("[data-repo-config-root]");
   if (!root) {
     return;
@@ -429,13 +503,16 @@ async function refreshDeployments(): Promise<void> {
   try {
     const html = await fetchHtml("/ui/deployments");
     root.outerHTML = html;
-    const newRoot = document.querySelector<HTMLElement>("[data-deployments-root]");
+    const newRoot = document.querySelector<HTMLElement>(
+      "[data-deployments-root]",
+    );
     restoreOpenState(newRoot, openState);
     bindDashboard(document);
   } catch (error) {
     const statusNode = document.querySelector<HTMLElement>("[data-ui-status]");
     if (statusNode && !statusNode.textContent) {
-      statusNode.textContent = error instanceof Error ? error.message : "Unable to refresh UI.";
+      statusNode.textContent =
+        error instanceof Error ? error.message : "Unable to refresh UI.";
     }
   } finally {
     deploymentsRefreshInFlight = false;
@@ -458,11 +535,13 @@ function captureOpenState(root: ParentNode | null): Set<string> {
     return keys;
   }
 
-  root.querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]").forEach((node) => {
-    if (node.open && node.dataset.preserveOpen) {
-      keys.add(node.dataset.preserveOpen);
-    }
-  });
+  root
+    .querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]")
+    .forEach((node) => {
+      if (node.open && node.dataset.preserveOpen) {
+        keys.add(node.dataset.preserveOpen);
+      }
+    });
 
   return keys;
 }
@@ -472,9 +551,13 @@ function restoreOpenState(root: ParentNode | null, keys: Set<string>): void {
     return;
   }
 
-  root.querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]").forEach((node) => {
-    node.open = Boolean(node.dataset.preserveOpen && keys.has(node.dataset.preserveOpen));
-  });
+  root
+    .querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]")
+    .forEach((node) => {
+      node.open = Boolean(
+        node.dataset.preserveOpen && keys.has(node.dataset.preserveOpen),
+      );
+    });
 }
 
 function getCurrentPanelId(): string {
@@ -499,7 +582,9 @@ async function fetchHtml(url: string): Promise<string> {
   return response.text();
 }
 
-async function readResponsePayload(response: Response): Promise<{ error?: string; id?: string } | null> {
+async function readResponsePayload(
+  response: Response,
+): Promise<{ error?: string; id?: string } | null> {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     return response.json() as Promise<{ error?: string; id?: string }>;
