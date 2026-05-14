@@ -8,6 +8,7 @@ Each configured repository must expose the service you mark as public in the adm
 When proxy settings are appended, the orchestrator generates a compose override that keeps the public service on its existing app network(s) and adds the external proxy network at container creation time. That preserves service-to-service networking such as `app` reaching `db` while making the container visible to Traefik immediately.
 
 ## Required Runtime Variables
+
 The orchestrator writes these into `.env.runtime` for each PR deployment:
 
 - `ORCH_PROJECT_NAME`
@@ -27,6 +28,7 @@ FQDN=${ORCH_PREVIEW_HOST}
 ```
 
 ## Repo-Owned Service Labels
+
 When `Append proxy settings to this service` is disabled, the configured public service must include label values that reference:
 
 - `traefik.enable=true`
@@ -57,6 +59,7 @@ networks:
 ```
 
 ## Validation Rules
+
 On repo create or update, the orchestrator rejects the config if:
 
 - the compose file does not exist at the configured path

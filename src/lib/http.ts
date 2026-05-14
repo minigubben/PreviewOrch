@@ -9,7 +9,4 @@ function setNoStore(res) {
   res.setHeader("Cache-Control", "no-store");
 }
 
-export {
-  asyncHandler,
-  setNoStore,
-};
+export { asyncHandler, setNoStore };

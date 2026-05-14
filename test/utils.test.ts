@@ -4,15 +4,25 @@ import assert from "node:assert/strict";
 import crypto from "node:crypto";
 
 import { buildDeploymentKey, buildPreviewHost, buildProjectName } from "../src/lib/utils.js";
-import { mapPullRequestAction, normalizeWebhookSecret, verifyGithubSignature } from "../src/lib/github.js";
+import {
+  mapPullRequestAction,
+  normalizeWebhookSecret,
+  verifyGithubSignature,
+} from "../src/lib/github.js";
 import { buildPullRequestPayload, signPayload } from "./helpers/test-app.js";
 
 test("buildPreviewHost creates the expected wildcard host", () => {
-  assert.equal(buildPreviewHost("acme-widgets", "pr-42", "preview.example.com"), "acme-widgets-pr-42.preview.example.com");
+  assert.equal(
+    buildPreviewHost("acme-widgets", "pr-42", "preview.example.com"),
+    "acme-widgets-pr-42.preview.example.com",
+  );
 });
 
 test("buildPreviewHost prefers a custom fqdn when provided", () => {
-  assert.equal(buildPreviewHost("acme-widgets", "default-branch", "preview.example.com", "app.example.com"), "app.example.com");
+  assert.equal(
+    buildPreviewHost("acme-widgets", "default-branch", "preview.example.com", "app.example.com"),
+    "app.example.com",
+  );
 });
 
 test("buildProjectName creates a docker-safe project name", () => {

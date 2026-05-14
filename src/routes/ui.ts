@@ -60,6 +60,4 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, ss
   return router;
 }
 
-export {
-  createUiRouter,
-};
+export { createUiRouter };

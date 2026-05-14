@@ -20,7 +20,9 @@ function createAuthRouter({ config, clientAssets }) {
     const { username, password } = req.body;
     const success = await authenticate(username, password, config);
     if (!success) {
-      return res.status(401).render("login", { error: "Invalid username or password.", clientAssets, brand: BRANDING });
+      return res
+        .status(401)
+        .render("login", { error: "Invalid username or password.", clientAssets, brand: BRANDING });
     }
 
     req.session.user = { username };
@@ -36,6 +38,4 @@ function createAuthRouter({ config, clientAssets }) {
   return router;
 }
 
-export {
-  createAuthRouter,
-};
+export { createAuthRouter };

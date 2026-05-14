@@ -22,7 +22,9 @@ class RepoStore {
 
   async list() {
     const repos = (await readJson(this.reposFile, [])).map(hydrateStoredRepo);
-    return repos.sort((left, right) => left.owner.localeCompare(right.owner) || left.name.localeCompare(right.name));
+    return repos.sort(
+      (left, right) => left.owner.localeCompare(right.owner) || left.name.localeCompare(right.name),
+    );
   }
 
   async getById(id) {
@@ -56,7 +58,10 @@ class RepoStore {
 
     repos.push(repo);
     await writeJson(this.reposFile, repos);
-    await this.logger.info("Repository added", { repoId: repo.id, repoFullName: `${repo.owner}/${repo.name}` });
+    await this.logger.info("Repository added", {
+      repoId: repo.id,
+      repoFullName: `${repo.owner}/${repo.name}`,
+    });
     return repo;
   }
 
@@ -81,7 +86,10 @@ class RepoStore {
 
     repos[index] = merged;
     await writeJson(this.reposFile, repos);
-    await this.logger.info("Repository updated", { repoId: merged.id, repoFullName: `${merged.owner}/${merged.name}` });
+    await this.logger.info("Repository updated", {
+      repoId: merged.id,
+      repoFullName: `${merged.owner}/${merged.name}`,
+    });
     return merged;
   }
 
@@ -96,7 +104,10 @@ class RepoStore {
       this.reposFile,
       repos.filter((repo) => repo.id !== id),
     );
-    await this.logger.info("Repository deleted", { repoId: id, repoFullName: `${existing.owner}/${existing.name}` });
+    await this.logger.info("Repository deleted", {
+      repoId: id,
+      repoFullName: `${existing.owner}/${existing.name}`,
+    });
     return true;
   }
 
@@ -131,7 +142,10 @@ class RepoStore {
       });
 
       if (result.parsed?.ok !== true) {
-        throw new RepoValidationError(result.parsed?.message || "Repository validation failed.", result.parsed || null);
+        throw new RepoValidationError(
+          result.parsed?.message || "Repository validation failed.",
+          result.parsed || null,
+        );
       }
     } catch (error) {
       if (error instanceof RepoValidationError) {
@@ -139,11 +153,12 @@ class RepoStore {
       }
 
       const parsed = error.parsed;
-      throw new RepoValidationError(parsed?.message || error.stderr || error.message, parsed || null);
+      throw new RepoValidationError(
+        parsed?.message || error.stderr || error.message,
+        parsed || null,
+      );
     }
   }
 }
 
-export {
-  RepoStore,
-};
+export { RepoStore };

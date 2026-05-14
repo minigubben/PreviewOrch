@@ -5,11 +5,7 @@ import { pathToFileURL } from "node:url";
 
 import YAML from "yaml";
 
-import {
-  buildDeploymentKey,
-  buildPreviewHost,
-  buildProjectName,
-} from "../lib/utils.js";
+import { buildDeploymentKey, buildPreviewHost, buildProjectName } from "../lib/utils.js";
 import type { DeploymentMetadata, TargetType } from "../types/domain.js";
 
 interface CliEnvironment {
@@ -30,9 +26,16 @@ export function getDeploymentPaths(env: CliEnvironment): {
 } {
   const repoSlug = required(env.REPO_SLUG, "REPO_SLUG");
   const targetType = required(env.TARGET_TYPE, "TARGET_TYPE") as TargetType;
-  const targetValue = targetType === "pr" ? Number(required(env.TARGET_VALUE, "TARGET_VALUE")) : required(env.TARGET_VALUE, "TARGET_VALUE");
+  const targetValue =
+    targetType === "pr"
+      ? Number(required(env.TARGET_VALUE, "TARGET_VALUE"))
+      : required(env.TARGET_VALUE, "TARGET_VALUE");
   const deploymentKey = env.DEPLOYMENT_KEY || buildDeploymentKey(targetType, targetValue);
-  const workDir = path.join(required(env.DEPLOYMENTS_DIR, "DEPLOYMENTS_DIR"), repoSlug, deploymentKey);
+  const workDir = path.join(
+    required(env.DEPLOYMENTS_DIR, "DEPLOYMENTS_DIR"),
+    repoSlug,
+    deploymentKey,
+  );
   const projectDir = path.resolve(workDir, env.WORKING_DIRECTORY || ".");
   const composePathResolved = path.resolve(projectDir, required(env.COMPOSE_PATH, "COMPOSE_PATH"));
   const deploymentId = `${required(env.REPO_ID, "REPO_ID")}-${deploymentKey}`;
@@ -66,7 +69,10 @@ export function resolveDeployField(
   return String(paths[field] ?? "");
 }
 
-export function readMetadataField(metadataPath: string, field: keyof DeploymentMetadata | "ok"): string {
+export function readMetadataField(
+  metadataPath: string,
+  field: keyof DeploymentMetadata | "ok",
+): string {
   const metadata = readMetadata(metadataPath);
   if (!metadata) {
     return "";
@@ -76,7 +82,12 @@ export function readMetadataField(metadataPath: string, field: keyof DeploymentM
   return String(value ?? "");
 }
 
-export function writeRuntimeEnvFile(env: CliEnvironment, targetPath: string, previewHost: string, projectName: string): void {
+export function writeRuntimeEnvFile(
+  env: CliEnvironment,
+  targetPath: string,
+  previewHost: string,
+  projectName: string,
+): void {
   const lines = [
     `ORCH_PROJECT_NAME=${projectName}`,
     `ORCH_PREVIEW_HOST=${previewHost}`,
@@ -95,7 +106,12 @@ export function writeRuntimeEnvFile(env: CliEnvironment, targetPath: string, pre
   fs.writeFileSync(targetPath, `${lines.join("\n")}\n`, "utf8");
 }
 
-export function writeProxyOverride(env: CliEnvironment, targetPath: string, previewHost: string, projectName: string): void {
+export function writeProxyOverride(
+  env: CliEnvironment,
+  targetPath: string,
+  previewHost: string,
+  projectName: string,
+): void {
   const publicService = required(env.PUBLIC_SERVICE, "PUBLIC_SERVICE");
   const publicPort = required(env.PUBLIC_PORT, "PUBLIC_PORT");
   const networkName = required(env.TRAEFIK_NETWORK_NAME, "TRAEFIK_NETWORK_NAME");
@@ -126,9 +142,15 @@ export function writeProxyOverride(env: CliEnvironment, targetPath: string, prev
   fs.writeFileSync(targetPath, YAML.stringify(doc), "utf8");
 }
 
-export function buildDeploymentMetadata(env: CliEnvironment, paths: ReturnType<typeof getDeploymentPaths>): DeploymentMetadata {
+export function buildDeploymentMetadata(
+  env: CliEnvironment,
+  paths: ReturnType<typeof getDeploymentPaths>,
+): DeploymentMetadata {
   const targetType = required(env.TARGET_TYPE, "TARGET_TYPE") as TargetType;
-  const targetValue = targetType === "pr" ? Number(required(env.TARGET_VALUE, "TARGET_VALUE")) : required(env.TARGET_VALUE, "TARGET_VALUE");
+  const targetValue =
+    targetType === "pr"
+      ? Number(required(env.TARGET_VALUE, "TARGET_VALUE"))
+      : required(env.TARGET_VALUE, "TARGET_VALUE");
   const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}") as Record<string, string>;
 
   return {
@@ -247,7 +269,9 @@ function resolveServiceNetworks(composeAbsPath: string, publicService: string): 
     return names.length ? names : ["default"];
   }
 
-  throw new Error(`Configured public service '${publicService}' has an unsupported networks definition.`);
+  throw new Error(
+    `Configured public service '${publicService}' has an unsupported networks definition.`,
+  );
 }
 
 function readMetadata(metadataPath: string): DeploymentMetadata | null {
@@ -291,19 +315,34 @@ function main(argv: string[]): void {
 
   if (command === "read-metadata-field") {
     const [metadataPath, field] = rest;
-    process.stdout.write(readMetadataField(required(metadataPath, "metadataPath"), required(field, "field") as keyof DeploymentMetadata));
+    process.stdout.write(
+      readMetadataField(
+        required(metadataPath, "metadataPath"),
+        required(field, "field") as keyof DeploymentMetadata,
+      ),
+    );
     return;
   }
 
   if (command === "write-runtime-env") {
     const [targetPath, previewHost, projectName] = rest;
-    writeRuntimeEnvFile(env, required(targetPath, "targetPath"), required(previewHost, "previewHost"), required(projectName, "projectName"));
+    writeRuntimeEnvFile(
+      env,
+      required(targetPath, "targetPath"),
+      required(previewHost, "previewHost"),
+      required(projectName, "projectName"),
+    );
     return;
   }
 
   if (command === "write-proxy-override") {
     const [targetPath, previewHost, projectName] = rest;
-    writeProxyOverride(env, required(targetPath, "targetPath"), required(previewHost, "previewHost"), required(projectName, "projectName"));
+    writeProxyOverride(
+      env,
+      required(targetPath, "targetPath"),
+      required(previewHost, "previewHost"),
+      required(projectName, "projectName"),
+    );
     return;
   }
 

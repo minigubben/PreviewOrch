@@ -93,7 +93,11 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
   app.use((error, req, res, next) => {
     void next;
     const status =
-      error instanceof RepoValidationError ? 400 : error instanceof ScriptError ? 500 : Number(error.statusCode || 500);
+      error instanceof RepoValidationError
+        ? 400
+        : error instanceof ScriptError
+          ? 500
+          : Number(error.statusCode || 500);
     const message = error.details?.message || error.message || "Unexpected error.";
     void appServices.logger.error("Unhandled request error", {
       status,
@@ -111,6 +115,4 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
   return app;
 }
 
-export {
-  createApp,
-};
+export { createApp };

@@ -20,6 +20,4 @@ class LockManager {
   }
 }
 
-export {
-  LockManager,
-};
+export { LockManager };

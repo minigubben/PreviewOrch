@@ -15,6 +15,4 @@ async function readLogTail(filePath, maxLines = 40) {
   }
 }
 
-export {
-  readLogTail,
-};
+export { readLogTail };

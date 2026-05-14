@@ -17,7 +17,10 @@ const PR_DEPLOYMENT_ACCESS_VALUES = new Set(["anyone", "members", "collaborators
 
 function normalizeRepoInput(input = {}) {
   const extraEnv = parseExtraEnvText(input.extraEnvText, input.extraEnv);
-  const defaultBranchExtraEnv = parseExtraEnvText(input.defaultBranchExtraEnvText, input.defaultBranchExtraEnv);
+  const defaultBranchExtraEnv = parseExtraEnvText(
+    input.defaultBranchExtraEnvText,
+    input.defaultBranchExtraEnv,
+  );
   const prDeploymentAllowedLogins = parseGithubLoginListText(
     input.prDeploymentAllowedLoginsText,
     input.prDeploymentAllowedLogins,
@@ -50,7 +53,9 @@ function normalizeRepoInput(input = {}) {
 function hydrateStoredRepo(repo = {}) {
   const extraEnv = normalizeExistingExtraEnv(repo.extraEnv);
   const defaultBranchExtraEnv = normalizeExistingExtraEnv(repo.defaultBranchExtraEnv);
-  const prDeploymentAllowedLogins = normalizeExistingGithubLoginList(repo.prDeploymentAllowedLogins);
+  const prDeploymentAllowedLogins = normalizeExistingGithubLoginList(
+    repo.prDeploymentAllowedLogins,
+  );
   const identity = deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl) || {
     owner: String(repo.owner || "").trim(),
     name: String(repo.name || "").trim(),
@@ -75,10 +80,19 @@ function hydrateStoredRepo(repo = {}) {
 
 function validateRepoShape(repo) {
   if (!deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl)) {
-    throw new RepoValidationError("cloneSshUrl must be a GitHub repository URL such as git@github.com:owner/repo.git.");
+    throw new RepoValidationError(
+      "cloneSshUrl must be a GitHub repository URL such as git@github.com:owner/repo.git.",
+    );
   }
 
-  const requiredFields = ["owner", "name", "cloneSshUrl", "composePath", "publicService", "defaultBranch"];
+  const requiredFields = [
+    "owner",
+    "name",
+    "cloneSshUrl",
+    "composePath",
+    "publicService",
+    "defaultBranch",
+  ];
   for (const field of requiredFields) {
     if (!repo[field]) {
       throw new RepoValidationError(`Missing required field: ${field}`);
@@ -104,12 +118,16 @@ function validateRepoShape(repo) {
 }
 
 function normalizePrDeploymentAccess(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   return PR_DEPLOYMENT_ACCESS_VALUES.has(normalized) ? normalized : "anyone";
 }
 
 function normalizeFqdn(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function validateFqdn(value, label) {
@@ -129,7 +147,9 @@ function validateFqdn(value, label) {
 
 function validatePrDeploymentAccess(value) {
   if (!PR_DEPLOYMENT_ACCESS_VALUES.has(String(value || ""))) {
-    throw new RepoValidationError("prDeploymentAccess must be one of: anyone, members, collaborators, contributors.");
+    throw new RepoValidationError(
+      "prDeploymentAccess must be one of: anyone, members, collaborators, contributors.",
+    );
   }
 }
 
@@ -189,7 +209,9 @@ function parseExtraEnvText(extraEnvText, existingExtraEnv) {
 
     assertEnvVarName(key, `extraEnv line ${index + 1}`);
     if (RESERVED_ENV_NAMES.has(key)) {
-      throw new RepoValidationError(`extraEnv line ${index + 1} uses reserved variable name ${key}.`);
+      throw new RepoValidationError(
+        `extraEnv line ${index + 1} uses reserved variable name ${key}.`,
+      );
     }
     if (value.includes("\n") || value.includes("\r")) {
       throw new RepoValidationError(`extraEnv line ${index + 1} contains a newline in the value.`);
@@ -202,7 +224,11 @@ function parseExtraEnvText(extraEnvText, existingExtraEnv) {
 }
 
 function normalizeExistingExtraEnv(existingExtraEnv) {
-  if (!existingExtraEnv || typeof existingExtraEnv !== "object" || Array.isArray(existingExtraEnv)) {
+  if (
+    !existingExtraEnv ||
+    typeof existingExtraEnv !== "object" ||
+    Array.isArray(existingExtraEnv)
+  ) {
     return {};
   }
 
@@ -294,7 +320,9 @@ function assertEnvVarName(name, label) {
 }
 
 function normalizeGithubLogin(value) {
-  return String(value || "").trim().toLowerCase();
+  return String(value || "")
+    .trim()
+    .toLowerCase();
 }
 
 function assertGithubLogin(login, label) {

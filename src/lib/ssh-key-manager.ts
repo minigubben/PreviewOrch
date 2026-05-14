@@ -55,10 +55,7 @@ class SshKeyManager {
       `${BRANDING.subdomain}@${os.hostname()}`,
     ]);
 
-    await Promise.all([
-      fs.chmod(privateKeyPath, 0o600),
-      fs.chmod(publicKeyPath, 0o644),
-    ]);
+    await Promise.all([fs.chmod(privateKeyPath, 0o600), fs.chmod(publicKeyPath, 0o644)]);
 
     const status = await this.getStatus();
     await this.logger.info("SSH keypair generated", {
@@ -101,6 +98,4 @@ async function exists(filePath) {
   }
 }
 
-export {
-  SshKeyManager,
-};
+export { SshKeyManager };

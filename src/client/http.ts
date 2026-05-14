@@ -17,9 +17,7 @@ export async function fetchHtml(url: string): Promise<string> {
   return response.text();
 }
 
-export async function readResponsePayload(
-  response: Response,
-): Promise<ResponsePayload | null> {
+export async function readResponsePayload(response: Response): Promise<ResponsePayload | null> {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
     return response.json() as Promise<ResponsePayload>;

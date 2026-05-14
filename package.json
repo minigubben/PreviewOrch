@@ -11,6 +11,10 @@
     "build:client": "vite build",
     "build": "npm run build:node && npm run build:client",
     "dev": "npm run build && (tsc -p tsconfig.node.json --watch --preserveWatchOutput & TSC_PID=$!; trap 'kill $TSC_PID' EXIT INT TERM; node --env-file=.env --watch --watch-preserve-output dist/src/server.js)",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,js,json,css,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,css,md,yml,yaml}\"",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "test": "npm run build:node && node --test dist/test/*.test.js"
   },
@@ -31,8 +35,12 @@
     "@types/express-session": "^1.18.2",
     "@types/node": "^24.10.1",
     "@types/supertest": "^6.0.3",
+    "eslint": "^10.3.0",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3",
     "tailwindcss": "^4.1.8",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.3",
     "vite": "^7.2.0"
   }
 }

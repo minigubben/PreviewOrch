@@ -86,7 +86,10 @@ test("clone url helpers preserve repository identity parsing", () => {
     owner: "acme",
     name: "widgets",
   });
-  assert.equal(deriveGithubFullNameFromCloneUrl("https://github.com/acme/widgets.git"), "acme/widgets");
+  assert.equal(
+    deriveGithubFullNameFromCloneUrl("https://github.com/acme/widgets.git"),
+    "acme/widgets",
+  );
 });
 
 test("normalizeRepoInput parses PR trigger allowlist and access policy", () => {

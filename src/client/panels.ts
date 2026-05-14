@@ -1,10 +1,6 @@
 export function initPanelSelector(): void {
-  const triggers = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-panel-trigger]"),
-  );
-  const panels = Array.from(
-    document.querySelectorAll<HTMLElement>("[data-panel-id]"),
-  );
+  const triggers = Array.from(document.querySelectorAll<HTMLElement>("[data-panel-trigger]"));
+  const panels = Array.from(document.querySelectorAll<HTMLElement>("[data-panel-id]"));
 
   if (!triggers.length || !panels.length) {
     return;
@@ -50,9 +46,7 @@ export function initPanelSelector(): void {
     window.__panelHashListenerBound = true;
     window.addEventListener("hashchange", () => {
       const target = window.location.hash.slice(1);
-      const currentPanels = Array.from(
-        document.querySelectorAll<HTMLElement>("[data-panel-id]"),
-      );
+      const currentPanels = Array.from(document.querySelectorAll<HTMLElement>("[data-panel-id]"));
       if (currentPanels.some((panel) => panel.dataset.panelId === target)) {
         initPanelSelector();
       }

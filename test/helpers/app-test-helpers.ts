@@ -40,20 +40,22 @@ async function waitFor(check, { timeoutMs = 2000, intervalMs = 20 } = {}) {
   throw lastError || new Error("Timed out waiting for condition.");
 }
 
-async function waitForDeployment(agent, expectedDeploymentId, { timeoutMs = 2000, intervalMs = 20 } = {}) {
-  return waitFor(async () => {
-    const response = await agent.get("/api/deployments");
-    assert.equal(response.status, 200);
-    const deployment = response.body.find((item) => item.deploymentId === expectedDeploymentId);
-    assert.ok(deployment, `Missing deployment ${expectedDeploymentId}`);
-    assert.equal(deployment.status, "running");
-    return deployment;
-  }, { timeoutMs, intervalMs });
+async function waitForDeployment(
+  agent,
+  expectedDeploymentId,
+  { timeoutMs = 2000, intervalMs = 20 } = {},
+) {
+  return waitFor(
+    async () => {
+      const response = await agent.get("/api/deployments");
+      assert.equal(response.status, 200);
+      const deployment = response.body.find((item) => item.deploymentId === expectedDeploymentId);
+      assert.ok(deployment, `Missing deployment ${expectedDeploymentId}`);
+      assert.equal(deployment.status, "running");
+      return deployment;
+    },
+    { timeoutMs, intervalMs },
+  );
 }
 
-export {
-  createRepo,
-  invoke,
-  waitFor,
-  waitForDeployment,
-};
+export { createRepo, invoke, waitFor, waitForDeployment };

@@ -50,7 +50,9 @@ class FakeScriptRunner {
 
     if (env.COMPOSE_PATH === "missing-labels.yml" && env.APPEND_PROXY_SETTINGS !== "true") {
       const error = new Error("Missing Traefik contract.");
-      error.parsed = { message: "Missing required Traefik label contract token: ${ORCH_PREVIEW_HOST}" };
+      error.parsed = {
+        message: "Missing required Traefik label contract token: ${ORCH_PREVIEW_HOST}",
+      };
       throw error;
     }
 
@@ -76,7 +78,12 @@ class FakeScriptRunner {
     const composePathResolved = path.join(projectDirectoryResolved, env.COMPOSE_PATH);
     const envFile = path.join(workDir, ".env.runtime");
     const proxyOverridePath = path.join(workDir, ".orchestrator-proxy.override.yml");
-    const previewHost = buildPreviewHost(repoSlug, deploymentKey, env.BASE_DOMAIN || this.baseDomain, env.PREVIEW_HOST || "");
+    const previewHost = buildPreviewHost(
+      repoSlug,
+      deploymentKey,
+      env.BASE_DOMAIN || this.baseDomain,
+      env.PREVIEW_HOST || "",
+    );
     const projectName = buildProjectName(repoSlug, deploymentKey);
     const extraEnv = JSON.parse(env.EXTRA_ENV_JSON || "{}");
     const envLines = [`ORCH_PREVIEW_HOST=${previewHost}`];
@@ -216,6 +223,4 @@ class FakeScriptRunner {
   }
 }
 
-export {
-  FakeScriptRunner,
-};
+export { FakeScriptRunner };

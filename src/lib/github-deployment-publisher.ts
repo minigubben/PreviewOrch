@@ -83,7 +83,9 @@ class GithubDeploymentPublisher {
 
     if (!response.ok) {
       const errorText = await response.text();
-      const error = new Error(`GitHub API ${method} ${path} failed with ${response.status}: ${errorText}`);
+      const error = new Error(
+        `GitHub API ${method} ${path} failed with ${response.status}: ${errorText}`,
+      );
       error.status = response.status;
       throw error;
     }
@@ -92,6 +94,4 @@ class GithubDeploymentPublisher {
   }
 }
 
-export {
-  GithubDeploymentPublisher,
-};
+export { GithubDeploymentPublisher };

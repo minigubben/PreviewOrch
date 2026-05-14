@@ -7,6 +7,4 @@ class RepoValidationError extends Error {
   }
 }
 
-export {
-  RepoValidationError,
-};
+export { RepoValidationError };

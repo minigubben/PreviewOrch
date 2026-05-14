@@ -36,6 +36,4 @@ async function bootstrapFilesystem(config) {
   await syncSettingsFile(config);
 }
 
-export {
-  bootstrapFilesystem,
-};
+export { bootstrapFilesystem };

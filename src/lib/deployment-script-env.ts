@@ -1,5 +1,15 @@
 // @ts-nocheck
-function buildDeployScriptEnv({ repo, config, seed, sourceCloneSshUrl, targetType, targetValue, targetBranch, targetSha, lastEvent }) {
+function buildDeployScriptEnv({
+  repo,
+  config,
+  seed,
+  sourceCloneSshUrl,
+  targetType,
+  targetValue,
+  targetBranch,
+  targetSha,
+  lastEvent,
+}) {
   return {
     REPO_ID: repo.id,
     REPO_OWNER: repo.owner,
@@ -35,7 +45,4 @@ function buildDestroyScriptEnv({ deploymentStore, repoSlug, deploymentKey, deplo
   };
 }
 
-export {
-  buildDeployScriptEnv,
-  buildDestroyScriptEnv,
-};
+export { buildDeployScriptEnv, buildDestroyScriptEnv };

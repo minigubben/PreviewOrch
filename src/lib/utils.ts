@@ -54,7 +54,9 @@ function normalizeBoolean(value) {
 }
 
 function trimLines(text, maxLines = 40) {
-  const lines = String(text || "").trimEnd().split("\n");
+  const lines = String(text || "")
+    .trimEnd()
+    .split("\n");
   return lines.slice(Math.max(0, lines.length - maxLines)).join("\n");
 }
 

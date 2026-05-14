@@ -3,7 +3,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createRepo } from "./helpers/app-test-helpers.js";
-import { createTestContext, getDashboardCsrf, login, signPayload, buildPullRequestPayload } from "./helpers/test-app.js";
+import {
+  createTestContext,
+  getDashboardCsrf,
+  login,
+  signPayload,
+  buildPullRequestPayload,
+} from "./helpers/test-app.js";
 
 test("lists manual deploy branch and PR targets for a repository", async () => {
   const context = await createTestContext();
@@ -16,7 +22,9 @@ test("lists manual deploy branch and PR targets for a repository", async () => {
   });
   assert.equal(repoResponse.status, 201);
 
-  const response = await context.agent.get(`/api/repos/${repoResponse.body.id}/manual-target-options`);
+  const response = await context.agent.get(
+    `/api/repos/${repoResponse.body.id}/manual-target-options`,
+  );
   assert.equal(response.status, 200);
   assert.equal(response.body.defaultBranch, "main");
   assert.ok(response.body.branches.includes("main"));
@@ -73,7 +81,10 @@ test("manually deploys a branch from the repo editor api", async () => {
   assert.equal(response.body.targetType, "branch");
   assert.equal(response.body.targetValue, "release/2026-q2");
   assert.equal(response.body.deploymentKey, "branch-release-2026-q2");
-  assert.equal(response.body.previewHost, "acme-widgets-branch-release-2026-q2.preview.example.com");
+  assert.equal(
+    response.body.previewHost,
+    "acme-widgets-branch-release-2026-q2.preview.example.com",
+  );
 
   const dashboard = await context.agent.get("/");
   assert.equal(dashboard.status, 200);

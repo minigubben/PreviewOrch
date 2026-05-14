@@ -17,7 +17,15 @@ function buildDeploySeed({
 }) {
   const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
   const deploymentKey = existing?.deploymentKey || buildDeploymentKey(targetType, targetValue);
-  const resolvedTarget = resolveTargetConfig({ repo, repoSlug, deploymentKey, config, targetType, targetBranch, targetValue });
+  const resolvedTarget = resolveTargetConfig({
+    repo,
+    repoSlug,
+    deploymentKey,
+    config,
+    targetType,
+    targetBranch,
+    targetValue,
+  });
   const previewHost = resolvedTarget.previewHost;
   const projectName = buildProjectName(repoSlug, deploymentKey);
   const workDir = deploymentStore.getWorkDir(repoSlug, deploymentKey);
@@ -72,11 +80,16 @@ function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentK
           targetValue: existing?.targetValue || repo.defaultBranch,
         })
       : null;
-  const previewHost = existing?.previewHost || resolvedTarget?.previewHost || buildPreviewHost(repoSlug, deploymentKey, config.baseDomain);
+  const previewHost =
+    existing?.previewHost ||
+    resolvedTarget?.previewHost ||
+    buildPreviewHost(repoSlug, deploymentKey, config.baseDomain);
   const projectName = buildProjectName(repoSlug, deploymentKey);
   const workDir = deploymentStore.getWorkDir(repoSlug, deploymentKey);
-  const projectDirectoryResolved = existing?.projectDirectoryResolved || path.resolve(workDir, repo.workingDirectory || ".");
-  const composePathResolved = existing?.composePathResolved || path.resolve(projectDirectoryResolved, repo.composePath);
+  const projectDirectoryResolved =
+    existing?.projectDirectoryResolved || path.resolve(workDir, repo.workingDirectory || ".");
+  const composePathResolved =
+    existing?.composePathResolved || path.resolve(projectDirectoryResolved, repo.composePath);
   const logFile = deploymentStore.getLogPath(repoSlug, deploymentKey);
 
   return {
@@ -111,10 +124,23 @@ function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentK
   };
 }
 
-function resolveTargetConfig({ repo, repoSlug, deploymentKey, config, targetType, targetBranch, targetValue }) {
+function resolveTargetConfig({
+  repo,
+  repoSlug,
+  deploymentKey,
+  config,
+  targetType,
+  targetBranch,
+  targetValue,
+}) {
   if (targetType === "default-branch") {
     return {
-      previewHost: buildPreviewHost(repoSlug, deploymentKey, config.baseDomain, repo.defaultBranchCustomHost),
+      previewHost: buildPreviewHost(
+        repoSlug,
+        deploymentKey,
+        config.baseDomain,
+        repo.defaultBranchCustomHost,
+      ),
       targetBranch: repo.defaultBranch || targetBranch || String(targetValue || "").trim() || null,
       extraEnv: repo.defaultBranchExtraEnv || {},
     };
@@ -127,7 +153,4 @@ function resolveTargetConfig({ repo, repoSlug, deploymentKey, config, targetType
   };
 }
 
-export {
-  buildDeploySeed,
-  buildDestroySeed,
-};
+export { buildDeploySeed, buildDestroySeed };

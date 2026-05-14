@@ -31,7 +31,8 @@ async function createTestContext(options = {}) {
     SESSION_COOKIE_SECURE: options.sessionCookieSecure,
     GITHUB_WEBHOOK_SECRET: "webhook-secret",
     GITHUB_DEPLOYMENTS_TOKEN: options.githubDeploymentsToken || "",
-    ORCHESTRATOR_PUBLIC_URL: options.orchestratorPublicUrl || "https://previeworch.preview.example.com",
+    ORCHESTRATOR_PUBLIC_URL:
+      options.orchestratorPublicUrl || "https://previeworch.preview.example.com",
     NODE_ENV: options.nodeEnv || "test",
     DOCKER_SOCKET_PATH: path.join(root, "docker.sock"),
   });
@@ -125,7 +126,8 @@ function buildPullRequestPayload(action, overrides = {}) {
         sha: overrides.prSha || "abc123",
         repo: {
           full_name: overrides.headRepoFullName || overrides.repoFullName || "acme/widgets",
-          ssh_url: overrides.headSshUrl || overrides.baseSshUrl || "git@github.com:acme/widgets.git",
+          ssh_url:
+            overrides.headSshUrl || overrides.baseSshUrl || "git@github.com:acme/widgets.git",
         },
       },
     },
@@ -144,10 +146,4 @@ function signPayload(secret, payload) {
   };
 }
 
-export {
-  buildPullRequestPayload,
-  createTestContext,
-  getDashboardCsrf,
-  login,
-  signPayload,
-};
+export { buildPullRequestPayload, createTestContext, getDashboardCsrf, login, signPayload };

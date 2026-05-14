@@ -57,6 +57,4 @@ function createGithubWebhookRouter({ config, deploymentService, logger }) {
   return router;
 }
 
-export {
-  createGithubWebhookRouter,
-};
+export { createGithubWebhookRouter };

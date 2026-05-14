@@ -42,16 +42,13 @@ export async function refreshDeployments(): Promise<void> {
   try {
     const html = await fetchHtml("/ui/deployments");
     root.outerHTML = html;
-    const newRoot = document.querySelector<HTMLElement>(
-      "[data-deployments-root]",
-    );
+    const newRoot = document.querySelector<HTMLElement>("[data-deployments-root]");
     restoreOpenState(newRoot, openState);
     bindDashboard(document);
   } catch (error) {
     const statusNode = document.querySelector<HTMLElement>("[data-ui-status]");
     if (statusNode && !statusNode.textContent) {
-      statusNode.textContent =
-        error instanceof Error ? error.message : "Unable to refresh UI.";
+      statusNode.textContent = error instanceof Error ? error.message : "Unable to refresh UI.";
     }
   } finally {
     deploymentsRefreshInFlight = false;
@@ -74,13 +71,11 @@ function captureOpenState(root: ParentNode | null): Set<string> {
     return keys;
   }
 
-  root
-    .querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]")
-    .forEach((node) => {
-      if (node.open && node.dataset.preserveOpen) {
-        keys.add(node.dataset.preserveOpen);
-      }
-    });
+  root.querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]").forEach((node) => {
+    if (node.open && node.dataset.preserveOpen) {
+      keys.add(node.dataset.preserveOpen);
+    }
+  });
 
   return keys;
 }
@@ -90,11 +85,7 @@ function restoreOpenState(root: ParentNode | null, keys: Set<string>): void {
     return;
   }
 
-  root
-    .querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]")
-    .forEach((node) => {
-      node.open = Boolean(
-        node.dataset.preserveOpen && keys.has(node.dataset.preserveOpen),
-      );
-    });
+  root.querySelectorAll<HTMLDetailsElement>("details[data-preserve-open]").forEach((node) => {
+    node.open = Boolean(node.dataset.preserveOpen && keys.has(node.dataset.preserveOpen));
+  });
 }
