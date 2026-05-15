@@ -19,8 +19,8 @@
             class="block w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-left transition hover:bg-zinc-800"
           >
             <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-sm font-medium text-zinc-100"><%= repo.owner %>/<%= repo.name %></p>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium text-zinc-100"><%= repo.owner %>/<%= repo.name %></p>
                 <p class="mt-1 text-xs uppercase tracking-[0.24em] text-zinc-500"><%= repo.enabled ? "enabled" : "disabled" %></p>
               </div>
               <span class="mt-1 text-xs text-zinc-500">edit</span>

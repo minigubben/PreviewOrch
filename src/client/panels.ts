@@ -14,7 +14,7 @@ export function initPanelSelector(): void {
       trigger.dataset.active = String(active);
       trigger.setAttribute("aria-selected", String(active));
       trigger.classList.toggle("bg-zinc-800", active);
-      trigger.classList.toggle("text-black", active);
+      trigger.classList.toggle("text-zinc-50", active);
       trigger.classList.toggle("border-zinc-100", active);
       trigger.classList.toggle("bg-zinc-900", !active);
       trigger.classList.toggle("text-zinc-200", !active);
