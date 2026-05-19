@@ -1,0 +1,49 @@
+name: Format Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  format:
+    name: Apply Formatting
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply formatting
+        run: pnpm run format
+
+      - name: Commit formatting fixes
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes were needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "style: apply automated formatting"
+          git push origin HEAD:main

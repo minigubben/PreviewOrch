@@ -4,9 +4,6 @@ on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -37,9 +34,6 @@ jobs:
 
       - name: Run ESLint
         run: pnpm run lint
-
-      - name: Check formatting
-        run: pnpm run format:check
 
       - name: Run typecheck
         run: pnpm run typecheck
