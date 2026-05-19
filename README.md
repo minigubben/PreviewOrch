@@ -73,9 +73,9 @@ node -e 'console.log(require("bcryptjs").hashSync("change-me", 10))'
 ## Run
 
 ```bash
-npm install
-npm run build
-npm start
+pnpm install
+pnpm run build
+pnpm start
 ```
 
 Or start the full stack:
@@ -101,8 +101,8 @@ Handled PR actions:
 ## Tests
 
 ```bash
-npm run typecheck
-npm test
+pnpm run typecheck
+pnpm test
 ```
 
 ## Shell Scripts
@@ -110,7 +110,7 @@ npm test
 The scripts in `scripts/` can be checked with `shellcheck` and formatted with `shfmt` when those tools are installed:
 
 ```bash
-npm run lint:shell
-npm run format:shell:check
-npm run format:shell
+pnpm run lint:shell
+pnpm run format:shell:check
+pnpm run format:shell
 ```
