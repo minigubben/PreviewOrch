@@ -8,6 +8,7 @@ declare module "express-session" {
     };
     githubAppManifestState?: string | null;
     githubAppManifestOwnerType?: string | null;
+    githubAppOAuthState?: string | null;
   }
 }
 

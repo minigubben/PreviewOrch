@@ -1,14 +1,15 @@
 // @ts-nocheck
-import test from "node:test";
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import test from "node:test";
 
-import { buildDeploymentKey, buildPreviewHost, buildProjectName } from "../src/lib/utils.js";
 import {
+  buildWebhookContext,
   mapPullRequestAction,
   normalizeWebhookSecret,
   verifyGithubSignature,
 } from "../src/lib/github.js";
+import { buildDeploymentKey, buildPreviewHost, buildProjectName } from "../src/lib/utils.js";
 import { buildPullRequestPayload, signPayload } from "./helpers/test-app.js";
 
 test("buildPreviewHost creates the expected wildcard host", () => {
@@ -72,4 +73,38 @@ test("mapPullRequestAction matches the supported lifecycle events", () => {
   assert.equal(mapPullRequestAction("synchronize"), "deploy");
   assert.equal(mapPullRequestAction("closed"), "destroy");
   assert.equal(mapPullRequestAction("labeled"), null);
+});
+
+test("buildWebhookContext preserves installationId zero", () => {
+  const payload = {
+    action: "opened",
+    repository: {
+      full_name: "acme/widgets",
+      name: "widgets",
+      owner: {
+        login: "acme",
+      },
+    },
+    pull_request: {
+      number: 17,
+      head: {
+        ref: "feature/test",
+        sha: "abc123",
+        repo: {
+          full_name: "acme/widgets",
+        },
+      },
+      user: {
+        login: "octocat",
+      },
+    },
+    installation: {
+      id: 0,
+    },
+    sender: {
+      login: "octocat",
+    },
+  };
+  const context = buildWebhookContext(payload);
+  assert.equal(context.installationId, 0);
 });

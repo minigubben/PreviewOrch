@@ -1,11 +1,12 @@
 // @ts-nocheck
 import express from "express";
+import crypto from "node:crypto";
 
 import { requireAuth } from "../lib/auth.js";
 import { BRANDING } from "../lib/branding.js";
+import { buildInstallUrl } from "../lib/github-installation-resolver.js";
 import { asyncHandler, setNoStore } from "../lib/http.js";
 import { readLogTail } from "../lib/log-reader.js";
-import { buildInstallUrl } from "../lib/github-installation-resolver.js";
 
 function createUiRouter({ clientAssets, config, deploymentService, repoStore, githubAppStore }) {
   const router = express.Router();
@@ -22,12 +23,14 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
       ]);
 
       setNoStore(res);
+      const githubAppOAuthState = crypto.randomBytes(24).toString("hex");
+      req.session.githubAppOAuthState = githubAppOAuthState;
       return res.render("dashboard", {
         repos,
         deployments,
         appLogTail: eventsLog,
         githubApp,
-        githubAppInstallUrl: buildInstallUrl(githubApp?.slug),
+        githubAppInstallUrl: buildInstallUrl(githubApp?.slug, githubAppOAuthState),
         githubAppSettingsUrl: buildGithubAppSettingsUrl(githubApp),
         allowedRepositories: buildAllowedRepositories(githubApp),
         clientAssets,

@@ -81,7 +81,7 @@ function buildWebhookContext(payload) {
   return {
     action: payload.action,
     mappedAction: mapPullRequestAction(payload.action),
-    installationId: Number(payload.installation?.id) || null,
+    installationId: payload.installation?.id != null ? Number(payload.installation.id) : null,
     repoFullName: baseRepo.full_name,
     repoOwner: baseRepo.owner?.login,
     repoName: baseRepo.name,

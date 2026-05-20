@@ -193,11 +193,18 @@ function findInstallationForOwner(
   );
 }
 
-function buildInstallUrl(slug: string): string {
+function buildInstallUrl(slug: string, state?: string): string {
   if (!slug) {
     return "";
   }
-  return `https://github.com/apps/${slug}/installations/new`;
+
+  const baseUrl = `https://github.com/apps/${slug}/installations/new`;
+  const normalizedState = String(state || "").trim();
+  if (!normalizedState) {
+    return baseUrl;
+  }
+
+  return `${baseUrl}?state=${encodeURIComponent(normalizedState)}`;
 }
 
 export { buildInstallUrl, GithubInstallationResolver };

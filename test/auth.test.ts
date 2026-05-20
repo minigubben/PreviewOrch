@@ -1,6 +1,6 @@
 // @ts-nocheck
-import test from "node:test";
 import assert from "node:assert/strict";
+import test from "node:test";
 import request from "supertest";
 
 import { createRepo, invoke } from "./helpers/app-test-helpers.js";
@@ -106,7 +106,10 @@ test("GitHub App manifest can target an organization owner", async () => {
     });
 
   assert.equal(response.status, 200);
-  assert.match(response.text, /https:\/\/github\.com\/organizations\/acme-org\/settings\/apps\/new/);
+  assert.match(
+    response.text,
+    /https:\/\/github\.com\/organizations\/acme-org\/settings\/apps\/new/,
+  );
 });
 
 test("dashboard shows configured GitHub App state and refresh controls", async () => {
@@ -119,6 +122,47 @@ test("dashboard shows configured GitHub App state and refresh controls", async (
   assert.match(dashboard.text, /Refresh GitHub access/);
   assert.match(dashboard.text, /Configure repo access/);
   assert.match(dashboard.text, /Upload logo on GitHub/);
+});
+
+test("GitHub App OAuth callback rejects missing or invalid state", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+
+  const missingState = await context.agent.get("/github-app/oauth/callback?code=fake-code");
+  assert.equal(missingState.status, 400);
+  assert.match(missingState.text, /Invalid GitHub OAuth state/);
+
+  await context.agent.get("/");
+  const invalidState = await context.agent.get(
+    "/github-app/oauth/callback?code=fake-code&state=wrong-state",
+  );
+  assert.equal(invalidState.status, 400);
+  assert.match(invalidState.text, /Invalid GitHub OAuth state/);
+});
+
+test("GitHub App OAuth callback accepts valid state once", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const dashboard = await context.agent.get("/");
+  const stateMatch = dashboard.text.match(/\/installations\/new\?state=([a-f0-9]+)/i);
+  assert.ok(stateMatch, "expected installation flow state in dashboard link");
+
+  const state = stateMatch[1];
+  const first = await context.agent.get(
+    `/github-app/oauth/callback?code=fake-code&state=${encodeURIComponent(state)}`,
+  );
+  assert.equal(first.status, 302);
+  assert.equal(first.headers.location, "/?status=github-app-installation-updated");
+
+  const replay = await context.agent.get(
+    `/github-app/oauth/callback?code=fake-code&state=${encodeURIComponent(state)}`,
+  );
+  assert.equal(replay.status, 400);
+  assert.match(replay.text, /Invalid GitHub OAuth state/);
 });
 
 test("allows login in production mode when session cookie secure is auto", async () => {
