@@ -1,20 +1,42 @@
-// @ts-nocheck
-import express from "express";
-import crypto from "node:crypto";
+import express, { type Request, type Response } from "express";
 
+import type { AppConfig, ClientAssets, GithubAppConfig } from "../types/domain.js";
+import type {
+  DeploymentServiceLike,
+  GithubAppStoreLike,
+  RepoStoreLike,
+} from "../types/services.js";
 import { requireAuth } from "../lib/auth.js";
 import { BRANDING } from "../lib/branding.js";
-import { buildInstallUrl } from "../lib/github-installation-resolver.js";
 import { asyncHandler, setNoStore } from "../lib/http.js";
 import { readLogTail } from "../lib/log-reader.js";
 
-function createUiRouter({ clientAssets, config, deploymentService, repoStore, githubAppStore }) {
+interface AllowedRepositoryOption {
+  value: string;
+  label: string;
+  installationId: number;
+  accountLogin: string;
+}
+
+function createUiRouter({
+  clientAssets,
+  config,
+  deploymentService,
+  repoStore,
+  githubAppStore,
+}: {
+  clientAssets?: ClientAssets;
+  config: AppConfig;
+  deploymentService: DeploymentServiceLike;
+  repoStore: RepoStoreLike;
+  githubAppStore: GithubAppStoreLike;
+}) {
   const router = express.Router();
 
   router.get(
     "/",
     requireAuth,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       const [repos, deployments, eventsLog, githubApp] = await Promise.all([
         repoStore.list(),
         deploymentService.listDeployments(),
@@ -23,14 +45,12 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
       ]);
 
       setNoStore(res);
-      const githubAppOAuthState = crypto.randomBytes(24).toString("hex");
-      req.session.githubAppOAuthState = githubAppOAuthState;
       return res.render("dashboard", {
         repos,
         deployments,
         appLogTail: eventsLog,
         githubApp,
-        githubAppInstallUrl: buildInstallUrl(githubApp?.slug, githubAppOAuthState),
+        githubAppInstallUrl: githubApp?.slug ? "/github-app/install/start" : "",
         githubAppSettingsUrl: buildGithubAppSettingsUrl(githubApp),
         allowedRepositories: buildAllowedRepositories(githubApp),
         clientAssets,
@@ -46,7 +66,7 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
   router.get(
     "/ui/repo-config",
     requireAuth,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const githubApp = await githubAppStore.getGithubApp();
       setNoStore(res);
       return res.render("partials/repo-config", {
@@ -60,7 +80,7 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
   router.get(
     "/ui/deployments",
     requireAuth,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       setNoStore(res);
       return res.render("partials/deployments-panel", {
         deployments: await deploymentService.listDeployments(),
@@ -71,9 +91,7 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
   return router;
 }
 
-export { createUiRouter };
-
-function getStatusMessage(status) {
+function getStatusMessage(status: unknown): string {
   if (status === "github-app-created") {
     return "GitHub App created. Install it on the repos you want PreviewOrch to manage.";
   }
@@ -83,10 +101,10 @@ function getStatusMessage(status) {
   return "";
 }
 
-function buildAllowedRepositories(githubApp) {
+function buildAllowedRepositories(githubApp: GithubAppConfig | null): AllowedRepositoryOption[] {
   return (githubApp?.installations || [])
     .flatMap((installation) =>
-      (installation.repositories || []).map((repository) => ({
+      installation.repositories.map((repository) => ({
         value: repository.fullName,
         label: repository.fullName,
         installationId: installation.id,
@@ -96,7 +114,7 @@ function buildAllowedRepositories(githubApp) {
     .sort((left, right) => left.label.localeCompare(right.label));
 }
 
-function buildGithubAppSettingsUrl(githubApp) {
+function buildGithubAppSettingsUrl(githubApp: GithubAppConfig | null): string {
   if (!githubApp?.slug) {
     return "";
   }
@@ -108,3 +126,5 @@ function buildGithubAppSettingsUrl(githubApp) {
 
   return `https://github.com/settings/apps/${encodeURIComponent(githubApp.slug)}`;
 }
+
+export { createUiRouter };

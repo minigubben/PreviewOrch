@@ -134,7 +134,8 @@ test("GitHub App OAuth callback rejects missing or invalid state", async () => {
   assert.equal(missingState.status, 400);
   assert.match(missingState.text, /Invalid GitHub OAuth state/);
 
-  await context.agent.get("/");
+  const installStart = await context.agent.get("/github-app/install/start");
+  assert.equal(installStart.status, 302);
   const invalidState = await context.agent.get(
     "/github-app/oauth/callback?code=fake-code&state=wrong-state",
   );
@@ -147,11 +148,13 @@ test("GitHub App OAuth callback accepts valid state once", async () => {
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
-  const dashboard = await context.agent.get("/");
-  const stateMatch = dashboard.text.match(/\/installations\/new\?state=([a-f0-9]+)/i);
-  assert.ok(stateMatch, "expected installation flow state in dashboard link");
+  const installStart = await context.agent.get("/github-app/install/start");
+  assert.equal(installStart.status, 302);
+  const location = installStart.headers.location || "";
+  const stateMatch = location.match(/[?&]state=([a-f0-9]+)/i);
+  assert.ok(stateMatch, "expected installation flow state in install redirect");
 
-  const state = stateMatch[1];
+  const state = stateMatch[1] as string;
   const first = await context.agent.get(
     `/github-app/oauth/callback?code=fake-code&state=${encodeURIComponent(state)}`,
   );
@@ -163,6 +166,34 @@ test("GitHub App OAuth callback accepts valid state once", async () => {
   );
   assert.equal(replay.status, 400);
   assert.match(replay.text, /Invalid GitHub OAuth state/);
+});
+
+test("GitHub App install start supports concurrent states across multiple tabs", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const firstStart = await context.agent.get("/github-app/install/start");
+  const secondStart = await context.agent.get("/github-app/install/start");
+
+  assert.equal(firstStart.status, 302);
+  assert.equal(secondStart.status, 302);
+
+  const firstState = (firstStart.headers.location || "").match(/[?&]state=([a-f0-9]+)/i)?.[1];
+  const secondState = (secondStart.headers.location || "").match(/[?&]state=([a-f0-9]+)/i)?.[1];
+  assert.ok(firstState);
+  assert.ok(secondState);
+  assert.notEqual(firstState, secondState);
+
+  const firstCallback = await context.agent.get(
+    `/github-app/oauth/callback?code=fake-code&state=${encodeURIComponent(firstState)}`,
+  );
+  const secondCallback = await context.agent.get(
+    `/github-app/oauth/callback?code=fake-code&state=${encodeURIComponent(secondState)}`,
+  );
+
+  assert.equal(firstCallback.status, 302);
+  assert.equal(secondCallback.status, 302);
 });
 
 test("allows login in production mode when session cookie secure is auto", async () => {

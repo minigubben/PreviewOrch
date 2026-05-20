@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 
 import { requireAuth, verifyCsrfToken } from "../lib/auth.js";
 import { BRANDING } from "../lib/branding.js";
+import { buildInstallUrl } from "../lib/github-installation-resolver.js";
 import { asyncHandler } from "../lib/http.js";
 import type { AppConfig, GithubAppManifest } from "../types/domain.js";
 import type {
@@ -83,17 +84,13 @@ function createGithubAppRouter({
     asyncHandler(async (req: Request, res: Response) => {
       const code = String(req.query.code || "").trim();
       const state = String(req.query.state || "").trim();
-      const expectedState = String(req.session.githubAppOAuthState || "").trim();
       if (!code) {
         return res.status(400).send("Missing GitHub OAuth code.");
       }
 
-      if (!state || !expectedState || state !== expectedState) {
+      if (!consumeGithubAppOAuthState(req, state)) {
         return res.status(400).send("Invalid GitHub OAuth state.");
       }
-
-      // Invalidate the one-time state after successful verification to prevent replay.
-      req.session.githubAppOAuthState = null;
 
       const githubApp = await githubAppStore.getGithubApp();
       if (!githubApp?.clientId || !githubApp?.clientSecret) {
@@ -112,6 +109,25 @@ function createGithubAppRouter({
       );
 
       return res.redirect("/?status=github-app-installation-updated");
+    }),
+  );
+
+  router.get(
+    "/github-app/install/start",
+    requireAuth,
+    asyncHandler(async (req: Request, res: Response) => {
+      const githubApp = await githubAppStore.getGithubApp();
+      if (!githubApp?.slug) {
+        return res.status(400).send("GitHub App is not configured.");
+      }
+
+      const state = crypto.randomBytes(24).toString("hex");
+      const existingStates = Array.isArray(req.session.githubAppOAuthStates)
+        ? req.session.githubAppOAuthStates
+        : [];
+      req.session.githubAppOAuthStates = [...existingStates, state].slice(-10);
+
+      return res.redirect(buildInstallUrl(githubApp.slug, state));
     }),
   );
 
@@ -194,6 +210,24 @@ function normalizeOrganizationLogin(value: unknown): string {
   }
 
   return normalized;
+}
+
+function consumeGithubAppOAuthState(req: Request, state: string): boolean {
+  const normalizedState = String(state || "").trim();
+  if (!normalizedState) {
+    return false;
+  }
+
+  const existingStates = Array.isArray(req.session.githubAppOAuthStates)
+    ? req.session.githubAppOAuthStates
+    : [];
+  const matchIndex = existingStates.indexOf(normalizedState);
+  if (matchIndex === -1) {
+    return false;
+  }
+
+  req.session.githubAppOAuthStates = existingStates.filter((_value, index) => index !== matchIndex);
+  return true;
 }
 
 export { createGithubAppRouter };
