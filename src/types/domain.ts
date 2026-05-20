@@ -11,6 +11,132 @@ export interface ClientAssets {
   css: string[];
 }
 
+export interface GithubAppRepository {
+  id: number | null;
+  name: string;
+  ownerLogin: string;
+  fullName: string;
+  private: boolean;
+}
+
+export interface GithubAppInstallation {
+  id: number;
+  accountLogin: string;
+  targetType: string;
+  repositorySelection: string;
+  permissions: Record<string, string>;
+  events: string[];
+  htmlUrl: string;
+  repositoriesUrl: string;
+  suspendedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  repositories: GithubAppRepository[];
+}
+
+export interface GithubAppConfig {
+  appId: number;
+  clientId: string;
+  clientSecret: string;
+  privateKeyPem: string;
+  webhookSecret: string;
+  slug: string;
+  name: string;
+  ownerLogin: string;
+  ownerType: string;
+  createdAt: string;
+  updatedAt: string;
+  installations: GithubAppInstallation[];
+}
+
+export interface AppSettings {
+  createdAt: string;
+  updatedAt: string;
+  baseDomain: string;
+  orchestratorPublicUrl: string;
+  traefikNetworkName: string;
+  sourceOfTruth: string;
+  githubApp: GithubAppConfig | null;
+}
+
+export interface GithubAppManifest {
+  name: string;
+  url: string;
+  redirect_url: string;
+  callback_urls: string[];
+  description: string;
+  public: boolean;
+  default_events: string[];
+  default_permissions: Record<string, string>;
+  hook_attributes: {
+    url: string;
+    active: boolean;
+  };
+  request_oauth_on_install: boolean;
+}
+
+export interface GithubAppManifestConversion {
+  id: number;
+  client_id: string;
+  client_secret: string;
+  pem: string;
+  webhook_secret: string;
+  slug: string;
+  name: string;
+  owner?: {
+    login?: string;
+    type?: string;
+  };
+}
+
+export interface GithubOAuthTokenResponse {
+  access_token: string;
+  token_type?: string;
+  scope?: string;
+}
+
+export interface GithubInstallationAccessTokenResponse {
+  token: string;
+  expires_at: string;
+}
+
+export interface GithubIssueComment {
+  id: number;
+  body: string;
+}
+
+export interface GithubAppInstallationApiRecord {
+  id: number;
+  account?: {
+    login?: string;
+  };
+  target_type?: string;
+  repository_selection?: string;
+  permissions?: Record<string, string>;
+  events?: string[];
+  html_url?: string;
+  repositories_url?: string;
+  suspended_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  repositories?: Array<
+    GithubAppRepositoryApiRecord & {
+      fullName?: string;
+      ownerLogin?: string;
+    }
+  >;
+}
+
+export interface GithubAppRepositoryApiRecord {
+  id?: number;
+  name?: string;
+  full_name?: string;
+  private?: boolean;
+  owner?: {
+    login?: string;
+  };
+}
+
 export interface AppConfig {
   port: number;
   baseDomain: string;

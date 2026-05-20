@@ -1,7 +1,12 @@
-// @ts-nocheck
-import express from "express";
 import crypto from "node:crypto";
+import express, { type Request, type Response } from "express";
 
+import type { AppConfig, GithubAppManifest } from "../types/domain.js";
+import type {
+  GithubAppClientLike,
+  GithubAppStoreLike,
+  GithubInstallationResolverLike,
+} from "../types/services.js";
 import { requireAuth, verifyCsrfToken } from "../lib/auth.js";
 import { BRANDING } from "../lib/branding.js";
 import { asyncHandler } from "../lib/http.js";
@@ -11,6 +16,11 @@ function createGithubAppRouter({
   githubAppClient,
   githubAppStore,
   githubInstallationResolver,
+}: {
+  config: AppConfig;
+  githubAppClient: GithubAppClientLike;
+  githubAppStore: GithubAppStoreLike;
+  githubInstallationResolver: GithubInstallationResolverLike;
 }) {
   const router = express.Router();
 
@@ -18,7 +28,7 @@ function createGithubAppRouter({
     "/api/github-app/manifest",
     requireAuth,
     verifyCsrfToken,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       const state = crypto.randomBytes(24).toString("hex");
       const organizationLogin = normalizeOrganizationLogin(req.body.organizationLogin);
       req.session.githubAppManifestState = state;
@@ -40,10 +50,10 @@ function createGithubAppRouter({
 
   router.get(
     "/github-app/manifest/callback",
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       const code = String(req.query.code || "").trim();
       const state = String(req.query.state || "").trim();
-      if (!code || !state || state !== req.session.githubAppManifestState) {
+      if (!code || !state || state !== (req.session.githubAppManifestState || "")) {
         return res.status(400).send("Invalid GitHub App manifest state.");
       }
 
@@ -70,7 +80,7 @@ function createGithubAppRouter({
 
   router.get(
     "/github-app/oauth/callback",
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (req: Request, res: Response) => {
       const code = String(req.query.code || "").trim();
       if (!code) {
         return res.status(400).send("Missing GitHub OAuth code.");
@@ -100,11 +110,11 @@ function createGithubAppRouter({
     "/api/github-app/installations/refresh",
     requireAuth,
     verifyCsrfToken,
-    asyncHandler(async (req, res) => {
+    asyncHandler(async (_req: Request, res: Response) => {
       const githubApp = await githubInstallationResolver.refreshInstallationsUsingApp();
       res.json({
         ok: true,
-        installationCount: githubApp?.installations?.length || 0,
+        installationCount: githubApp.installations.length,
       });
     }),
   );
@@ -112,7 +122,13 @@ function createGithubAppRouter({
   return router;
 }
 
-function renderAutoSubmitHtml({ action, manifest }) {
+function renderAutoSubmitHtml({
+  action,
+  manifest,
+}: {
+  action: string;
+  manifest: GithubAppManifest;
+}): string {
   const manifestValue = JSON.stringify(manifest);
   return `<!DOCTYPE html>
 <html lang="en">
@@ -130,7 +146,7 @@ function renderAutoSubmitHtml({ action, manifest }) {
 </html>`;
 }
 
-function escapeAttribute(value) {
+function escapeAttribute(value: string): string {
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
@@ -139,26 +155,34 @@ function escapeAttribute(value) {
     .replace(/>/g, "&gt;");
 }
 
-export { createGithubAppRouter };
-
-function buildManifestActionUrl({ state, organizationLogin }) {
+function buildManifestActionUrl({
+  state,
+  organizationLogin,
+}: {
+  state: string;
+  organizationLogin: string;
+}): string {
   const baseUrl = organizationLogin
     ? `https://github.com/organizations/${encodeURIComponent(organizationLogin)}/settings/apps/new`
     : "https://github.com/settings/apps/new";
   return `${baseUrl}?state=${encodeURIComponent(state)}`;
 }
 
-function normalizeOrganizationLogin(value) {
+function normalizeOrganizationLogin(value: unknown): string {
   const normalized = String(value || "").trim();
   if (!normalized) {
     return "";
   }
 
   if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/i.test(normalized)) {
-    const error = new Error("organizationLogin must be a valid GitHub organization login.");
+    const error = new Error("organizationLogin must be a valid GitHub organization login.") as Error & {
+      statusCode?: number;
+    };
     error.statusCode = 400;
     throw error;
   }
 
   return normalized;
 }
+
+export { createGithubAppRouter };

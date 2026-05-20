@@ -1,17 +1,30 @@
-// @ts-nocheck
 import fs from "node:fs/promises";
 import path from "node:path";
 
 import { formatTimestamp } from "./utils.js";
 
+interface LoggerEntry {
+  timestamp: string;
+  level: "info" | "warn" | "error";
+  message: string;
+  context: Record<string, unknown>;
+}
+
 class Logger {
-  constructor({ appLogFile, eventsLogFile }) {
+  appLogFile: string;
+  eventsLogFile: string;
+
+  constructor({ appLogFile, eventsLogFile }: { appLogFile: string; eventsLogFile: string }) {
     this.appLogFile = appLogFile;
     this.eventsLogFile = eventsLogFile;
   }
 
-  async log(level, message, context = {}) {
-    const entry = {
+  async log(
+    level: LoggerEntry["level"],
+    message: string,
+    context: Record<string, unknown> = {},
+  ): Promise<void> {
+    const entry: LoggerEntry = {
       timestamp: formatTimestamp(),
       level,
       message,
@@ -30,15 +43,15 @@ class Logger {
     ]);
   }
 
-  info(message, context) {
+  info(message: string, context?: Record<string, unknown>): Promise<void> {
     return this.log("info", message, context);
   }
 
-  warn(message, context) {
+  warn(message: string, context?: Record<string, unknown>): Promise<void> {
     return this.log("warn", message, context);
   }
 
-  error(message, context) {
+  error(message: string, context?: Record<string, unknown>): Promise<void> {
     return this.log("error", message, context);
   }
 }
