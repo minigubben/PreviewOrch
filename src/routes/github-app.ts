@@ -1,12 +1,17 @@
 // @ts-nocheck
-import crypto from "node:crypto";
 import express from "express";
+import crypto from "node:crypto";
 
 import { requireAuth, verifyCsrfToken } from "../lib/auth.js";
-import { asyncHandler } from "../lib/http.js";
 import { BRANDING } from "../lib/branding.js";
+import { asyncHandler } from "../lib/http.js";
 
-function createGithubAppRouter({ config, githubAppClient, githubAppStore, githubInstallationResolver }) {
+function createGithubAppRouter({
+  config,
+  githubAppClient,
+  githubAppStore,
+  githubInstallationResolver,
+}) {
   const router = express.Router();
 
   router.post(
@@ -24,10 +29,12 @@ function createGithubAppRouter({ config, githubAppClient, githubAppStore, github
       });
 
       res.type("html");
-      res.send(renderAutoSubmitHtml({
-        action: buildManifestActionUrl({ state, organizationLogin }),
-        manifest,
-      }));
+      res.send(
+        renderAutoSubmitHtml({
+          action: buildManifestActionUrl({ state, organizationLogin }),
+          manifest,
+        }),
+      );
     }),
   );
 
@@ -127,6 +134,7 @@ function escapeAttribute(value) {
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
