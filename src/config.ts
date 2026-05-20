@@ -117,7 +117,7 @@ function normalizeTrustProxy(value) {
     return Number(normalized);
   }
 
-  return String(value).trim();
+  return normalized;
 }
 
 export { getConfig };
