@@ -40,6 +40,7 @@ async function createTestContext(options = {}) {
     ORCHESTRATOR_PUBLIC_URL:
       options.orchestratorPublicUrl || "https://previeworch.preview.example.com",
     NODE_ENV: options.nodeEnv || "test",
+    TRUST_PROXY: options.trustProxy,
     DOCKER_SOCKET_PATH: path.join(root, "docker.sock"),
   });
 

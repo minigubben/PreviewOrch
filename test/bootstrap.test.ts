@@ -52,6 +52,14 @@ test("bootstrapFilesystem keeps settings.json aligned with environment config", 
     });
 
     assert.equal(explicit.orchestratorPublicUrl, "https://internal.example.net/orchestrator");
+    assert.equal(explicit.trustProxy, true);
+
+    const trustProxyDisabled = getConfig({
+      cwd: process.cwd(),
+      DATA_ROOT: path.join(root, "data"),
+      TRUST_PROXY: "false",
+    });
+    assert.equal(trustProxyDisabled.trustProxy, false);
   } finally {
     await fs.rm(root, { recursive: true, force: true });
   }
