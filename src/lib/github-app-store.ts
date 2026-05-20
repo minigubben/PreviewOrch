@@ -8,7 +8,10 @@ import type {
 import { readJson, writeJson } from "./json-file.js";
 import { formatTimestamp } from "./utils.js";
 
-function buildSettingsSnapshot(config: AppConfig, existing: Partial<AppSettings> = {}): AppSettings {
+function buildSettingsSnapshot(
+  config: AppConfig,
+  existing: Partial<AppSettings> = {},
+): AppSettings {
   return {
     createdAt: existing.createdAt || formatTimestamp(),
     updatedAt: formatTimestamp(),

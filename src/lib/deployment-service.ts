@@ -255,14 +255,7 @@ class DeploymentService {
     }
   }
 
-  async deployTarget({
-    repo,
-    targetType,
-    targetValue,
-    targetBranch,
-    targetSha,
-    lastEvent,
-  }) {
+  async deployTarget({ repo, targetType, targetValue, targetBranch, targetSha, lastEvent }) {
     const existing = await this.deploymentStore.getById(
       `${repo.id}-${buildDeploymentKey(targetType, targetValue)}`,
     );

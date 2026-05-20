@@ -33,21 +33,19 @@ class FakeGithubAppClient {
     convertedManifest?: GithubAppManifestConversion | null;
   } = {}) {
     this.installations = installations;
-    this.convertedManifest =
-      convertedManifest ||
-      {
-        id: 123,
-        client_id: "Iv1.fakeclient",
-        client_secret: "fake-client-secret",
-        pem: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
-        webhook_secret: "webhook-secret",
-        slug: "previeworch",
-        name: "PreviewOrch",
-        owner: {
-          login: "previeworch-owner",
-          type: "User",
-        },
-      };
+    this.convertedManifest = convertedManifest || {
+      id: 123,
+      client_id: "Iv1.fakeclient",
+      client_secret: "fake-client-secret",
+      pem: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
+      webhook_secret: "webhook-secret",
+      slug: "previeworch",
+      name: "PreviewOrch",
+      owner: {
+        login: "previeworch-owner",
+        type: "User",
+      },
+    };
     this.tokens = new Map();
     this.comments = new Map();
     this.commentWrites = [];

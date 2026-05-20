@@ -48,7 +48,9 @@ class GithubPullRequestCommentPublisher {
         issueNumber: metadata.prNumber,
         token: access.token,
       });
-      const existing = comments.find((comment) => String(comment.body || "").includes(STICKY_MARKER));
+      const existing = comments.find((comment) =>
+        String(comment.body || "").includes(STICKY_MARKER),
+      );
       const body = this.buildBody(metadata, { state, description });
 
       if (existing?.id) {

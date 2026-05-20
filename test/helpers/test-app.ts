@@ -51,7 +51,8 @@ async function createTestContext(options = {}) {
     deployDelayMs: options.deployDelayMs || 0,
   });
   const runtimeInspector = options.runtimeInspector || new FakeRuntimeInspector();
-  const githubAppStore = options.githubAppStore || new GithubAppStore({ settingsFile: config.settingsFile });
+  const githubAppStore =
+    options.githubAppStore || new GithubAppStore({ settingsFile: config.settingsFile });
   const githubAppClient =
     options.githubAppClient ||
     new FakeGithubAppClient({

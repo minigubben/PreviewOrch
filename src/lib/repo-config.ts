@@ -32,7 +32,9 @@ function normalizeRepoInput(input = {}) {
     id: input.id,
     owner: identity?.owner || "",
     name: identity?.name || "",
-    repository: identity ? `${identity.owner}/${identity.name}` : String(input.repository || "").trim(),
+    repository: identity
+      ? `${identity.owner}/${identity.name}`
+      : String(input.repository || "").trim(),
     composePath: String(input.composePath || "").trim(),
     workingDirectory: normalizeWorkingDirectory(input.workingDirectory),
     publicService: String(input.publicService || "").trim(),

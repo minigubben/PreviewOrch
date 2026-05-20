@@ -109,7 +109,9 @@ class GithubAppClient {
     return Array.isArray(response.installations) ? response.installations : [];
   }
 
-  async listAppInstallations(githubApp: GithubAppConfig): Promise<GithubAppInstallationApiRecord[]> {
+  async listAppInstallations(
+    githubApp: GithubAppConfig,
+  ): Promise<GithubAppInstallationApiRecord[]> {
     const jwt = this.createAppJwt(githubApp);
     const response = await this.request<GithubAppInstallationApiRecord[]>("/app/installations", {
       token: jwt,
@@ -187,11 +189,14 @@ class GithubAppClient {
     token: string;
     body: string;
   }): Promise<GithubIssueComment> {
-    return this.request<GithubIssueComment>(`/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
-      method: "POST",
-      token,
-      body: { body },
-    });
+    return this.request<GithubIssueComment>(
+      `/repos/${owner}/${repo}/issues/${issueNumber}/comments`,
+      {
+        method: "POST",
+        token,
+        body: { body },
+      },
+    );
   }
 
   async updateIssueComment({
@@ -207,20 +212,19 @@ class GithubAppClient {
     token: string;
     body: string;
   }): Promise<GithubIssueComment> {
-    return this.request<GithubIssueComment>(`/repos/${owner}/${repo}/issues/comments/${commentId}`, {
-      method: "PATCH",
-      token,
-      body: { body },
-    });
+    return this.request<GithubIssueComment>(
+      `/repos/${owner}/${repo}/issues/comments/${commentId}`,
+      {
+        method: "PATCH",
+        token,
+        body: { body },
+      },
+    );
   }
 
   async request<T>(
     path: string,
-    {
-      method = "GET",
-      token,
-      body,
-    }: { method?: string; token: string; body?: unknown },
+    { method = "GET", token, body }: { method?: string; token: string; body?: unknown },
   ): Promise<T> {
     return this.rawRequest<T>(`${this.apiBaseUrl}${path}`, {
       method,
@@ -234,7 +238,10 @@ class GithubAppClient {
     });
   }
 
-  async rawRequest<T>(url: string, { method = "GET", headers = {}, body }: RawRequestOptions = {}): Promise<T> {
+  async rawRequest<T>(
+    url: string,
+    { method = "GET", headers = {}, body }: RawRequestOptions = {},
+  ): Promise<T> {
     const init: RequestInit = {
       method,
       headers,
@@ -253,7 +260,9 @@ class GithubAppClient {
       if (errorText.length > 200) {
         errorText = `${errorText.slice(0, 200)}...`;
       }
-      const error = new Error(`${method} ${url} failed with ${response.status}: ${errorText}`) as Error & {
+      const error = new Error(
+        `${method} ${url} failed with ${response.status}: ${errorText}`,
+      ) as Error & {
         status?: number;
       };
       error.status = response.status;

@@ -16,9 +16,11 @@ function buildAppServices({ config, services = {} }) {
     services.logger ||
     new Logger({ appLogFile: config.appLogFile, eventsLogFile: config.eventsLogFile });
   const scriptRunner = services.scriptRunner || new ScriptRunner({ logger });
-  const githubAppStore = services.githubAppStore || new GithubAppStore({ settingsFile: config.settingsFile });
+  const githubAppStore =
+    services.githubAppStore || new GithubAppStore({ settingsFile: config.settingsFile });
   const githubAppClient =
-    services.githubAppClient || new GithubAppClient({ apiBaseUrl: config.githubApiBaseUrl, logger });
+    services.githubAppClient ||
+    new GithubAppClient({ apiBaseUrl: config.githubApiBaseUrl, logger });
   const githubInstallationResolver =
     services.githubInstallationResolver ||
     new GithubInstallationResolver({
