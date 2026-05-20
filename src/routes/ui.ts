@@ -28,6 +28,8 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
         appLogTail: eventsLog,
         githubApp,
         githubAppInstallUrl: buildInstallUrl(githubApp?.slug),
+        githubAppSettingsUrl: buildGithubAppSettingsUrl(githubApp),
+        allowedRepositories: buildAllowedRepositories(githubApp),
         clientAssets,
         brand: BRANDING,
         baseDomain: config.baseDomain,
@@ -42,10 +44,12 @@ function createUiRouter({ clientAssets, config, deploymentService, repoStore, gi
     "/ui/repo-config",
     requireAuth,
     asyncHandler(async (req, res) => {
+      const githubApp = await githubAppStore.getGithubApp();
       setNoStore(res);
       return res.render("partials/repo-config", {
         repos: await repoStore.list(),
-        githubApp: await githubAppStore.getGithubApp(),
+        githubApp,
+        allowedRepositories: buildAllowedRepositories(githubApp),
       });
     }),
   );
@@ -74,4 +78,30 @@ function getStatusMessage(status) {
     return "GitHub App installation access refreshed.";
   }
   return "";
+}
+
+function buildAllowedRepositories(githubApp) {
+  return (githubApp?.installations || [])
+    .flatMap((installation) =>
+      (installation.repositories || []).map((repository) => ({
+        value: repository.fullName,
+        label: repository.fullName,
+        installationId: installation.id,
+        accountLogin: installation.accountLogin || "",
+      })),
+    )
+    .sort((left, right) => left.label.localeCompare(right.label));
+}
+
+function buildGithubAppSettingsUrl(githubApp) {
+  if (!githubApp?.slug) {
+    return "";
+  }
+
+  const ownerType = String(githubApp.ownerType || "").toLowerCase();
+  if (ownerType === "organization" && githubApp.ownerLogin) {
+    return `https://github.com/organizations/${encodeURIComponent(githubApp.ownerLogin)}/settings/apps/${encodeURIComponent(githubApp.slug)}`;
+  }
+
+  return `https://github.com/settings/apps/${encodeURIComponent(githubApp.slug)}`;
 }

@@ -14,6 +14,7 @@ class FakeGithubAppClient {
         name: "PreviewOrch",
         owner: {
           login: "previeworch-owner",
+          type: "User",
         },
       };
     this.tokens = new Map();

@@ -15,7 +15,9 @@ function createGithubAppRouter({ config, githubAppClient, githubAppStore, github
     verifyCsrfToken,
     asyncHandler(async (req, res) => {
       const state = crypto.randomBytes(24).toString("hex");
+      const organizationLogin = normalizeOrganizationLogin(req.body.organizationLogin);
       req.session.githubAppManifestState = state;
+      req.session.githubAppManifestOwnerType = organizationLogin ? "organization" : "user";
       const manifest = githubAppClient.buildManifest({
         orchestratorPublicUrl: config.orchestratorPublicUrl,
         appName: BRANDING.name,
@@ -23,7 +25,7 @@ function createGithubAppRouter({ config, githubAppClient, githubAppStore, github
 
       res.type("html");
       res.send(renderAutoSubmitHtml({
-        action: `https://github.com/settings/apps/new?state=${encodeURIComponent(state)}`,
+        action: buildManifestActionUrl({ state, organizationLogin }),
         manifest,
       }));
     }),
@@ -50,9 +52,11 @@ function createGithubAppRouter({ config, githubAppClient, githubAppStore, github
         slug: converted.slug,
         name: converted.name,
         ownerLogin: converted.owner?.login || "",
+        ownerType: converted.owner?.type || req.session.githubAppManifestOwnerType || "User",
         installations: [],
       });
 
+      req.session.githubAppManifestOwnerType = null;
       return res.redirect("/?status=github-app-created");
     }),
   );
@@ -128,3 +132,25 @@ function escapeAttribute(value) {
 }
 
 export { createGithubAppRouter };
+
+function buildManifestActionUrl({ state, organizationLogin }) {
+  const baseUrl = organizationLogin
+    ? `https://github.com/organizations/${encodeURIComponent(organizationLogin)}/settings/apps/new`
+    : "https://github.com/settings/apps/new";
+  return `${baseUrl}?state=${encodeURIComponent(state)}`;
+}
+
+function normalizeOrganizationLogin(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return "";
+  }
+
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/i.test(normalized)) {
+    const error = new Error("organizationLogin must be a valid GitHub organization login.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return normalized;
+}
