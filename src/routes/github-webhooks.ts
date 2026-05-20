@@ -4,18 +4,23 @@ import express from "express";
 import { asyncHandler } from "../lib/http.js";
 import { buildWebhookContext, verifyGithubSignature } from "../lib/github.js";
 
-function createGithubWebhookRouter({ config, deploymentService, logger }) {
+function createGithubWebhookRouter({ githubAppStore, deploymentService, logger }) {
   const router = express.Router();
 
   router.post(
     "/webhooks/github",
     express.raw({ type: "application/json" }),
     asyncHandler(async (req, res) => {
+      const githubApp = await githubAppStore.getGithubApp();
+      if (!githubApp?.webhookSecret) {
+        return res.status(503).json({ error: "GitHub App is not configured." });
+      }
+
       const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from("");
       const signature = req.get("x-hub-signature-256") || req.get("x-hub-signature");
       const eventName = req.get("x-github-event");
 
-      if (!verifyGithubSignature(rawBody, signature, config.githubWebhookSecret)) {
+      if (!verifyGithubSignature(rawBody, signature, githubApp.webhookSecret)) {
         await logger.warn("Rejected webhook due to invalid signature");
         return res.status(401).json({ error: "Invalid signature." });
       }

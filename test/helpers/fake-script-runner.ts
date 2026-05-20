@@ -140,7 +140,6 @@ class FakeScriptRunner {
         workingDirectory: env.WORKING_DIRECTORY || ".",
         projectDirectoryResolved,
         composePathResolved,
-        sourceCloneSshUrl: env.SOURCE_CLONE_SSH_URL,
         envFile,
         proxyOverridePath: env.APPEND_PROXY_SETTINGS === "true" ? proxyOverridePath : "",
         logFile: env.LOG_FILE || "",
@@ -148,7 +147,6 @@ class FakeScriptRunner {
         publicService: env.PUBLIC_SERVICE,
         appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
         extraEnv,
-        githubDeployment: null,
       })}\n`,
       stderr: "",
       parsed: {
@@ -169,7 +167,6 @@ class FakeScriptRunner {
         workingDirectory: env.WORKING_DIRECTORY || ".",
         projectDirectoryResolved,
         composePathResolved,
-        sourceCloneSshUrl: env.SOURCE_CLONE_SSH_URL,
         envFile,
         proxyOverridePath: env.APPEND_PROXY_SETTINGS === "true" ? proxyOverridePath : "",
         logFile: env.LOG_FILE || "",
@@ -177,7 +174,6 @@ class FakeScriptRunner {
         publicService: env.PUBLIC_SERVICE,
         appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
         extraEnv,
-        githubDeployment: null,
       },
     };
   }

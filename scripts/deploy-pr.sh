@@ -9,7 +9,10 @@ required_vars=(
   REPO_OWNER
   REPO_NAME
   REPO_SLUG
-  SOURCE_CLONE_SSH_URL
+  REPO_FULL_NAME
+  GITHUB_REPO_URL
+  GITHUB_INSTALLATION_ID
+  GITHUB_INSTALLATION_TOKEN
   COMPOSE_PATH
   WORKING_DIRECTORY
   PUBLIC_SERVICE
@@ -28,14 +31,20 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
-# Prefer a repo-specific SSH key when the app has mounted one for deployment.
-if [[ -n "${SSH_DIR:-}" ]]; then
-  if [[ -f "${SSH_DIR}/id_ed25519" ]]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-  elif [[ -f "${SSH_DIR}/id_rsa" ]]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-  fi
-fi
+askpass_root="$(mktemp -d)"
+askpass_path="${askpass_root}/git-askpass.sh"
+
+cat >"${askpass_path}" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  *Username*) printf '%s\n' "x-access-token" ;;
+  *Password*) printf '%s\n' "${GITHUB_INSTALLATION_TOKEN}" ;;
+  *) printf '\n' ;;
+esac
+EOF
+chmod 700 "${askpass_path}"
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS="${askpass_path}"
 
 # Resolve names and paths through the helper so shell and TypeScript agree on
 # deployment IDs, hostnames, and filesystem layout.
@@ -50,6 +59,7 @@ proxy_override_path="$(node "${SCRIPT_HELPER_PATH}" resolve-deploy-field proxyOv
 tmp_checkout="$(mktemp -d "${DEPLOYMENTS_DIR}/.${REPO_SLUG}-${DEPLOYMENT_KEY}-checkout-XXXXXX")"
 
 cleanup() {
+  rm -rf "${askpass_root}"
   rm -rf "${tmp_checkout}"
 }
 trap cleanup EXIT
@@ -87,7 +97,7 @@ fi
 # TARGET_SHA pins webhook/manual deploys to the exact revision when available.
 case "${TARGET_TYPE}" in
   default-branch)
-    git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
+    git clone --depth 1 --branch "${TARGET_VALUE}" "${GITHUB_REPO_URL}" "${tmp_checkout}" >/dev/null
     if [[ -n "${TARGET_SHA:-}" ]]; then
       (
         cd "${tmp_checkout}"
@@ -99,7 +109,7 @@ case "${TARGET_TYPE}" in
     fi
     ;;
   branch)
-    git clone --depth 1 --branch "${TARGET_VALUE}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
+    git clone --depth 1 --branch "${TARGET_VALUE}" "${GITHUB_REPO_URL}" "${tmp_checkout}" >/dev/null
     if [[ -n "${TARGET_SHA:-}" ]]; then
       (
         cd "${tmp_checkout}"
@@ -111,23 +121,12 @@ case "${TARGET_TYPE}" in
     fi
     ;;
   pr)
-    if [[ -n "${TARGET_BRANCH:-}" && -n "${TARGET_SHA:-}" ]]; then
-      git clone --depth 1 --branch "${TARGET_BRANCH}" "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
-      (
-        cd "${tmp_checkout}"
-        if ! git checkout "${TARGET_SHA}" >/dev/null 2>&1; then
-          git fetch --depth 1 origin "${TARGET_SHA}" >/dev/null 2>&1
-          git checkout "${TARGET_SHA}" >/dev/null 2>&1
-        fi
-      )
-    else
-      git clone --depth 1 "${SOURCE_CLONE_SSH_URL}" "${tmp_checkout}" >/dev/null
-      (
-        cd "${tmp_checkout}"
-        git fetch --depth 1 origin "pull/${TARGET_VALUE}/head:manual-pr-${TARGET_VALUE}" >/dev/null 2>&1
-        git checkout "manual-pr-${TARGET_VALUE}" >/dev/null 2>&1
-      )
-    fi
+    git clone --depth 1 --no-checkout "${GITHUB_REPO_URL}" "${tmp_checkout}" >/dev/null
+    (
+      cd "${tmp_checkout}"
+      git fetch --depth 1 origin "refs/pull/${TARGET_VALUE}/head:preview-pr-${TARGET_VALUE}" >/dev/null 2>&1
+      git checkout "preview-pr-${TARGET_VALUE}" >/dev/null 2>&1
+    )
     ;;
   *)
     echo "{\"ok\":false,\"message\":\"Unsupported TARGET_TYPE: ${TARGET_TYPE}\"}"

@@ -172,7 +172,6 @@ export function buildDeploymentMetadata(
     projectDirectoryResolved: paths.projectDir,
     composePathResolved: paths.composePathResolved,
     proxyOverridePath: env.APPEND_PROXY_SETTINGS === "true" ? paths.proxyOverridePath : "",
-    sourceCloneSshUrl: required(env.SOURCE_CLONE_SSH_URL, "SOURCE_CLONE_SSH_URL"),
     status: "running",
     lastEvent: env.LAST_EVENT || "deploy",
     envFile: paths.envFile,
@@ -181,7 +180,6 @@ export function buildDeploymentMetadata(
     publicPort: Number(required(env.PUBLIC_PORT, "PUBLIC_PORT")),
     appendProxySettings: env.APPEND_PROXY_SETTINGS === "true",
     extraEnv,
-    githubDeployment: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

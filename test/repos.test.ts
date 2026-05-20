@@ -30,7 +30,36 @@ test("adds a repository with valid configuration", async () => {
 });
 
 test("derives owner and repo name from the clone url", async () => {
-  const context = await createTestContext();
+  const context = await createTestContext({
+    installations: [
+      {
+        id: 99,
+        account: { login: "ExtronicElektronik" },
+        target_type: "Organization",
+        repository_selection: "selected",
+        permissions: {
+          metadata: "read",
+          contents: "read",
+          pull_requests: "write",
+        },
+        events: ["pull_request"],
+        html_url: "https://github.com/organizations/ExtronicElektronik/settings/installations/99",
+        repositories_url: "https://api.github.com/installation/repositories",
+        suspended_at: null,
+        created_at: "2026-05-20T00:00:00.000Z",
+        updated_at: "2026-05-20T00:00:00.000Z",
+        repositories: [
+          {
+            id: 1002,
+            name: "simcards",
+            full_name: "ExtronicElektronik/simcards",
+            private: true,
+            owner: { login: "ExtronicElektronik" },
+          },
+        ],
+      },
+    ],
+  });
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
@@ -38,7 +67,7 @@ test("derives owner and repo name from the clone url", async () => {
   const response = await createRepo(context.agent, csrfToken, {
     owner: "wrong-owner",
     name: "wrong-name",
-    cloneSshUrl: "git@github.com:ExtronicElektronik/simcards.git",
+    repository: "ExtronicElektronik/simcards",
   });
 
   assert.equal(response.status, 201);

@@ -17,7 +17,8 @@ test("all admin api endpoints reject anonymous requests", async () => {
     ["delete", "/api/repos/test-repo"],
     ["get", "/api/deployments"],
     ["get", "/api/repos/test-repo/manual-target-options"],
-    ["post", "/api/ssh-keypair"],
+    ["post", "/api/github-app/manifest"],
+    ["post", "/api/github-app/installations/refresh"],
     ["post", "/api/repos/test-repo/manual-deploy"],
     ["post", "/api/deployments/test-deployment/redeploy"],
     ["delete", "/api/deployments/test-deployment"],
@@ -44,7 +45,8 @@ test("all state-changing admin api endpoints require csrf tokens after login", a
     ["post", "/api/repos"],
     ["put", "/api/repos/test-repo"],
     ["delete", "/api/repos/test-repo"],
-    ["post", "/api/ssh-keypair"],
+    ["post", "/api/github-app/manifest"],
+    ["post", "/api/github-app/installations/refresh"],
     ["post", "/api/repos/test-repo/manual-deploy"],
     ["post", "/api/deployments/test-deployment/redeploy"],
     ["delete", "/api/deployments/test-deployment"],
@@ -78,39 +80,27 @@ test("rejects invalid admin credentials", async () => {
   assert.match(response.text, /Invalid username or password/);
 });
 
-test("dashboard shows missing ssh key state before generation", async () => {
-  const context = await createTestContext();
+test("dashboard shows GitHub App creation state before configuration", async () => {
+  const context = await createTestContext({ initialGithubApp: false });
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
   const response = await context.agent.get("/");
 
   assert.equal(response.status, 200);
-  assert.match(response.text, /No SSH keypair exists yet/);
-  assert.match(response.text, /Generate SSH keypair/);
+  assert.match(response.text, /No GitHub App has been created yet/);
+  assert.match(response.text, /Create GitHub App/);
 });
 
-test("admin can generate an ssh keypair from the ui api", async () => {
+test("dashboard shows configured GitHub App state and refresh controls", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
-  const csrfToken = await getDashboardCsrf(context.agent);
-  const response = await context.agent
-    .post("/api/ssh-keypair")
-    .set("X-CSRF-Token", csrfToken)
-    .send({});
-
-  assert.equal(response.status, 200);
-  assert.equal(response.body.hasKey, true);
-  assert.equal(response.body.algorithm, "ed25519");
-  assert.match(response.body.publicKey, /^ssh-ed25519 /);
-  assert.equal(context.sshKeyManager.generateCalls, 1);
-
   const dashboard = await context.agent.get("/");
-  assert.match(dashboard.text, /Rotate SSH keypair/);
-  assert.match(dashboard.text, /ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFakeGeneratedKey/);
-  assert.match(dashboard.text, /Generate a new keypair and replace the current one\?/);
+  assert.match(dashboard.text, /Open installation flow/);
+  assert.match(dashboard.text, /Refresh GitHub access/);
+  assert.match(dashboard.text, /Configure repo access/);
 });
 
 test("allows login in production mode when session cookie secure is auto", async () => {

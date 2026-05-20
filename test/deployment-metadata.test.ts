@@ -11,9 +11,10 @@ function createRepo() {
     owner: "acme",
     name: "widgets",
     slug: "acme-widgets",
+    repository: "acme/widgets",
+    githubInstallationId: 99,
     workingDirectory: "ops/preview",
     composePath: "docker-compose.preview.yml",
-    cloneSshUrl: "git@github.com:acme/widgets.git",
     publicPort: 3000,
     publicService: "app",
     appendProxySettings: true,
@@ -47,13 +48,11 @@ test("buildDeploySeed preserves createdAt from an existing deployment", () => {
     deploymentStore: createDeploymentStore(),
     existing: {
       createdAt: "2026-05-11T10:00:00.000Z",
-      githubDeployment: { id: 1000 },
     },
     targetType: "pr",
     targetValue: 17,
     targetBranch: "feature/test",
     targetSha: "abc123",
-    sourceCloneSshUrl: "git@github.com:acme/widgets.git",
     lastEvent: "opened",
   });
 
@@ -73,7 +72,6 @@ test("buildDeploySeed preserves createdAt from an existing deployment", () => {
       "docker-compose.preview.yml",
     ),
   );
-  assert.deepEqual(seed.githubDeployment, { id: 1000 });
 });
 
 test("buildDeploySeed uses dedicated host and env for default branch deployments", () => {
@@ -86,7 +84,6 @@ test("buildDeploySeed uses dedicated host and env for default branch deployments
     targetValue: "main",
     targetBranch: "main",
     targetSha: null,
-    sourceCloneSshUrl: "git@github.com:acme/widgets.git",
     lastEvent: "manual-deploy",
   });
 
@@ -106,7 +103,6 @@ test("buildDestroySeed falls back correctly when existing metadata is partial", 
       createdAt: "2026-05-11T10:00:00.000Z",
       targetType: "branch",
       targetValue: "release/2026-q2",
-      githubDeployment: { id: 1001 },
     },
     deploymentKey: "branch-release-2026-q2",
     lastEvent: "manual-destroy",
@@ -126,5 +122,4 @@ test("buildDestroySeed falls back correctly when existing metadata is partial", 
       "docker-compose.preview.yml",
     ),
   );
-  assert.deepEqual(seed.githubDeployment, { id: 1001 });
 });

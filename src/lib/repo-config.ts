@@ -25,17 +25,20 @@ function normalizeRepoInput(input = {}) {
     input.prDeploymentAllowedLoginsText,
     input.prDeploymentAllowedLogins,
   );
-  const identity = deriveGithubRepoIdentityFromCloneUrl(input.cloneSshUrl);
+  const identity = deriveGithubRepoIdentityFromRepository(
+    input.repository || input.cloneSshUrl || input.cloneHttpsUrl,
+  );
   return {
     id: input.id,
     owner: identity?.owner || "",
     name: identity?.name || "",
-    cloneSshUrl: String(input.cloneSshUrl || "").trim(),
+    repository: identity ? `${identity.owner}/${identity.name}` : String(input.repository || "").trim(),
     composePath: String(input.composePath || "").trim(),
     workingDirectory: normalizeWorkingDirectory(input.workingDirectory),
     publicService: String(input.publicService || "").trim(),
     publicPort: Number(input.publicPort),
     defaultBranch: String(input.defaultBranch || "").trim(),
+    githubInstallationId: normalizeInstallationId(input.githubInstallationId),
     appendProxySettings: normalizeBoolean(input.appendProxySettings ?? false),
     extraEnv,
     extraEnvText: stringifyExtraEnv(extraEnv),
@@ -56,7 +59,7 @@ function hydrateStoredRepo(repo = {}) {
   const prDeploymentAllowedLogins = normalizeExistingGithubLoginList(
     repo.prDeploymentAllowedLogins,
   );
-  const identity = deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl) || {
+  const identity = deriveGithubRepoIdentityFromRepository(repo.repository || repo.cloneSshUrl) || {
     owner: String(repo.owner || "").trim(),
     name: String(repo.name || "").trim(),
   };
@@ -64,7 +67,9 @@ function hydrateStoredRepo(repo = {}) {
     ...repo,
     owner: identity.owner,
     name: identity.name,
+    repository: `${identity.owner}/${identity.name}`,
     slug: repo.slug || slugifyRepo(identity.owner, identity.name),
+    githubInstallationId: normalizeInstallationId(repo.githubInstallationId),
     appendProxySettings: normalizeBoolean(repo.appendProxySettings ?? false),
     workingDirectory: normalizeWorkingDirectory(repo.workingDirectory),
     extraEnv,
@@ -79,20 +84,13 @@ function hydrateStoredRepo(repo = {}) {
 }
 
 function validateRepoShape(repo) {
-  if (!deriveGithubRepoIdentityFromCloneUrl(repo.cloneSshUrl)) {
+  if (!deriveGithubRepoIdentityFromRepository(repo.repository || `${repo.owner}/${repo.name}`)) {
     throw new RepoValidationError(
-      "cloneSshUrl must be a GitHub repository URL such as git@github.com:owner/repo.git.",
+      "repository must be a GitHub repository such as owner/repo or https://github.com/owner/repo.git.",
     );
   }
 
-  const requiredFields = [
-    "owner",
-    "name",
-    "cloneSshUrl",
-    "composePath",
-    "publicService",
-    "defaultBranch",
-  ];
+  const requiredFields = ["owner", "name", "composePath", "publicService", "defaultBranch"];
   for (const field of requiredFields) {
     if (!repo[field]) {
       throw new RepoValidationError(`Missing required field: ${field}`);
@@ -115,6 +113,11 @@ function validateRepoShape(repo) {
   }
 
   assertWorkingDirectory(repo.workingDirectory);
+}
+
+function normalizeInstallationId(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function normalizePrDeploymentAccess(value) {
@@ -153,10 +156,18 @@ function validatePrDeploymentAccess(value) {
   }
 }
 
-function deriveGithubRepoIdentityFromCloneUrl(cloneUrl) {
-  const value = String(cloneUrl || "").trim();
+function deriveGithubRepoIdentityFromRepository(repository) {
+  const value = String(repository || "").trim();
   if (!value) {
     return null;
+  }
+
+  const shortMatch = value.match(/^([^:/\s]+)\/([^/\s]+)$/);
+  if (shortMatch) {
+    return {
+      owner: shortMatch[1],
+      name: shortMatch[2].replace(/\.git$/i, ""),
+    };
   }
 
   const sshMatch = value.match(/^git@github\.com:([^/]+)\/(.+?)(?:\.git)?$/i);
@@ -179,11 +190,19 @@ function deriveGithubRepoIdentityFromCloneUrl(cloneUrl) {
 }
 
 function deriveGithubFullNameFromCloneUrl(cloneUrl) {
-  const identity = deriveGithubRepoIdentityFromCloneUrl(cloneUrl);
+  const identity = deriveGithubRepoIdentityFromRepository(cloneUrl);
   if (!identity) {
     return "";
   }
   return `${identity.owner}/${identity.name}`.toLowerCase();
+}
+
+function deriveGithubFullNameFromRepository(repository) {
+  return deriveGithubFullNameFromCloneUrl(repository);
+}
+
+function buildGithubHttpsRepoUrl(owner, name) {
+  return `https://github.com/${owner}/${name}.git`;
 }
 
 function parseExtraEnvText(extraEnvText, existingExtraEnv) {
@@ -349,8 +368,11 @@ function assertWorkingDirectory(workingDirectory) {
 }
 
 export {
+  buildGithubHttpsRepoUrl,
   deriveGithubFullNameFromCloneUrl,
-  deriveGithubRepoIdentityFromCloneUrl,
+  deriveGithubFullNameFromRepository,
+  deriveGithubRepoIdentityFromRepository as deriveGithubRepoIdentityFromCloneUrl,
+  deriveGithubRepoIdentityFromRepository,
   hydrateStoredRepo,
   normalizeRepoInput,
   validateRepoShape,

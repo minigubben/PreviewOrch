@@ -1,19 +1,31 @@
 // @ts-nocheck
 import { DeploymentService } from "./deployment-service.js";
 import { DeploymentStore } from "./deployment-store.js";
-import { GithubDeploymentPublisher } from "./github-deployment-publisher.js";
+import { GithubAppClient } from "./github-app-client.js";
+import { GithubAppStore } from "./github-app-store.js";
+import { GithubInstallationResolver } from "./github-installation-resolver.js";
+import { GithubPullRequestCommentPublisher } from "./github-pull-request-comment-publisher.js";
 import { LockManager } from "./lock-manager.js";
 import { Logger } from "./logger.js";
 import { RepoStore } from "./repo-store.js";
 import { RuntimeInspector } from "./runtime-inspector.js";
 import { ScriptRunner } from "./script-runner.js";
-import { SshKeyManager } from "./ssh-key-manager.js";
 
 function buildAppServices({ config, services = {} }) {
   const logger =
     services.logger ||
     new Logger({ appLogFile: config.appLogFile, eventsLogFile: config.eventsLogFile });
   const scriptRunner = services.scriptRunner || new ScriptRunner({ logger });
+  const githubAppStore = services.githubAppStore || new GithubAppStore({ settingsFile: config.settingsFile });
+  const githubAppClient =
+    services.githubAppClient || new GithubAppClient({ apiBaseUrl: config.githubApiBaseUrl, logger });
+  const githubInstallationResolver =
+    services.githubInstallationResolver ||
+    new GithubInstallationResolver({
+      githubAppStore,
+      githubAppClient,
+      logger,
+    });
   const repoStore =
     services.repoStore ||
     new RepoStore({
@@ -21,7 +33,7 @@ function buildAppServices({ config, services = {} }) {
       validateScriptPath: config.scripts.validateRepo,
       scriptRunner,
       logger,
-      sshDir: config.sshDir,
+      githubInstallationResolver,
     });
   const deploymentStore =
     services.deploymentStore ||
@@ -39,25 +51,26 @@ function buildAppServices({ config, services = {} }) {
       scriptRunner,
       lockManager: services.lockManager || new LockManager(),
       runtimeInspector: services.runtimeInspector || new RuntimeInspector({ logger }),
-      githubDeploymentPublisher:
-        services.githubDeploymentPublisher ||
-        new GithubDeploymentPublisher({
-          apiBaseUrl: config.githubApiBaseUrl,
-          token: config.githubDeploymentsToken,
+      githubInstallationResolver,
+      githubPullRequestCommentPublisher:
+        services.githubPullRequestCommentPublisher ||
+        new GithubPullRequestCommentPublisher({
+          githubAppClient,
+          githubInstallationResolver,
           logger,
           orchestratorPublicUrl: config.orchestratorPublicUrl,
         }),
     });
-  const sshKeyManager =
-    services.sshKeyManager || new SshKeyManager({ sshDir: config.sshDir, logger });
 
   return {
     deploymentService,
     deploymentStore,
+    githubAppClient,
+    githubAppStore,
+    githubInstallationResolver,
     logger,
     repoStore,
     scriptRunner,
-    sshKeyManager,
   };
 }
 

@@ -76,12 +76,12 @@ function mapPullRequestAction(action) {
 
 function buildWebhookContext(payload) {
   const pr = payload.pull_request || {};
-  const headRepo = pr.head?.repo || {};
   const baseRepo = payload.repository || {};
 
   return {
     action: payload.action,
     mappedAction: mapPullRequestAction(payload.action),
+    installationId: Number(payload.installation?.id) || null,
     repoFullName: baseRepo.full_name,
     repoOwner: baseRepo.owner?.login,
     repoName: baseRepo.name,
@@ -91,8 +91,7 @@ function buildWebhookContext(payload) {
     prAuthorLogin: pr.user?.login,
     prAuthorAssociation: pr.author_association || payload.author_association || "",
     senderLogin: payload.sender?.login || "",
-    headRepoFullName: headRepo.full_name,
-    sourceCloneSshUrl: headRepo.ssh_url || baseRepo.ssh_url,
+    headRepoFullName: pr.head?.repo?.full_name,
     raw: payload,
   };
 }

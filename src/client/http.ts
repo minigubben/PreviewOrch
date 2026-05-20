@@ -1,5 +1,6 @@
 export type ResponsePayload = {
   error?: string;
+  configureUrl?: string;
   id?: string;
 };
 

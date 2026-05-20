@@ -68,10 +68,8 @@ test("deploys on pull request opened and stores deployment metadata", async () =
   assert.equal(metadata.appendProxySettings, false);
 });
 
-test("optionally publishes GitHub deployment entries and statuses with a PAT", async () => {
-  const context = await createTestContext({
-    githubDeploymentsToken: "github_pat_test",
-  });
+test("creates and updates a sticky pull request comment for preview lifecycle", async () => {
+  const context = await createTestContext();
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
@@ -95,21 +93,18 @@ test("optionally publishes GitHub deployment entries and statuses with a PAT", a
   assert.equal(response.status, 202);
 
   const deployment = await waitForDeployment(context.agent, `${repoResponse.body.id}-pr-22`);
-  assert.equal(deployment.githubDeployment.id, 1000);
-  assert.equal(deployment.githubDeployment.environment, "preview/pr-22");
+  assert.equal(deployment.previewHost, "acme-widgets-pr-22.preview.example.com");
 
-  assert.equal(context.githubDeploymentPublisher.deployments.length, 1);
-  assert.equal(context.githubDeploymentPublisher.deployments[0].owner, "acme");
-  assert.equal(context.githubDeploymentPublisher.deployments[0].repo, "widgets");
-  assert.equal(context.githubDeploymentPublisher.deployments[0].ref, "refs/pull/22/head");
-  assert.equal(context.githubDeploymentPublisher.deployments[0].environment, "preview/pr-22");
-
-  assert.equal(context.githubDeploymentPublisher.statuses.length, 2);
-  assert.equal(context.githubDeploymentPublisher.statuses[0].state, "pending");
-  assert.equal(context.githubDeploymentPublisher.statuses[1].state, "success");
-  assert.equal(
-    context.githubDeploymentPublisher.statuses[1].environmentUrl,
-    "http://acme-widgets-pr-22.preview.example.com",
+  await waitFor(async () => {
+    assert.equal(context.githubAppClient.commentWrites.length, 2);
+  });
+  assert.equal(context.githubAppClient.commentWrites[0].action, "create");
+  assert.match(context.githubAppClient.commentWrites[0].body, /State: \*\*starting\*\*/);
+  assert.equal(context.githubAppClient.commentWrites[1].action, "update");
+  assert.match(context.githubAppClient.commentWrites[1].body, /State: \*\*running\*\*/);
+  assert.match(
+    context.githubAppClient.commentWrites[1].body,
+    /http:\/\/acme-widgets-pr-22\.preview\.example\.com/,
   );
 });
 
@@ -256,10 +251,8 @@ test("destroys deployments and cleans the work directory on pull request close",
   assert.equal(deployments.body.length, 0);
 });
 
-test("marks GitHub deployments inactive when a preview is destroyed", async () => {
-  const context = await createTestContext({
-    githubDeploymentsToken: "github_pat_test",
-  });
+test("updates the sticky pull request comment when a preview is destroyed", async () => {
+  const context = await createTestContext();
   test.after(() => context.cleanup());
 
   await login(context.agent, context.password);
@@ -279,8 +272,10 @@ test("marks GitHub deployments inactive when a preview is destroyed", async () =
   }
 
   await waitFor(async () => {
-    const states = context.githubDeploymentPublisher.statuses.map((status) => status.state);
-    assert.deepEqual(states, ["pending", "success", "inactive"]);
+    const lastWrite = context.githubAppClient.commentWrites.at(-1);
+    assert.ok(lastWrite);
+    assert.equal(lastWrite.action, "update");
+    assert.match(lastWrite.body, /State: \*\*destroyed\*\*/);
   });
 });
 

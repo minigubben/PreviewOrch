@@ -12,7 +12,6 @@ function buildDeploySeed({
   targetValue,
   targetBranch,
   targetSha,
-  sourceCloneSshUrl,
   lastEvent,
 }) {
   const repoSlug = repo.slug || slugifyRepo(repo.owner, repo.name);
@@ -52,7 +51,6 @@ function buildDeploySeed({
     workingDirectory: repo.workingDirectory || ".",
     projectDirectoryResolved,
     composePathResolved,
-    sourceCloneSshUrl,
     status: "deploying",
     lastEvent,
     logFile,
@@ -62,7 +60,6 @@ function buildDeploySeed({
     publicService: repo.publicService,
     appendProxySettings: repo.appendProxySettings,
     extraEnv: resolvedTarget.extraEnv,
-    githubDeployment: existing?.githubDeployment || null,
   };
 }
 
@@ -110,7 +107,6 @@ function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentK
     workingDirectory: existing?.workingDirectory || repo.workingDirectory || ".",
     projectDirectoryResolved,
     composePathResolved,
-    sourceCloneSshUrl: existing?.sourceCloneSshUrl || repo.cloneSshUrl,
     status: "destroying",
     lastEvent,
     logFile,
@@ -120,7 +116,6 @@ function buildDestroySeed({ repo, config, deploymentStore, existing, deploymentK
     publicService: repo.publicService,
     appendProxySettings: repo.appendProxySettings,
     extraEnv: existing?.extraEnv || resolvedTarget?.extraEnv || repo.extraEnv || {},
-    githubDeployment: existing?.githubDeployment || null,
   };
 }
 
