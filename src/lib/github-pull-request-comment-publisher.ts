@@ -1,17 +1,82 @@
-// @ts-nocheck
+import type { Logger } from "./logger.js";
 import { formatTimestamp } from "./utils.js";
+
+interface RepoInfo {
+  owner: string;
+  name: string;
+  id?: string | number;
+}
+
+interface Metadata {
+  targetType: string;
+  prNumber?: number;
+  deploymentId?: string;
+  previewHost?: string;
+  targetBranch?: string;
+}
+
+interface PublishOptions {
+  state: string;
+  description?: string;
+}
+
+interface GithubAppClient {
+  listIssueComments(params: {
+    owner: string;
+    repo: string;
+    issueNumber: number;
+    token: string;
+  }): Promise<any[]>;
+  updateIssueComment(params: {
+    owner: string;
+    repo: string;
+    commentId: number;
+    token: string;
+    body: string;
+  }): Promise<void>;
+  createIssueComment(params: {
+    owner: string;
+    repo: string;
+    issueNumber: number;
+    token: string;
+    body: string;
+  }): Promise<void>;
+}
+
+interface GithubInstallationResolver {
+  resolveRepoAccess(repo: RepoInfo): Promise<{ token: string }>;
+}
 
 const STICKY_MARKER = "<!-- previeworch:sticky-comment -->";
 
 class GithubPullRequestCommentPublisher {
-  constructor({ githubAppClient, githubInstallationResolver, logger, orchestratorPublicUrl }) {
+  private githubAppClient: GithubAppClient;
+  private githubInstallationResolver: GithubInstallationResolver;
+  private logger: Logger;
+  private orchestratorPublicUrl: string;
+
+  constructor({
+    githubAppClient,
+    githubInstallationResolver,
+    logger,
+    orchestratorPublicUrl,
+  }: {
+    githubAppClient: GithubAppClient;
+    githubInstallationResolver: GithubInstallationResolver;
+    logger: Logger;
+    orchestratorPublicUrl: string;
+  }) {
     this.githubAppClient = githubAppClient;
     this.githubInstallationResolver = githubInstallationResolver;
     this.logger = logger;
     this.orchestratorPublicUrl = String(orchestratorPublicUrl || "").replace(/\/+$/, "");
   }
 
-  async publish(repo, metadata, { state, description }) {
+  async publish(
+    repo: RepoInfo,
+    metadata: Metadata,
+    { state, description }: PublishOptions,
+  ): Promise<void> {
     if (metadata.targetType !== "pr" || !metadata.prNumber) {
       return;
     }
@@ -47,17 +112,17 @@ class GithubPullRequestCommentPublisher {
         token: access.token,
         body,
       });
-    } catch (error) {
+    } catch (error: any) {
       await this.logger.warn("GitHub pull request comment publish failed", {
         deploymentId: metadata.deploymentId,
         repoId: repo.id,
         prNumber: metadata.prNumber,
-        message: error.message,
+        message: error?.message,
       });
     }
   }
 
-  buildBody(metadata, { state, description }) {
+  buildBody(metadata: Metadata, { state, description }: PublishOptions): string {
     const lines = [
       STICKY_MARKER,
       "## PreviewOrch",
@@ -76,14 +141,21 @@ class GithubPullRequestCommentPublisher {
     return lines.filter(Boolean).join("\n");
   }
 
-  buildDashboardUrl(deploymentId) {
+  buildDashboardUrl(deploymentId?: string): string {
     if (!this.orchestratorPublicUrl) {
       return "";
     }
-
-    const url = new URL(this.orchestratorPublicUrl);
-    url.hash = `deployment-${deploymentId}`;
-    return url.toString();
+    try {
+      const url = new URL(this.orchestratorPublicUrl);
+      url.hash = `deployment-${deploymentId}`;
+      return url.toString();
+    } catch (err) {
+      this.logger?.warn?.("Invalid orchestratorPublicUrl for dashboard URL", {
+        orchestratorPublicUrl: this.orchestratorPublicUrl,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return "";
+    }
   }
 }
 

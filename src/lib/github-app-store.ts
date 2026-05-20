@@ -72,11 +72,10 @@ function normalizeInstallation(value) {
   };
 }
 
-function normalizeRepositories(repositories) {
+function normalizeRepositories(repositories: any): Repository[] {
   if (!Array.isArray(repositories)) {
     return [];
   }
-
   return repositories
     .map((repository) => {
       const id = Number(repository?.id);
@@ -88,7 +87,6 @@ function normalizeRepositories(repositories) {
       if (!fullName) {
         return null;
       }
-
       return {
         id: Number.isInteger(id) ? id : null,
         name,
@@ -97,7 +95,7 @@ function normalizeRepositories(repositories) {
         private: Boolean(repository?.private),
       };
     })
-    .filter(Boolean)
+    .filter(Boolean) as Repository[]
     .sort((left, right) => left.fullName.localeCompare(right.fullName));
 }
 

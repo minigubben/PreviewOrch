@@ -31,13 +31,16 @@ class GithubAppClient {
   }
 
   async convertManifestCode(code) {
-    return this.rawRequest(`${this.apiBaseUrl}/app-manifests/${encodeURIComponent(code)}/conversions`, {
-      method: "POST",
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2026-03-10",
+    return this.rawRequest(
+      `${this.apiBaseUrl}/app-manifests/${encodeURIComponent(code)}/conversions`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2026-03-10",
+        },
       },
-    });
+    );
   }
 
   async exchangeOAuthCode({ clientId, clientSecret, code, redirectUri }) {
@@ -137,7 +140,13 @@ class GithubAppClient {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      let errorText = await response.text();
+      // Sanitize: remove newlines, collapse whitespace, redact secrets, truncate
+      errorText = errorText.replace(/[\r\n]+/g, " ").replace(/\s+/g, " ");
+      // Redact common secrets (tokens, keys)
+      errorText = errorText.replace(/(gh[pousr]_[A-Za-z0-9_\-]{20,})/g, "[REDACTED_TOKEN]");
+      errorText = errorText.replace(/([A-Za-z0-9_\-]{32,})/g, "[REDACTED_SECRET]");
+      if (errorText.length > 200) errorText = errorText.slice(0, 200) + "...";
       const error = new Error(`${method} ${url} failed with ${response.status}: ${errorText}`);
       error.status = response.status;
       throw error;
@@ -168,11 +177,7 @@ class GithubAppClient {
 
 function base64Url(value) {
   const buffer = Buffer.isBuffer(value) ? value : Buffer.from(String(value));
-  return buffer
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return buffer.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
 export { GithubAppClient };

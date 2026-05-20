@@ -1,37 +1,88 @@
-// @ts-nocheck
 import { RepoValidationError } from "./repo-validation-error.js";
 
+import type { GithubAppConfig, Installation } from "./github-app-store.js";
+import type { Logger } from "./logger.js";
+
+interface RepoLike {
+  owner: string;
+  name: string;
+  id?: string | number;
+}
+
+interface RepoAccess {
+  githubApp: GithubAppConfig;
+  installation: Installation;
+  token: string;
+  expiresAt: string;
+  repoUrl: string;
+  repoFullName: string;
+}
+
+interface GithubAppStore {
+  getGithubApp(): Promise<GithubAppConfig | null>;
+}
+
+interface GithubAppClient {
+  listAppInstallations(githubApp: GithubAppConfig): Promise<any[]>;
+  listUserInstallations(userToken: string): Promise<any[]>;
+  createInstallationAccessToken(
+    githubApp: GithubAppConfig,
+    installationId: number,
+  ): Promise<{ token: string; expires_at: string }>;
+  listInstallationRepositories(token: string): Promise<any[]>;
+}
+
+interface GithubInstallationResolverOptions {
+  githubAppStore: GithubAppStore;
+  githubAppClient: GithubAppClient;
+  logger: Logger;
+}
+
 class GithubInstallationResolver {
-  constructor({ githubAppStore, githubAppClient, logger }) {
+  githubAppStore: GithubAppStore;
+  githubAppClient: GithubAppClient;
+  logger: Logger;
+
+  constructor({ githubAppStore, githubAppClient, logger }: GithubInstallationResolverOptions) {
     this.githubAppStore = githubAppStore;
     this.githubAppClient = githubAppClient;
     this.logger = logger;
   }
 
-  async getGithubAppOrThrow() {
+  async getGithubAppOrThrow(): Promise<GithubAppConfig> {
     const githubApp = await this.githubAppStore.getGithubApp();
-    if (!githubApp?.appId || !githubApp.privateKeyPem || !githubApp.clientId || !githubApp.clientSecret) {
+    if (
+      !githubApp?.appId ||
+      !githubApp.privateKeyPem ||
+      !githubApp.clientId ||
+      !githubApp.clientSecret
+    ) {
       throw new RepoValidationError("GitHub App is not configured yet.");
     }
     return githubApp;
   }
 
-  async refreshInstallationsUsingApp() {
+  async refreshInstallationsUsingApp(): Promise<GithubAppConfig> {
     const githubApp = await this.getGithubAppOrThrow();
     const installations = await this.githubAppClient.listAppInstallations(githubApp);
     return this.replaceInstallations(githubApp, installations);
   }
 
-  async refreshInstallationsForUserToken(userToken) {
+  async refreshInstallationsForUserToken(userToken: string): Promise<GithubAppConfig> {
     const githubApp = await this.getGithubAppOrThrow();
     const visibleInstallations = await this.githubAppClient.listUserInstallations(userToken);
     const allowedIds = new Set(visibleInstallations.map((installation) => Number(installation.id)));
     const allInstallations = await this.githubAppClient.listAppInstallations(githubApp);
-    const filtered = allInstallations.filter((installation) => allowedIds.has(Number(installation.id)));
+    const filtered = allInstallations.filter((installation) =>
+      allowedIds.has(Number(installation.id)),
+    );
     return this.replaceInstallations(githubApp, filtered);
   }
 
-  async resolveRepoAccess(repoLike, { refresh = true } = {}) {
+  async resolveRepoAccess(
+    repoLike: RepoLike,
+    { refresh = true }: { refresh?: boolean } = {},
+  ): Promise<RepoAccess> {
     const owner = String(repoLike.owner || "").trim();
     const name = String(repoLike.name || "").trim();
     const fullName = `${owner}/${name}`;
@@ -136,4 +187,4 @@ function buildInstallUrl(slug) {
   return `https://github.com/apps/${slug}/installations/new`;
 }
 
-export { GithubInstallationResolver, buildInstallUrl };
+export { buildInstallUrl, GithubInstallationResolver };
