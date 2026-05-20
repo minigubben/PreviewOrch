@@ -5,7 +5,7 @@
       <p class="text-sm text-zinc-500">No active or historical deployments yet.</p>
     <% } %>
     <% deployments.forEach((deployment) => { %>
-      <details class="border border-zinc-800 bg-black/70" data-preserve-open="deployment:<%= deployment.deploymentId %>">
+      <details id="deployment-<%= deployment.deploymentId %>" class="border border-zinc-800 bg-black/70" data-preserve-open="deployment:<%= deployment.deploymentId %>">
         <summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 border-b border-zinc-800 px-4 py-4">
           <div>
             <p class="text-xs uppercase tracking-[0.28em] text-zinc-500">Deployment</p>

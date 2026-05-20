@@ -3,7 +3,7 @@ function buildDeployScriptEnv({
   repo,
   config,
   seed,
-  sourceCloneSshUrl,
+  repoAccess,
   targetType,
   targetValue,
   targetBranch,
@@ -15,7 +15,10 @@ function buildDeployScriptEnv({
     REPO_OWNER: repo.owner,
     REPO_NAME: repo.name,
     REPO_SLUG: seed.repoSlug,
-    SOURCE_CLONE_SSH_URL: sourceCloneSshUrl,
+    REPO_FULL_NAME: repoAccess.repoFullName,
+    GITHUB_REPO_URL: repoAccess.repoUrl,
+    GITHUB_INSTALLATION_ID: String(repoAccess.installation.id),
+    GITHUB_INSTALLATION_TOKEN: repoAccess.token,
     DEFAULT_BRANCH: repo.defaultBranch,
     WORKING_DIRECTORY: repo.workingDirectory || ".",
     COMPOSE_PATH: repo.composePath,
@@ -34,7 +37,6 @@ function buildDeployScriptEnv({
     LOG_FILE: seed.logFile,
     LAST_EVENT: lastEvent,
     TRAEFIK_NETWORK_NAME: config.traefikNetworkName,
-    SSH_DIR: config.sshDir,
   };
 }
 

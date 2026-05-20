@@ -7,7 +7,10 @@ SCRIPT_HELPER_PATH="${SCRIPT_ROOT}/dist/src/cli/script-helper.js"
 # These scripts return JSON because the Node script runner forwards stdout
 # directly to the app.
 required_vars=(
-  CLONE_SSH_URL
+  REPO_FULL_NAME
+  GITHUB_REPO_URL
+  GITHUB_INSTALLATION_ID
+  GITHUB_INSTALLATION_TOKEN
   DEFAULT_BRANCH
   WORKING_DIRECTORY
   COMPOSE_PATH
@@ -22,29 +25,34 @@ for var_name in "${required_vars[@]}"; do
   fi
 done
 
-# Prefer a repo-specific SSH key when the app has mounted one for validation.
-if [[ -n "${SSH_DIR:-}" ]]; then
-  if [[ -f "${SSH_DIR}/id_ed25519" ]]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-  elif [[ -f "${SSH_DIR}/id_rsa" ]]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-  fi
-fi
-
 # Clone into a disposable checkout so validation never mutates deployment state.
 tmp_dir="$(mktemp -d)"
+askpass_path="${tmp_dir}/git-askpass.sh"
 cleanup() {
   rm -rf "${tmp_dir}"
 }
 trap cleanup EXIT
 
-if ! git ls-remote "${CLONE_SSH_URL}" >/dev/null 2>&1; then
-  echo "{\"ok\":false,\"message\":\"git ls-remote failed for ${CLONE_SSH_URL}\"}"
+cat >"${askpass_path}" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  *Username*) printf '%s\n' "x-access-token" ;;
+  *Password*) printf '%s\n' "${GITHUB_INSTALLATION_TOKEN}" ;;
+  *) printf '\n' ;;
+esac
+EOF
+chmod 700 "${askpass_path}"
+
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS="${askpass_path}"
+
+if ! git ls-remote "${GITHUB_REPO_URL}" >/dev/null 2>&1; then
+  echo "{\"ok\":false,\"message\":\"git ls-remote failed for ${REPO_FULL_NAME}\"}"
   exit 1
 fi
 
-if ! git clone --depth 1 --branch "${DEFAULT_BRANCH}" "${CLONE_SSH_URL}" "${tmp_dir}/repo" >/dev/null 2>&1; then
-  echo "{\"ok\":false,\"message\":\"Unable to clone ${DEFAULT_BRANCH} from ${CLONE_SSH_URL}\"}"
+if ! git clone --depth 1 --branch "${DEFAULT_BRANCH}" "${GITHUB_REPO_URL}" "${tmp_dir}/repo" >/dev/null 2>&1; then
+  echo "{\"ok\":false,\"message\":\"Unable to clone ${DEFAULT_BRANCH} from ${REPO_FULL_NAME}\"}"
   exit 1
 fi
 

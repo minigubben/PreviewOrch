@@ -2,12 +2,10 @@ import type {
   DeploymentMetadata,
   DeploymentRecord,
   DeploymentRuntime,
-  GithubDeploymentState,
   RepoInput,
   RepoRecord,
   ScriptRunInput,
   ScriptRunResult,
-  SshKeyStatus,
   WebhookContext,
 } from "./domain.js";
 
@@ -28,6 +26,7 @@ export interface RepoStoreLike {
   findByFullName(fullName: string): Promise<RepoRecord | null>;
   create(input: RepoInput): Promise<RepoRecord>;
   update(id: string, input: RepoInput): Promise<RepoRecord>;
+  updateInstallationId(id: string, githubInstallationId: number): Promise<RepoRecord | null>;
   remove(id: string): Promise<boolean>;
 }
 
@@ -45,42 +44,79 @@ export interface RuntimeInspectorLike {
   inspectDeployment(deployment: DeploymentMetadata): Promise<DeploymentRuntime>;
 }
 
-export interface GithubDeploymentApiRecord {
-  id: number;
-  statuses_url?: string;
+export interface GithubAppStoreLike {
+  syncEnvironment(config: unknown): Promise<void>;
+  getGithubApp(): Promise<unknown>;
+  saveGithubApp(input: unknown): Promise<unknown>;
+  replaceInstallations(installations: unknown[]): Promise<unknown>;
 }
 
-export interface GithubDeploymentPublisherLike {
-  isEnabled(): boolean;
-  createDeployment(input: {
+export interface GithubAppClientLike {
+  buildManifest(input: { orchestratorPublicUrl: string; appName: string }): Record<string, unknown>;
+  convertManifestCode(code: string): Promise<Record<string, unknown>>;
+  exchangeOAuthCode(input: {
+    clientId: string;
+    clientSecret: string;
+    code: string;
+    redirectUri: string;
+  }): Promise<Record<string, unknown>>;
+  listUserInstallations(userAccessToken: string): Promise<Record<string, unknown>[]>;
+  listAppInstallations(githubApp: unknown): Promise<Record<string, unknown>[]>;
+  getRepoInstallation(githubApp: unknown, owner: string, repo: string): Promise<Record<string, unknown>>;
+  createInstallationAccessToken(
+    githubApp: unknown,
+    installationId: number,
+  ): Promise<Record<string, unknown>>;
+  listInstallationRepositories(token: string): Promise<Record<string, unknown>[]>;
+  listIssueComments(input: {
     owner: string;
     repo: string;
-    ref: string;
-    environment: string;
-    description: string;
-    payload?: unknown;
-  }): Promise<GithubDeploymentApiRecord>;
-  createDeploymentStatus(input: {
+    issueNumber: number;
+    token: string;
+  }): Promise<Record<string, unknown>[]>;
+  createIssueComment(input: {
     owner: string;
     repo: string;
-    deploymentId: number;
-    state: GithubDeploymentState;
-    environment: string;
-    environmentUrl?: string;
-    logUrl?: string;
-    description: string;
-    autoInactive: boolean;
-  }): Promise<unknown>;
-  buildLogUrl(deploymentId: string): string;
+    issueNumber: number;
+    token: string;
+    body: string;
+  }): Promise<Record<string, unknown>>;
+  updateIssueComment(input: {
+    owner: string;
+    repo: string;
+    commentId: number;
+    token: string;
+    body: string;
+  }): Promise<Record<string, unknown>>;
 }
 
 export interface LockManagerLike {
   run<T>(key: string, task: () => Promise<T>): Promise<T>;
 }
 
-export interface SshKeyManagerLike {
-  getStatus(): Promise<SshKeyStatus>;
-  generateOrRotate(): Promise<SshKeyStatus>;
+export interface GithubInstallationResolverLike {
+  getGithubAppOrThrow(): Promise<unknown>;
+  refreshInstallationsUsingApp(): Promise<unknown>;
+  refreshInstallationsForUserToken(userToken: string): Promise<unknown>;
+  resolveRepoAccess(
+    repoLike: Pick<RepoRecord, "owner" | "name">,
+    options?: { refresh?: boolean },
+  ): Promise<{
+    githubApp: unknown;
+    installation: Record<string, unknown>;
+    token: string;
+    expiresAt?: string;
+    repoUrl: string;
+    repoFullName: string;
+  }>;
+}
+
+export interface GithubPullRequestCommentPublisherLike {
+  publish(
+    repo: RepoRecord,
+    metadata: DeploymentMetadata,
+    input: { state: string; description: string },
+  ): Promise<void>;
 }
 
 export interface DeploymentServiceLike {

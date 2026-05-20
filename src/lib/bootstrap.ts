@@ -1,10 +1,10 @@
 // @ts-nocheck
 import fs from "node:fs/promises";
 
-import { readJson, writeJson } from "./json-file.js";
-import { formatTimestamp } from "./utils.js";
+import { GithubAppStore } from "./github-app-store.js";
 
 async function ensureFile(filePath, fallback) {
+  const { readJson, writeJson } = await import("./json-file.js");
   const existing = await readJson(filePath, undefined);
   if (existing === undefined) {
     await writeJson(filePath, fallback);
@@ -12,17 +12,8 @@ async function ensureFile(filePath, fallback) {
 }
 
 async function syncSettingsFile(config) {
-  const existing = await readJson(config.settingsFile, null);
-  const createdAt = existing?.createdAt || formatTimestamp();
-
-  await writeJson(config.settingsFile, {
-    createdAt,
-    updatedAt: formatTimestamp(),
-    baseDomain: config.baseDomain,
-    orchestratorPublicUrl: config.orchestratorPublicUrl,
-    traefikNetworkName: config.traefikNetworkName,
-    sourceOfTruth: "environment",
-  });
+  const githubAppStore = new GithubAppStore({ settingsFile: config.settingsFile });
+  await githubAppStore.syncEnvironment(config);
 }
 
 async function bootstrapFilesystem(config) {

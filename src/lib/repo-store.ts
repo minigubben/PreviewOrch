@@ -3,7 +3,7 @@ import crypto from "node:crypto";
 
 import { readJson, writeJson } from "./json-file.js";
 import {
-  deriveGithubFullNameFromCloneUrl,
+  deriveGithubFullNameFromRepository,
   hydrateStoredRepo,
   normalizeRepoInput,
   validateRepoShape,
@@ -12,12 +12,12 @@ import { RepoValidationError } from "./repo-validation-error.js";
 import { slugifyRepo } from "./utils.js";
 
 class RepoStore {
-  constructor({ reposFile, validateScriptPath, scriptRunner, logger, sshDir }) {
+  constructor({ reposFile, validateScriptPath, scriptRunner, logger, githubInstallationResolver }) {
     this.reposFile = reposFile;
     this.validateScriptPath = validateScriptPath;
     this.scriptRunner = scriptRunner;
     this.logger = logger;
-    this.sshDir = sshDir;
+    this.githubInstallationResolver = githubInstallationResolver;
   }
 
   async list() {
@@ -38,8 +38,8 @@ class RepoStore {
     return (
       repos.find((repo) => {
         const configuredFullName = `${repo.owner}/${repo.name}`.toLowerCase();
-        const cloneUrlFullName = deriveGithubFullNameFromCloneUrl(repo.cloneSshUrl);
-        return configuredFullName === normalizedFullName || cloneUrlFullName === normalizedFullName;
+        const storedFullName = deriveGithubFullNameFromRepository(repo.repository);
+        return configuredFullName === normalizedFullName || storedFullName === normalizedFullName;
       }) || null
     );
   }
@@ -49,10 +49,11 @@ class RepoStore {
     const repo = normalizeRepoInput(input);
     validateRepoShape(repo);
     this.assertNoDuplicate(repos, repo);
-    await this.validate(repo);
+    const access = await this.validate(repo);
 
     repo.id = crypto.randomUUID();
     repo.slug = slugifyRepo(repo.owner, repo.name);
+    repo.githubInstallationId = access.installation.id;
     repo.createdAt = new Date().toISOString();
     repo.updatedAt = repo.createdAt;
 
@@ -82,7 +83,8 @@ class RepoStore {
 
     validateRepoShape(merged);
     this.assertNoDuplicate(repos, merged, id);
-    await this.validate(merged);
+    const access = await this.validate(merged);
+    merged.githubInstallationId = access.installation.id;
 
     repos[index] = merged;
     await writeJson(this.reposFile, repos);
@@ -124,12 +126,32 @@ class RepoStore {
     }
   }
 
+  async updateInstallationId(id, githubInstallationId) {
+    const repos = await this.list();
+    const index = repos.findIndex((repo) => repo.id === id);
+    if (index === -1) {
+      return null;
+    }
+
+    repos[index] = {
+      ...repos[index],
+      githubInstallationId: Number(githubInstallationId) || null,
+      updatedAt: new Date().toISOString(),
+    };
+    await writeJson(this.reposFile, repos);
+    return repos[index];
+  }
+
   async validate(repo) {
+    const access = await this.githubInstallationResolver.resolveRepoAccess(repo);
     try {
       const result = await this.scriptRunner.run({
         scriptPath: this.validateScriptPath,
         env: {
-          CLONE_SSH_URL: repo.cloneSshUrl,
+          REPO_FULL_NAME: access.repoFullName,
+          GITHUB_REPO_URL: access.repoUrl,
+          GITHUB_INSTALLATION_ID: String(access.installation.id),
+          GITHUB_INSTALLATION_TOKEN: access.token,
           DEFAULT_BRANCH: repo.defaultBranch,
           WORKING_DIRECTORY: repo.workingDirectory,
           COMPOSE_PATH: repo.composePath,
@@ -137,7 +159,6 @@ class RepoStore {
           PUBLIC_PORT: String(repo.publicPort),
           APPEND_PROXY_SETTINGS: String(repo.appendProxySettings),
           EXTRA_ENV_JSON: JSON.stringify(repo.extraEnv || {}),
-          SSH_DIR: this.sshDir,
         },
       });
 
@@ -147,6 +168,7 @@ class RepoStore {
           result.parsed || null,
         );
       }
+      return access;
     } catch (error) {
       if (error instanceof RepoValidationError) {
         throw error;

@@ -42,7 +42,10 @@ async function submitForm(event: SubmitEvent): Promise<void> {
 
     const payload = await readResponsePayload(response);
     if (!response.ok) {
-      throw new Error(payload?.error || "Request failed.");
+      const message = payload?.configureUrl
+        ? `${payload?.error || "Request failed."} Configure access: ${payload.configureUrl}`
+        : payload?.error || "Request failed.";
+      throw new Error(message);
     }
 
     if (isRepoMutation(actionPath)) {
@@ -97,7 +100,10 @@ async function runAction(event: MouseEvent): Promise<void> {
 
     const payload = await readResponsePayload(response);
     if (!response.ok) {
-      throw new Error(payload?.error || "Action failed.");
+      const message = payload?.configureUrl
+        ? `${payload?.error || "Action failed."} Configure access: ${payload.configureUrl}`
+        : payload?.error || "Action failed.";
+      throw new Error(message);
     }
 
     if (isRepoDelete(actionPath)) {
@@ -117,9 +123,9 @@ async function runAction(event: MouseEvent): Promise<void> {
       return;
     }
 
-    if (actionPath === "/api/ssh-keypair") {
+    if (actionPath === "/api/github-app/installations/refresh") {
       if (statusNode) {
-        statusNode.textContent = "SSH key updated. Reloading...";
+        statusNode.textContent = "GitHub access refreshed. Reloading...";
       }
       window.location.reload();
       return;

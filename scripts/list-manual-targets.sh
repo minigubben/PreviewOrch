@@ -2,30 +2,50 @@
 set -euo pipefail
 
 # Return branch and PR choices as JSON for the manual deploy target picker.
-if [[ -z "${CLONE_SSH_URL:-}" ]]; then
-  echo "{\"ok\":false,\"message\":\"Missing required environment variable: CLONE_SSH_URL\"}"
-  exit 1
-fi
+required_vars=(
+  REPO_FULL_NAME
+  GITHUB_REPO_URL
+  GITHUB_INSTALLATION_ID
+  GITHUB_INSTALLATION_TOKEN
+)
 
-# Prefer a repo-specific SSH key when the app has mounted one for discovery.
-if [[ -n "${SSH_DIR:-}" ]]; then
-  if [[ -f "${SSH_DIR}/id_ed25519" ]]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_ed25519 -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-  elif [[ -f "${SSH_DIR}/id_rsa" ]]; then
-    export GIT_SSH_COMMAND="ssh -i ${SSH_DIR}/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+for var_name in "${required_vars[@]}"; do
+  if [[ -z "${!var_name:-}" ]]; then
+    echo "{\"ok\":false,\"message\":\"Missing required environment variable: ${var_name}\"}"
+    exit 1
   fi
-fi
+done
+
+tmp_dir="$(mktemp -d)"
+askpass_path="${tmp_dir}/git-askpass.sh"
+cleanup() {
+  rm -rf "${tmp_dir}"
+}
+trap cleanup EXIT
+
+cat >"${askpass_path}" <<'EOF'
+#!/usr/bin/env bash
+case "${1:-}" in
+  *Username*) printf '%s\n' "x-access-token" ;;
+  *Password*) printf '%s\n' "${GITHUB_INSTALLATION_TOKEN}" ;;
+  *) printf '\n' ;;
+esac
+EOF
+chmod 700 "${askpass_path}"
+
+export GIT_TERMINAL_PROMPT=0
+export GIT_ASKPASS="${askpass_path}"
 
 # GitHub exposes pull request refs as refs/pull/<number>/merge.
 branches_text="$(
-  git ls-remote --heads "${CLONE_SSH_URL}" |
+  git ls-remote --heads "${GITHUB_REPO_URL}" |
     awk '{print $2}' |
     sed -e 's#^refs/heads/##' -e '/^$/d' |
     sort -u
 )"
 
 prs_text="$(
-  git ls-remote "${CLONE_SSH_URL}" "refs/pull/*/merge" |
+  git ls-remote "${GITHUB_REPO_URL}" "refs/pull/*/merge" |
     awk '{print $2}' |
     sed -n 's#^refs/pull/\([0-9]\+\)/merge$#\1#p' |
     sort -n -u

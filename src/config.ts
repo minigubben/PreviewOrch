@@ -46,9 +46,6 @@ function getConfig(overrides = {}) {
       overrides.SESSION_COOKIE_SECURE || process.env.SESSION_COOKIE_SECURE,
       overrides.NODE_ENV || process.env.NODE_ENV || "development",
     ),
-    githubWebhookSecret: overrides.GITHUB_WEBHOOK_SECRET || process.env.GITHUB_WEBHOOK_SECRET || "",
-    githubDeploymentsToken:
-      overrides.GITHUB_DEPLOYMENTS_TOKEN || process.env.GITHUB_DEPLOYMENTS_TOKEN || "",
     githubApiBaseUrl:
       overrides.GITHUB_API_BASE_URL || process.env.GITHUB_API_BASE_URL || "https://api.github.com",
     traefikNetworkName:

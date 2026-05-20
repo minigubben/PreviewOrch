@@ -4,7 +4,7 @@ import express from "express";
 import { requireAuth, verifyCsrfToken } from "../lib/auth.js";
 import { asyncHandler } from "../lib/http.js";
 
-function createApiRouter({ deploymentService, repoStore, sshKeyManager }) {
+function createApiRouter({ deploymentService, repoStore }) {
   const router = express.Router();
 
   router.get(
@@ -60,16 +60,6 @@ function createApiRouter({ deploymentService, repoStore, sshKeyManager }) {
     requireAuth,
     asyncHandler(async (req, res) => {
       res.json(await deploymentService.listDeployments());
-    }),
-  );
-
-  router.post(
-    "/api/ssh-keypair",
-    requireAuth,
-    verifyCsrfToken,
-    asyncHandler(async (req, res) => {
-      const status = await sshKeyManager.generateOrRotate();
-      res.json(status);
     }),
   );
 

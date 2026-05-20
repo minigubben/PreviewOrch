@@ -13,6 +13,7 @@ import { RepoValidationError } from "./lib/repo-validation-error.js";
 import { ScriptError } from "./lib/script-runner.js";
 import { createApiRouter } from "./routes/api.js";
 import { createAuthRouter } from "./routes/auth.js";
+import { createGithubAppRouter } from "./routes/github-app.js";
 import { createGithubWebhookRouter } from "./routes/github-webhooks.js";
 import { createHealthRouter } from "./routes/health.js";
 import { createUiRouter } from "./routes/ui.js";
@@ -63,7 +64,7 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
   app.use(createHealthRouter({ config, scriptRunner: appServices.scriptRunner }));
   app.use(
     createGithubWebhookRouter({
-      config,
+      githubAppStore: appServices.githubAppStore,
       deploymentService: appServices.deploymentService,
       logger: appServices.logger,
     }),
@@ -72,6 +73,14 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
   app.use(express.urlencoded({ extended: false }));
   app.use(express.json());
 
+  app.use(
+    createGithubAppRouter({
+      config,
+      githubAppClient: appServices.githubAppClient,
+      githubAppStore: appServices.githubAppStore,
+      githubInstallationResolver: appServices.githubInstallationResolver,
+    }),
+  );
   app.use(createAuthRouter({ config, clientAssets }));
   app.use(
     createUiRouter({
@@ -79,14 +88,13 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
       config,
       deploymentService: appServices.deploymentService,
       repoStore: appServices.repoStore,
-      sshKeyManager: appServices.sshKeyManager,
+      githubAppStore: appServices.githubAppStore,
     }),
   );
   app.use(
     createApiRouter({
       deploymentService: appServices.deploymentService,
       repoStore: appServices.repoStore,
-      sshKeyManager: appServices.sshKeyManager,
     }),
   );
 
@@ -106,7 +114,7 @@ async function createApp({ config, services = {}, clientAssets: clientAssetsOver
     });
 
     if (req.path.startsWith("/api/") || req.path === "/webhooks/github") {
-      return res.status(status).json({ error: message });
+      return res.status(status).json({ error: message, ...(error.details || {}) });
     }
 
     return res.status(status).send(message);

@@ -19,8 +19,6 @@ export interface AppConfig {
   adminPasswordHash: string;
   sessionSecret: string;
   sessionCookieSecure: SessionCookieSecure;
-  githubWebhookSecret: string;
-  githubDeploymentsToken: string;
   githubApiBaseUrl: string;
   traefikNetworkName: string;
   nodeEnv: string;
@@ -52,12 +50,13 @@ export interface RepoRecord {
   id: string;
   owner: string;
   name: string;
-  cloneSshUrl: string;
+  repository?: string;
   composePath: string;
   workingDirectory: string;
   publicService: string;
   publicPort: number;
   defaultBranch: string;
+  githubInstallationId: number | null;
   appendProxySettings: boolean;
   extraEnv: Record<string, string>;
   extraEnvText: string;
@@ -128,7 +127,6 @@ export interface DeploymentMetadata {
   projectDirectoryResolved: string;
   composePathResolved: string;
   proxyOverridePath?: string;
-  sourceCloneSshUrl: string;
   status: DeploymentStatus;
   lastEvent: string;
   envFile?: string;
@@ -137,7 +135,6 @@ export interface DeploymentMetadata {
   publicService: string;
   appendProxySettings: boolean;
   extraEnv: Record<string, string>;
-  githubDeployment: GithubDeploymentRecord | null;
   createdAt: string;
   updatedAt: string;
   lastError?: string;
@@ -154,6 +151,7 @@ export type DestroySeed = DeploymentMetadata;
 export interface WebhookContext {
   action: string;
   mappedAction: WebhookMappedAction;
+  installationId: number | null;
   repoFullName: string;
   repoOwner?: string;
   repoName?: string;
@@ -164,7 +162,6 @@ export interface WebhookContext {
   prAuthorAssociation?: string;
   senderLogin?: string;
   headRepoFullName?: string;
-  sourceCloneSshUrl?: string;
   raw: unknown;
 }
 

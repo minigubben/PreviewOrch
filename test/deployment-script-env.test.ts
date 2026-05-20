@@ -22,7 +22,6 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
       baseDomain: "preview.example.com",
       deploymentsDir: "/tmp/deployments",
       traefikNetworkName: "preview-proxy",
-      sshDir: "/tmp/ssh",
     },
     seed: {
       deploymentKey: "pr-17",
@@ -32,7 +31,12 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
       extraEnv: { NODE_ENV: "staging" },
       targetBranch: "feature/test",
     },
-    sourceCloneSshUrl: "git@github.com:acme/widgets.git",
+    repoAccess: {
+      repoFullName: "acme/widgets",
+      repoUrl: "https://github.com/acme/widgets.git",
+      installation: { id: 99 },
+      token: "install-token-99",
+    },
     targetType: "pr",
     targetValue: 17,
     targetBranch: "feature/test",
@@ -46,6 +50,10 @@ test("buildDeployScriptEnv preserves script env keys and string conversions", ()
   assert.equal(env.EXTRA_ENV_JSON, JSON.stringify({ NODE_ENV: "staging" }));
   assert.equal(env.PREVIEW_HOST, "acme-widgets-pr-17.preview.example.com");
   assert.equal(env.TARGET_VALUE, "17");
+  assert.equal(env.REPO_FULL_NAME, "acme/widgets");
+  assert.equal(env.GITHUB_REPO_URL, "https://github.com/acme/widgets.git");
+  assert.equal(env.GITHUB_INSTALLATION_ID, "99");
+  assert.equal(env.GITHUB_INSTALLATION_TOKEN, "install-token-99");
 });
 
 test("buildDestroyScriptEnv uses the deployment store metadata path format", () => {

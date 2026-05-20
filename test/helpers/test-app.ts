@@ -9,10 +9,12 @@ import request from "supertest";
 
 import { createApp } from "../../src/app.js";
 import { getConfig } from "../../src/config.js";
-import { FakeGithubDeploymentPublisher } from "./fake-github-deployment-publisher.js";
+import { GithubAppStore } from "../../src/lib/github-app-store.js";
+import { GithubInstallationResolver } from "../../src/lib/github-installation-resolver.js";
+import { GithubPullRequestCommentPublisher } from "../../src/lib/github-pull-request-comment-publisher.js";
 import { FakeRuntimeInspector } from "./fake-runtime-inspector.js";
 import { FakeScriptRunner } from "./fake-script-runner.js";
-import { FakeSshKeyManager } from "./fake-ssh-key-manager.js";
+import { FakeGithubAppClient } from "./fake-github-app-client.js";
 
 async function createTestContext(options = {}) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-test-"));
@@ -29,8 +31,6 @@ async function createTestContext(options = {}) {
     ADMIN_PASSWORD_BCRYPT_HASH: bcrypt.hashSync(password, 10),
     SESSION_SECRET: "test-session-secret",
     SESSION_COOKIE_SECURE: options.sessionCookieSecure,
-    GITHUB_WEBHOOK_SECRET: "webhook-secret",
-    GITHUB_DEPLOYMENTS_TOKEN: options.githubDeploymentsToken || "",
     ORCHESTRATOR_PUBLIC_URL:
       options.orchestratorPublicUrl || "https://previeworch.preview.example.com",
     NODE_ENV: options.nodeEnv || "test",
@@ -43,23 +43,89 @@ async function createTestContext(options = {}) {
     baseDomain: config.baseDomain,
     deployDelayMs: options.deployDelayMs || 0,
   });
-  const sshKeyManager = options.sshKeyManager || new FakeSshKeyManager(options.initialSshKeyStatus);
   const runtimeInspector = options.runtimeInspector || new FakeRuntimeInspector();
-  const githubDeploymentPublisher =
-    options.githubDeploymentPublisher ||
-    new FakeGithubDeploymentPublisher({
-      enabled: Boolean(options.githubDeploymentsToken),
+  const githubAppStore = options.githubAppStore || new GithubAppStore({ settingsFile: config.settingsFile });
+  const githubAppClient =
+    options.githubAppClient ||
+    new FakeGithubAppClient({
+      installations: options.installations || [
+        {
+          id: 99,
+          account: { login: "acme" },
+          target_type: "Organization",
+          repository_selection: "selected",
+          permissions: {
+            metadata: "read",
+            contents: "read",
+            pull_requests: "write",
+          },
+          events: ["pull_request"],
+          html_url: "https://github.com/organizations/acme/settings/installations/99",
+          repositories_url: "https://api.github.com/installation/repositories",
+          suspended_at: null,
+          created_at: "2026-05-20T00:00:00.000Z",
+          updated_at: "2026-05-20T00:00:00.000Z",
+          repositories: [
+            {
+              id: 1001,
+              name: "widgets",
+              full_name: "acme/widgets",
+              private: true,
+              owner: { login: "acme" },
+            },
+          ],
+        },
+      ],
+    });
+  const githubInstallationResolver =
+    options.githubInstallationResolver ||
+    new GithubInstallationResolver({
+      githubAppStore,
+      githubAppClient,
+      logger: options.logger || {
+        info: async () => {},
+        warn: async () => {},
+        error: async () => {},
+      },
+    });
+  const githubPullRequestCommentPublisher =
+    options.githubPullRequestCommentPublisher ||
+    new GithubPullRequestCommentPublisher({
+      githubAppClient,
+      githubInstallationResolver,
+      logger: options.logger || {
+        info: async () => {},
+        warn: async () => {},
+        error: async () => {},
+      },
       orchestratorPublicUrl: config.orchestratorPublicUrl,
     });
+
+  if (options.initialGithubApp !== false) {
+    await githubAppStore.saveGithubApp({
+      appId: 123,
+      clientId: "Iv1.fakeclient",
+      clientSecret: "fake-client-secret",
+      privateKeyPem: "-----BEGIN PRIVATE KEY-----\nfake\n-----END PRIVATE KEY-----",
+      webhookSecret: "webhook-secret",
+      slug: "previeworch",
+      name: "PreviewOrch",
+      ownerLogin: "previeworch-owner",
+      installations: [],
+    });
+    await githubInstallationResolver.refreshInstallationsUsingApp();
+  }
 
   const app = await createApp({
     config,
     clientAssets: options.clientAssets,
     services: {
       scriptRunner,
-      sshKeyManager,
       runtimeInspector,
-      githubDeploymentPublisher,
+      githubAppStore,
+      githubAppClient,
+      githubInstallationResolver,
+      githubPullRequestCommentPublisher,
     },
   });
 
@@ -72,9 +138,11 @@ async function createTestContext(options = {}) {
     password,
     root,
     scriptRunner,
-    sshKeyManager,
     runtimeInspector,
-    githubDeploymentPublisher,
+    githubAppStore,
+    githubAppClient,
+    githubInstallationResolver,
+    githubPullRequestCommentPublisher,
     cleanup: async () => {
       await fs.rm(root, { recursive: true, force: true });
     },
@@ -110,7 +178,6 @@ function buildPullRequestPayload(action, overrides = {}) {
     repository: {
       full_name: overrides.repoFullName || "acme/widgets",
       name: overrides.repoName || "widgets",
-      ssh_url: overrides.baseSshUrl || "git@github.com:acme/widgets.git",
       owner: {
         login: overrides.repoOwner || "acme",
       },
@@ -126,10 +193,11 @@ function buildPullRequestPayload(action, overrides = {}) {
         sha: overrides.prSha || "abc123",
         repo: {
           full_name: overrides.headRepoFullName || overrides.repoFullName || "acme/widgets",
-          ssh_url:
-            overrides.headSshUrl || overrides.baseSshUrl || "git@github.com:acme/widgets.git",
         },
       },
+    },
+    installation: {
+      id: overrides.installationId || 99,
     },
     sender: {
       login: overrides.senderLogin || overrides.prAuthorLogin || "octocat",

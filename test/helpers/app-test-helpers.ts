@@ -10,9 +10,7 @@ async function createRepo(agent, csrfToken, overrides = {}) {
     .post("/api/repos")
     .set("X-CSRF-Token", csrfToken)
     .send({
-      owner: "acme",
-      name: "widgets",
-      cloneSshUrl: "git@github.com:acme/widgets.git",
+      repository: "acme/widgets",
       composePath: "deploy/preview-compose.yml",
       publicService: "app",
       publicPort: 3000,
