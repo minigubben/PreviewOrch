@@ -28,6 +28,7 @@ function normalizeGithubApp(value) {
     slug: String(value.slug || "").trim(),
     name: String(value.name || "").trim(),
     ownerLogin: String(value.ownerLogin || "").trim(),
+    ownerType: String(value.ownerType || "").trim(),
     createdAt: String(value.createdAt || formatTimestamp()),
     updatedAt: String(value.updatedAt || formatTimestamp()),
     installations: normalizeInstallations(value.installations),

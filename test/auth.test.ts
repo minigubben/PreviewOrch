@@ -92,6 +92,23 @@ test("dashboard shows GitHub App creation state before configuration", async () 
   assert.match(response.text, /Create GitHub App/);
 });
 
+test("GitHub App manifest can target an organization owner", async () => {
+  const context = await createTestContext({ initialGithubApp: false });
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await context.agent
+    .post("/api/github-app/manifest")
+    .set("X-CSRF-Token", csrfToken)
+    .send({
+      organizationLogin: "acme-org",
+    });
+
+  assert.equal(response.status, 200);
+  assert.match(response.text, /https:\/\/github\.com\/organizations\/acme-org\/settings\/apps\/new/);
+});
+
 test("dashboard shows configured GitHub App state and refresh controls", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());
@@ -101,6 +118,7 @@ test("dashboard shows configured GitHub App state and refresh controls", async (
   assert.match(dashboard.text, /Open installation flow/);
   assert.match(dashboard.text, /Refresh GitHub access/);
   assert.match(dashboard.text, /Configure repo access/);
+  assert.match(dashboard.text, /Upload logo on GitHub/);
 });
 
 test("allows login in production mode when session cookie secure is auto", async () => {

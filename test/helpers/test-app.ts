@@ -111,6 +111,7 @@ async function createTestContext(options = {}) {
       slug: "previeworch",
       name: "PreviewOrch",
       ownerLogin: "previeworch-owner",
+      ownerType: "User",
       installations: [],
     });
     await githubInstallationResolver.refreshInstallationsUsingApp();

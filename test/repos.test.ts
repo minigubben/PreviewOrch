@@ -29,6 +29,18 @@ test("adds a repository with valid configuration", async () => {
   );
 });
 
+test("dashboard repo form lists repositories from the installed GitHub App", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  await login(context.agent, context.password);
+  const response = await context.agent.get("/");
+
+  assert.equal(response.status, 200);
+  assert.match(response.text, /Select a repository from the installed GitHub App/);
+  assert.match(response.text, /acme\/widgets/);
+});
+
 test("derives owner and repo name from the clone url", async () => {
   const context = await createTestContext({
     installations: [

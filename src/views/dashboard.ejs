@@ -65,6 +65,16 @@
                 <% if (!githubApp) { %>
                   <form method="post" action="/api/github-app/manifest">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+                    <div class="mb-4 space-y-2">
+                      <label for="organizationLogin" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Organization Owner</label>
+                      <input
+                        id="organizationLogin"
+                        name="organizationLogin"
+                        placeholder="leave blank for your personal account"
+                        class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600"
+                      />
+                      <p class="text-xs leading-5 text-zinc-500">Leave this empty to create the app under your personal account, or enter an organization login to create the app under that organization instead.</p>
+                    </div>
                     <button
                       type="submit"
                       class="mb-4 border border-zinc-700 bg-zinc-100 px-4 py-3 text-left text-sm font-medium text-black transition hover:bg-zinc-300"
@@ -78,6 +88,7 @@
                     <div>Name: <code><%= githubApp.name || brand.name %></code></div>
                     <div>Slug: <code><%= githubApp.slug %></code></div>
                     <div>App ID: <code><%= githubApp.appId %></code></div>
+                    <div>Owner: <code><%= githubApp.ownerLogin || "personal" %></code></div>
                   </div>
                   <div class="mb-4 flex flex-wrap gap-3">
                     <% if (githubAppInstallUrl) { %>
@@ -90,6 +101,16 @@
                         Open installation flow
                       </a>
                     <% } %>
+                    <% if (githubAppSettingsUrl) { %>
+                      <a
+                        href="<%= githubAppSettingsUrl %>"
+                        target="_blank"
+                        rel="noreferrer"
+                        class="border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-100 transition hover:bg-zinc-800"
+                      >
+                        Open app settings
+                      </a>
+                    <% } %>
                     <button
                       type="button"
                       data-api-action
@@ -99,6 +120,25 @@
                     >
                       Refresh GitHub access
                     </button>
+                  </div>
+                  <div class="mb-4 border border-zinc-800 bg-black/40 px-4 py-4">
+                    <div class="flex flex-wrap items-center gap-4">
+                      <img src="<%= brand.faviconPath %>" alt="<%= brand.name %> app badge" class="h-14 w-14 rounded-2xl border border-zinc-800 bg-zinc-950 p-2 object-contain" />
+                      <div class="min-w-0">
+                        <p class="text-sm font-medium text-zinc-100">App badge source</p>
+                        <p class="mt-1 text-xs leading-5 text-zinc-500">GitHub does not let the manifest flow set the app badge. Use the favicon below when GitHub prompts you to upload a logo in the app settings page.</p>
+                        <div class="mt-3 flex flex-wrap gap-3">
+                          <a href="<%= brand.faviconPath %>" target="_blank" rel="noreferrer" class="text-sm text-zinc-300 underline decoration-zinc-700 underline-offset-4">
+                            Open favicon image
+                          </a>
+                          <% if (githubAppSettingsUrl) { %>
+                            <a href="<%= githubAppSettingsUrl %>" target="_blank" rel="noreferrer" class="text-sm text-zinc-300 underline decoration-zinc-700 underline-offset-4">
+                              Upload logo on GitHub
+                            </a>
+                          <% } %>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <% if ((githubApp.installations || []).length) { %>
                     <div class="space-y-3">
