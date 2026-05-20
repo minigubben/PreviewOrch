@@ -46,6 +46,7 @@ function getConfig(overrides = {}) {
       overrides.SESSION_COOKIE_SECURE || process.env.SESSION_COOKIE_SECURE,
       overrides.NODE_ENV || process.env.NODE_ENV || "development",
     ),
+    trustProxy: normalizeTrustProxy(overrides.TRUST_PROXY ?? process.env.TRUST_PROXY),
     githubApiBaseUrl:
       overrides.GITHUB_API_BASE_URL || process.env.GITHUB_API_BASE_URL || "https://api.github.com",
     traefikNetworkName:
@@ -98,6 +99,25 @@ function normalizeOrchestratorPublicUrl(value, baseDomain) {
   }
 
   return `https://${BRANDING.subdomain}.${baseDomain}`;
+}
+
+function normalizeTrustProxy(value) {
+  if (value === undefined || value === null || value === "") {
+    return true;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+  if (/^\d+$/.test(normalized)) {
+    return Number(normalized);
+  }
+
+  return String(value).trim();
 }
 
 export { getConfig };

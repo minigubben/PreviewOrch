@@ -339,6 +339,35 @@ test("rejects invalid webhook signatures", async () => {
   assert.equal(response.body.error, "Invalid signature.");
 });
 
+test("rate limits repeated webhook requests from the same client ip", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  const payload = buildPullRequestPayload("opened");
+
+  for (let index = 0; index < 300; index += 1) {
+    const response = await context.agent
+      .post("/webhooks/github")
+      .set("X-GitHub-Event", "pull_request")
+      .set("X-Hub-Signature-256", "sha256=invalid")
+      .set("Content-Type", "application/json")
+      .send(JSON.stringify(payload));
+    assert.equal(response.status, 401);
+  }
+
+  const limited = await context.agent
+    .post("/webhooks/github")
+    .set("X-GitHub-Event", "pull_request")
+    .set("X-Hub-Signature-256", "sha256=invalid")
+    .set("Content-Type", "application/json")
+    .send(JSON.stringify(payload));
+
+  assert.equal(limited.status, 429);
+  assert.equal(limited.body.error, "Too many webhook requests.");
+  assert.ok(Number(limited.body.retryAfterSeconds) >= 1);
+  assert.ok(Number(limited.headers["retry-after"]) >= 1);
+});
+
 test("accepts GitHub webhook ping events", async () => {
   const context = await createTestContext();
   test.after(() => context.cleanup());

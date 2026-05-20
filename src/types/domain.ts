@@ -1,4 +1,5 @@
 export type SessionCookieSecure = boolean | "auto";
+export type TrustProxySetting = boolean | number | string;
 
 export type TargetType = "pr" | "branch" | "default-branch";
 export type WebhookMappedAction = "deploy" | "destroy" | null;
@@ -145,6 +146,7 @@ export interface AppConfig {
   adminPasswordHash: string;
   sessionSecret: string;
   sessionCookieSecure: SessionCookieSecure;
+  trustProxy: TrustProxySetting;
   githubApiBaseUrl: string;
   traefikNetworkName: string;
   nodeEnv: string;

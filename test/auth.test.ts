@@ -80,6 +80,34 @@ test("rejects invalid admin credentials", async () => {
   assert.match(response.text, /Invalid username or password/);
 });
 
+test("rate limits repeated login attempts", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+
+  const csrfToken = await context.agent
+    .get("/login")
+    .then((response) => response.text.match(/name="_csrf" value="([^"]+)"/)[1]);
+
+  for (let index = 0; index < 5; index += 1) {
+    const response = await context.agent.post("/login").type("form").send({
+      username: "admin",
+      password: "wrong-password",
+      _csrf: csrfToken,
+    });
+    assert.equal(response.status, 401);
+  }
+
+  const limited = await context.agent.post("/login").type("form").send({
+    username: "admin",
+    password: "wrong-password",
+    _csrf: csrfToken,
+  });
+
+  assert.equal(limited.status, 429);
+  assert.match(limited.text, /Too many login attempts/);
+  assert.ok(Number(limited.headers["retry-after"]) >= 1);
+});
+
 test("dashboard shows GitHub App creation state before configuration", async () => {
   const context = await createTestContext({ initialGithubApp: false });
   test.after(() => context.cleanup());

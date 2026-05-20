@@ -1,14 +1,27 @@
 // @ts-nocheck
 import express from "express";
 
-import { asyncHandler } from "../lib/http.js";
+import { asyncHandler, createRateLimit } from "../lib/http.js";
 import { buildWebhookContext, verifyGithubSignature } from "../lib/github.js";
 
 function createGithubWebhookRouter({ githubAppStore, deploymentService, logger }) {
   const router = express.Router();
+  const webhookRateLimit = createRateLimit({
+    keyPrefix: "github-webhook",
+    maxRequests: 300,
+    windowMs: 60 * 1000,
+    onLimit: (req, res, retryAfterSeconds) => {
+      void req;
+      return res.status(429).json({
+        error: "Too many webhook requests.",
+        retryAfterSeconds,
+      });
+    },
+  });
 
   router.post(
     "/webhooks/github",
+    webhookRateLimit,
     express.raw({ type: "application/json" }),
     asyncHandler(async (req, res) => {
       const githubApp = await githubAppStore.getGithubApp();
