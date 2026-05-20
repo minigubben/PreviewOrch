@@ -1,7 +1,15 @@
+import type {
+  GithubAppConfig,
+  GithubAppInstallation,
+  GithubAppInstallationApiRecord,
+} from "../types/domain.js";
+import type {
+  GithubAppClientLike,
+  GithubAppStoreLike,
+  GithubInstallationResolverLike,
+  LoggerLike,
+} from "../types/services.js";
 import { RepoValidationError } from "./repo-validation-error.js";
-
-import type { GithubAppConfig, Installation } from "./github-app-store.js";
-import type { Logger } from "./logger.js";
 
 interface RepoLike {
   owner: string;
@@ -9,41 +17,20 @@ interface RepoLike {
   id?: string | number;
 }
 
-interface RepoAccess {
-  githubApp: GithubAppConfig;
-  installation: Installation;
-  token: string;
-  expiresAt: string;
-  repoUrl: string;
-  repoFullName: string;
-}
+class GithubInstallationResolver implements GithubInstallationResolverLike {
+  githubAppStore: GithubAppStoreLike;
+  githubAppClient: GithubAppClientLike;
+  logger: LoggerLike;
 
-interface GithubAppStore {
-  getGithubApp(): Promise<GithubAppConfig | null>;
-}
-
-interface GithubAppClient {
-  listAppInstallations(githubApp: GithubAppConfig): Promise<any[]>;
-  listUserInstallations(userToken: string): Promise<any[]>;
-  createInstallationAccessToken(
-    githubApp: GithubAppConfig,
-    installationId: number,
-  ): Promise<{ token: string; expires_at: string }>;
-  listInstallationRepositories(token: string): Promise<any[]>;
-}
-
-interface GithubInstallationResolverOptions {
-  githubAppStore: GithubAppStore;
-  githubAppClient: GithubAppClient;
-  logger: Logger;
-}
-
-class GithubInstallationResolver {
-  githubAppStore: GithubAppStore;
-  githubAppClient: GithubAppClient;
-  logger: Logger;
-
-  constructor({ githubAppStore, githubAppClient, logger }: GithubInstallationResolverOptions) {
+  constructor({
+    githubAppStore,
+    githubAppClient,
+    logger,
+  }: {
+    githubAppStore: GithubAppStoreLike;
+    githubAppClient: GithubAppClientLike;
+    logger: LoggerLike;
+  }) {
     this.githubAppStore = githubAppStore;
     this.githubAppClient = githubAppClient;
     this.logger = logger;
@@ -82,7 +69,14 @@ class GithubInstallationResolver {
   async resolveRepoAccess(
     repoLike: RepoLike,
     { refresh = true }: { refresh?: boolean } = {},
-  ): Promise<RepoAccess> {
+  ): Promise<{
+    githubApp: GithubAppConfig;
+    installation: GithubAppInstallation;
+    token: string;
+    expiresAt: string;
+    repoUrl: string;
+    repoFullName: string;
+  }> {
     const owner = String(repoLike.owner || "").trim();
     const name = String(repoLike.name || "").trim();
     const fullName = `${owner}/${name}`;
@@ -118,8 +112,11 @@ class GithubInstallationResolver {
     };
   }
 
-  async replaceInstallations(githubApp, installations) {
-    const hydratedInstallations = [];
+  async replaceInstallations(
+    githubApp: GithubAppConfig,
+    installations: GithubAppInstallationApiRecord[],
+  ): Promise<GithubAppConfig> {
+    const hydratedInstallations: GithubAppInstallation[] = [];
     for (const installation of installations) {
       const installationId = Number(installation.id);
       if (!Number.isInteger(installationId) || installationId <= 0) {
@@ -146,41 +143,57 @@ class GithubInstallationResolver {
           suspendedAt: installation.suspended_at || null,
           createdAt: installation.created_at || "",
           updatedAt: installation.updated_at || "",
-          repositories,
+          repositories: repositories.map((repository) => ({
+            id: Number.isInteger(repository.id) ? Number(repository.id) : null,
+            name: String(repository.name || "").trim(),
+            ownerLogin: String(repository.owner?.login || "").trim(),
+            fullName: String(repository.full_name || "").trim(),
+            private: Boolean(repository.private),
+          })),
         });
       } catch (error) {
         await this.logger.warn("Unable to hydrate GitHub App installation repositories", {
           installationId,
-          message: error.message,
+          message: error instanceof Error ? error.message : String(error),
         });
       }
     }
 
-    return this.githubAppStore.replaceInstallations(hydratedInstallations);
+    const nextGithubApp = await this.githubAppStore.replaceInstallations(hydratedInstallations);
+    if (!nextGithubApp) {
+      throw new RepoValidationError("GitHub App is not configured yet.");
+    }
+    return nextGithubApp;
   }
 }
 
-function findInstallationForRepo(githubApp, fullName) {
+function findInstallationForRepo(
+  githubApp: GithubAppConfig,
+  fullName: string,
+): GithubAppInstallation | null {
   const normalized = String(fullName || "").toLowerCase();
   return (
-    (githubApp?.installations || []).find((installation) =>
-      (installation.repositories || []).some(
+    githubApp.installations.find((installation) =>
+      installation.repositories.some(
         (repository) => String(repository.fullName || "").toLowerCase() === normalized,
       ),
     ) || null
   );
 }
 
-function findInstallationForOwner(githubApp, ownerLogin) {
+function findInstallationForOwner(
+  githubApp: GithubAppConfig,
+  ownerLogin: string,
+): GithubAppInstallation | null {
   const normalized = String(ownerLogin || "").toLowerCase();
   return (
-    (githubApp?.installations || []).find(
+    githubApp.installations.find(
       (installation) => String(installation.accountLogin || "").toLowerCase() === normalized,
     ) || null
   );
 }
 
-function buildInstallUrl(slug) {
+function buildInstallUrl(slug: string): string {
   if (!slug) {
     return "";
   }

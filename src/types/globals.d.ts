@@ -1,4 +1,3 @@
-// @ts-nocheck
 import "express-session";
 
 declare module "express-session" {
@@ -7,6 +6,8 @@ declare module "express-session" {
     user?: {
       username: string;
     };
+    githubAppManifestState?: string | null;
+    githubAppManifestOwnerType?: string | null;
   }
 }
 

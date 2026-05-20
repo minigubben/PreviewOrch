@@ -1,5 +1,6 @@
-// @ts-nocheck
-function slugifyRepo(owner, name) {
+import type { TargetType } from "../types/domain.js";
+
+function slugifyRepo(owner: string, name: string): string {
   return `${owner}-${name}`
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -7,7 +8,7 @@ function slugifyRepo(owner, name) {
     .replace(/-{2,}/g, "-");
 }
 
-function slugifyValue(value) {
+function slugifyValue(value: string | number): string {
   return String(value)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -15,7 +16,7 @@ function slugifyValue(value) {
     .replace(/-{2,}/g, "-");
 }
 
-function buildDeploymentKey(targetType, targetValue) {
+function buildDeploymentKey(targetType: TargetType, targetValue: string | number): string {
   if (targetType === "pr") {
     return `pr-${Number(targetValue)}`;
   }
@@ -28,22 +29,27 @@ function buildDeploymentKey(targetType, targetValue) {
   throw new Error(`Unsupported targetType: ${targetType}`);
 }
 
-function buildPreviewHost(repoSlug, deploymentKey, baseDomain, customHost = "") {
+function buildPreviewHost(
+  repoSlug: string,
+  deploymentKey: string,
+  baseDomain: string,
+  customHost = "",
+): string {
   if (customHost) {
     return String(customHost).trim().toLowerCase();
   }
   return `${repoSlug}-${deploymentKey}.${baseDomain}`;
 }
 
-function buildProjectName(repoSlug, deploymentKey) {
+function buildProjectName(repoSlug: string, deploymentKey: string): string {
   return `${repoSlug}-${deploymentKey}`.replace(/[^a-z0-9_-]+/g, "-").slice(0, 55);
 }
 
-function formatTimestamp(date = new Date()) {
+function formatTimestamp(date = new Date()): string {
   return date.toISOString();
 }
 
-function normalizeBoolean(value) {
+function normalizeBoolean(value: boolean | string | number | null | undefined): boolean {
   if (typeof value === "boolean") {
     return value;
   }
@@ -53,7 +59,7 @@ function normalizeBoolean(value) {
   return Boolean(value);
 }
 
-function trimLines(text, maxLines = 40) {
+function trimLines(text: string, maxLines = 40): string {
   const lines = String(text || "")
     .trimEnd()
     .split("\n");

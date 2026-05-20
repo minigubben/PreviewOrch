@@ -1,8 +1,14 @@
-// @ts-nocheck
+import type {
+  AppConfig,
+  AppSettings,
+  GithubAppConfig,
+  GithubAppInstallation,
+  GithubAppRepository,
+} from "../types/domain.js";
 import { readJson, writeJson } from "./json-file.js";
 import { formatTimestamp } from "./utils.js";
 
-function buildSettingsSnapshot(config, existing = {}) {
+function buildSettingsSnapshot(config: AppConfig, existing: Partial<AppSettings> = {}): AppSettings {
   return {
     createdAt: existing.createdAt || formatTimestamp(),
     updatedAt: formatTimestamp(),
@@ -14,92 +20,108 @@ function buildSettingsSnapshot(config, existing = {}) {
   };
 }
 
-function normalizeGithubApp(value) {
+function normalizeGithubApp(value: unknown): GithubAppConfig | null {
   if (!value || typeof value !== "object") {
     return null;
   }
 
+  const candidate = value as Partial<GithubAppConfig>;
   return {
-    appId: Number(value.appId) || 0,
-    clientId: String(value.clientId || "").trim(),
-    clientSecret: String(value.clientSecret || "").trim(),
-    privateKeyPem: String(value.privateKeyPem || ""),
-    webhookSecret: String(value.webhookSecret || ""),
-    slug: String(value.slug || "").trim(),
-    name: String(value.name || "").trim(),
-    ownerLogin: String(value.ownerLogin || "").trim(),
-    ownerType: String(value.ownerType || "").trim(),
-    createdAt: String(value.createdAt || formatTimestamp()),
-    updatedAt: String(value.updatedAt || formatTimestamp()),
-    installations: normalizeInstallations(value.installations),
+    appId: Number(candidate.appId) || 0,
+    clientId: String(candidate.clientId || "").trim(),
+    clientSecret: String(candidate.clientSecret || "").trim(),
+    privateKeyPem: String(candidate.privateKeyPem || ""),
+    webhookSecret: String(candidate.webhookSecret || ""),
+    slug: String(candidate.slug || "").trim(),
+    name: String(candidate.name || "").trim(),
+    ownerLogin: String(candidate.ownerLogin || "").trim(),
+    ownerType: String(candidate.ownerType || "").trim(),
+    createdAt: String(candidate.createdAt || formatTimestamp()),
+    updatedAt: String(candidate.updatedAt || formatTimestamp()),
+    installations: normalizeInstallations(candidate.installations),
   };
 }
 
-function normalizeInstallations(installations) {
+function normalizeInstallations(installations: unknown): GithubAppInstallation[] {
   if (!Array.isArray(installations)) {
     return [];
   }
 
   return installations
     .map((installation) => normalizeInstallation(installation))
-    .filter(Boolean)
+    .filter((installation): installation is GithubAppInstallation => installation !== null)
     .sort((left, right) => left.accountLogin.localeCompare(right.accountLogin));
 }
 
-function normalizeInstallation(value) {
+function normalizeInstallation(value: unknown): GithubAppInstallation | null {
   if (!value || typeof value !== "object") {
     return null;
   }
 
-  const id = Number(value.id);
+  const candidate = value as Partial<GithubAppInstallation>;
+  const id = Number(candidate.id);
   if (!Number.isInteger(id) || id <= 0) {
     return null;
   }
 
   return {
     id,
-    accountLogin: String(value.accountLogin || "").trim(),
-    targetType: String(value.targetType || "").trim(),
-    repositorySelection: String(value.repositorySelection || "").trim(),
-    permissions: normalizeObjectMap(value.permissions),
-    events: Array.isArray(value.events) ? value.events.map(String) : [],
-    htmlUrl: String(value.htmlUrl || "").trim(),
-    repositoriesUrl: String(value.repositoriesUrl || "").trim(),
-    suspendedAt: value.suspendedAt ? String(value.suspendedAt) : null,
-    createdAt: String(value.createdAt || formatTimestamp()),
-    updatedAt: String(value.updatedAt || formatTimestamp()),
-    repositories: normalizeRepositories(value.repositories),
+    accountLogin: String(candidate.accountLogin || "").trim(),
+    targetType: String(candidate.targetType || "").trim(),
+    repositorySelection: String(candidate.repositorySelection || "").trim(),
+    permissions: normalizeObjectMap(candidate.permissions),
+    events: Array.isArray(candidate.events) ? candidate.events.map(String) : [],
+    htmlUrl: String(candidate.htmlUrl || "").trim(),
+    repositoriesUrl: String(candidate.repositoriesUrl || "").trim(),
+    suspendedAt: candidate.suspendedAt ? String(candidate.suspendedAt) : null,
+    createdAt: String(candidate.createdAt || formatTimestamp()),
+    updatedAt: String(candidate.updatedAt || formatTimestamp()),
+    repositories: normalizeRepositories(candidate.repositories),
   };
 }
 
-function normalizeRepositories(repositories: any): Repository[] {
+function normalizeRepositories(repositories: unknown): GithubAppRepository[] {
   if (!Array.isArray(repositories)) {
     return [];
   }
+
   return repositories
     .map((repository) => {
-      const id = Number(repository?.id);
-      const owner = String(repository?.owner?.login || repository?.ownerLogin || "").trim();
-      const name = String(repository?.name || "").trim();
+      if (!repository || typeof repository !== "object") {
+        return null;
+      }
+      const candidate = repository as {
+        id?: unknown;
+        owner?: { login?: unknown };
+        ownerLogin?: unknown;
+        name?: unknown;
+        full_name?: unknown;
+        fullName?: unknown;
+        private?: unknown;
+      };
+      const id = Number(candidate.id);
+      const owner = String(candidate.owner?.login || candidate.ownerLogin || "").trim();
+      const name = String(candidate.name || "").trim();
       const fullName =
-        String(repository?.full_name || repository?.fullName || "").trim() ||
+        String(candidate.full_name || candidate.fullName || "").trim() ||
         (owner && name ? `${owner}/${name}` : "");
       if (!fullName) {
         return null;
       }
+
       return {
         id: Number.isInteger(id) ? id : null,
         name,
         ownerLogin: owner,
         fullName,
-        private: Boolean(repository?.private),
+        private: Boolean(candidate.private),
       };
     })
-    .filter(Boolean) as Repository[]
+    .filter((repository): repository is GithubAppRepository => repository !== null)
     .sort((left, right) => left.fullName.localeCompare(right.fullName));
 }
 
-function normalizeObjectMap(value) {
+function normalizeObjectMap(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
@@ -110,30 +132,32 @@ function normalizeObjectMap(value) {
 }
 
 class GithubAppStore {
-  constructor({ settingsFile }) {
+  settingsFile: string;
+
+  constructor({ settingsFile }: { settingsFile: string }) {
     this.settingsFile = settingsFile;
   }
 
-  async readSettings() {
-    const settings = await readJson(this.settingsFile, {});
+  async readSettings(): Promise<Partial<AppSettings> & { githubApp: GithubAppConfig | null }> {
+    const settings = await readJson<Partial<AppSettings>>(this.settingsFile, {});
     return {
       ...settings,
       githubApp: normalizeGithubApp(settings.githubApp),
     };
   }
 
-  async syncEnvironment(config) {
-    const existing = await readJson(this.settingsFile, {});
+  async syncEnvironment(config: AppConfig): Promise<void> {
+    const existing = await readJson<Partial<AppSettings>>(this.settingsFile, {});
     await writeJson(this.settingsFile, buildSettingsSnapshot(config, existing));
   }
 
-  async getGithubApp() {
-    const settings = await readJson(this.settingsFile, {});
+  async getGithubApp(): Promise<GithubAppConfig | null> {
+    const settings = await readJson<Partial<AppSettings>>(this.settingsFile, {});
     return normalizeGithubApp(settings.githubApp);
   }
 
-  async saveGithubApp(githubAppInput) {
-    const settings = await readJson(this.settingsFile, {});
+  async saveGithubApp(githubAppInput: Partial<GithubAppConfig>): Promise<GithubAppConfig> {
+    const settings = await readJson<Partial<AppSettings>>(this.settingsFile, {});
     const existing = normalizeGithubApp(settings.githubApp);
     const now = formatTimestamp();
     const githubApp = normalizeGithubApp({
@@ -143,13 +167,22 @@ class GithubAppStore {
       updatedAt: now,
     });
 
-    settings.githubApp = githubApp;
-    settings.updatedAt = now;
-    await writeJson(this.settingsFile, settings);
+    if (!githubApp) {
+      throw new Error("Unable to normalize GitHub App settings.");
+    }
+
+    const nextSettings: Partial<AppSettings> = {
+      ...settings,
+      githubApp,
+      updatedAt: now,
+    };
+    await writeJson(this.settingsFile, nextSettings);
     return githubApp;
   }
 
-  async replaceInstallations(installations) {
+  async replaceInstallations(
+    installations: GithubAppInstallation[],
+  ): Promise<GithubAppConfig | null> {
     const githubApp = await this.getGithubApp();
     if (!githubApp) {
       return null;

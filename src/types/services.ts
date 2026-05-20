@@ -1,7 +1,17 @@
 import type {
+  AppConfig,
   DeploymentMetadata,
   DeploymentRecord,
   DeploymentRuntime,
+  GithubAppConfig,
+  GithubAppInstallation,
+  GithubAppInstallationApiRecord,
+  GithubAppManifest,
+  GithubAppManifestConversion,
+  GithubAppRepositoryApiRecord,
+  GithubInstallationAccessTokenResponse,
+  GithubIssueComment,
+  GithubOAuthTokenResponse,
   RepoInput,
   RepoRecord,
   ScriptRunInput,
@@ -45,49 +55,53 @@ export interface RuntimeInspectorLike {
 }
 
 export interface GithubAppStoreLike {
-  syncEnvironment(config: unknown): Promise<void>;
-  getGithubApp(): Promise<unknown>;
-  saveGithubApp(input: unknown): Promise<unknown>;
-  replaceInstallations(installations: unknown[]): Promise<unknown>;
+  syncEnvironment(config: AppConfig): Promise<void>;
+  getGithubApp(): Promise<GithubAppConfig | null>;
+  saveGithubApp(input: Partial<GithubAppConfig>): Promise<GithubAppConfig>;
+  replaceInstallations(installations: GithubAppInstallation[]): Promise<GithubAppConfig | null>;
 }
 
 export interface GithubAppClientLike {
-  buildManifest(input: { orchestratorPublicUrl: string; appName: string }): Record<string, unknown>;
-  convertManifestCode(code: string): Promise<Record<string, unknown>>;
+  buildManifest(input: { orchestratorPublicUrl: string; appName: string }): GithubAppManifest;
+  convertManifestCode(code: string): Promise<GithubAppManifestConversion>;
   exchangeOAuthCode(input: {
     clientId: string;
     clientSecret: string;
     code: string;
     redirectUri: string;
-  }): Promise<Record<string, unknown>>;
-  listUserInstallations(userAccessToken: string): Promise<Record<string, unknown>[]>;
-  listAppInstallations(githubApp: unknown): Promise<Record<string, unknown>[]>;
-  getRepoInstallation(githubApp: unknown, owner: string, repo: string): Promise<Record<string, unknown>>;
+  }): Promise<GithubOAuthTokenResponse>;
+  listUserInstallations(userAccessToken: string): Promise<GithubAppInstallationApiRecord[]>;
+  listAppInstallations(githubApp: GithubAppConfig): Promise<GithubAppInstallationApiRecord[]>;
+  getRepoInstallation(
+    githubApp: GithubAppConfig,
+    owner: string,
+    repo: string,
+  ): Promise<GithubAppInstallationApiRecord>;
   createInstallationAccessToken(
-    githubApp: unknown,
+    githubApp: GithubAppConfig,
     installationId: number,
-  ): Promise<Record<string, unknown>>;
-  listInstallationRepositories(token: string): Promise<Record<string, unknown>[]>;
+  ): Promise<GithubInstallationAccessTokenResponse>;
+  listInstallationRepositories(token: string): Promise<GithubAppRepositoryApiRecord[]>;
   listIssueComments(input: {
     owner: string;
     repo: string;
     issueNumber: number;
     token: string;
-  }): Promise<Record<string, unknown>[]>;
+  }): Promise<GithubIssueComment[]>;
   createIssueComment(input: {
     owner: string;
     repo: string;
     issueNumber: number;
     token: string;
     body: string;
-  }): Promise<Record<string, unknown>>;
+  }): Promise<GithubIssueComment>;
   updateIssueComment(input: {
     owner: string;
     repo: string;
     commentId: number;
     token: string;
     body: string;
-  }): Promise<Record<string, unknown>>;
+  }): Promise<GithubIssueComment>;
 }
 
 export interface LockManagerLike {
@@ -95,17 +109,17 @@ export interface LockManagerLike {
 }
 
 export interface GithubInstallationResolverLike {
-  getGithubAppOrThrow(): Promise<unknown>;
-  refreshInstallationsUsingApp(): Promise<unknown>;
-  refreshInstallationsForUserToken(userToken: string): Promise<unknown>;
+  getGithubAppOrThrow(): Promise<GithubAppConfig>;
+  refreshInstallationsUsingApp(): Promise<GithubAppConfig>;
+  refreshInstallationsForUserToken(userToken: string): Promise<GithubAppConfig>;
   resolveRepoAccess(
     repoLike: Pick<RepoRecord, "owner" | "name">,
     options?: { refresh?: boolean },
   ): Promise<{
-    githubApp: unknown;
-    installation: Record<string, unknown>;
+    githubApp: GithubAppConfig;
+    installation: GithubAppInstallation;
     token: string;
-    expiresAt?: string;
+    expiresAt: string;
     repoUrl: string;
     repoFullName: string;
   }>;
