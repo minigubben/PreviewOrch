@@ -5,12 +5,13 @@
   "description": "PreviewOrch: small Docker-based PR preview orchestration for GitHub pull requests.",
   "type": "module",
   "main": "dist/src/server.js",
+  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "start": "node dist/src/server.js",
     "build:node": "rm -rf dist && tsc -p tsconfig.node.json && mkdir -p dist/src dist/src/public && cp -R src/views dist/src/views && cp -R src/public/. dist/src/public/",
     "build:client": "vite build",
-    "build": "npm run build:node && npm run build:client",
-    "dev": "npm run build && (tsc -p tsconfig.node.json --watch --preserveWatchOutput & TSC_PID=$!; trap 'kill $TSC_PID' EXIT INT TERM; node --env-file=.env --watch --watch-preserve-output dist/src/server.js)",
+    "build": "pnpm run build:node && pnpm run build:client",
+    "dev": "pnpm run build && (tsc -p tsconfig.node.json --watch --preserveWatchOutput & TSC_PID=$!; trap 'kill $TSC_PID' EXIT INT TERM; node --env-file=.env --watch --watch-preserve-output dist/src/server.js)",
     "lint": "eslint .",
     "lint:shell": "scripts/run-shell-lint-format.sh shellcheck scripts/*.sh",
     "lint:fix": "eslint . --fix",
@@ -19,7 +20,7 @@
     "format:shell": "scripts/run-shell-lint-format.sh shfmt -w -i 2 -ci scripts/*.sh",
     "format:shell:check": "scripts/run-shell-lint-format.sh shfmt -d -i 2 -ci scripts/*.sh",
     "typecheck": "tsc -p tsconfig.node.json --noEmit && tsc -p tsconfig.client.json --noEmit",
-    "test": "npm run build:node && node --test dist/test/*.test.js"
+    "test": "pnpm run build:node && node --test dist/test/*.test.js"
   },
   "engines": {
     "node": ">=20"
