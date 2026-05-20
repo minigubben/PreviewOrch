@@ -18,7 +18,7 @@ See the end-to-end diagram in [architecture.md](./architecture.md).
 
 The login form posts to `/login`. Credentials are checked against `ADMIN_USERNAME` and `ADMIN_PASSWORD_BCRYPT_HASH`, then the app creates a session using `express-session`.
 
-![Placeholder screenshot for the sign-in page](./assets/placeholder-login.svg)
+![screenshot for the sign-in page](./assets/login.png)
 
 Relevant files:
 
@@ -39,7 +39,7 @@ Validation covers:
 - Public service existence
 - Traefik label contract, unless PreviewOrch will append a proxy override for that service
 
-![Placeholder screenshot for the repository configuration editor](./assets/placeholder-repo-config.svg)
+![screenshot for the repository configuration editor](./assets/repo-config.png)
 
 Relevant files:
 
@@ -57,7 +57,8 @@ Deployments can start in two ways:
 
 Both paths end up in `DeploymentService`. That service calculates a stable deployment key, writes seed metadata, acquires a per-deployment lock, and calls the deploy script.
 
-![Placeholder screenshot for the manual deploy and deployment history panel](./assets/placeholder-deployments.svg)
+![screenshot for the manual deploy](./assets/manual-deploy.png)
+![screenshot active dployments](./assets/active-deployments.png)
 
 Relevant files:
 
@@ -114,7 +115,7 @@ The runtime panel shows:
 - Public service labels and recent container logs
 - The active SSH public key used for GitHub access
 
-![Placeholder screenshot for runtime details, logs, and SSH key status](./assets/placeholder-runtime.svg)
+![screenshot for runtime details, logs, and SSH key status](./assets/runtime.png)
 
 Relevant files:
 
