@@ -1,15 +1,15 @@
-import crypto from "node:crypto";
 import express, { type Request, type Response } from "express";
+import crypto from "node:crypto";
 
+import { requireAuth, verifyCsrfToken } from "../lib/auth.js";
+import { BRANDING } from "../lib/branding.js";
+import { asyncHandler } from "../lib/http.js";
 import type { AppConfig, GithubAppManifest } from "../types/domain.js";
 import type {
   GithubAppClientLike,
   GithubAppStoreLike,
   GithubInstallationResolverLike,
 } from "../types/services.js";
-import { requireAuth, verifyCsrfToken } from "../lib/auth.js";
-import { BRANDING } from "../lib/branding.js";
-import { asyncHandler } from "../lib/http.js";
 
 function createGithubAppRouter({
   config,
@@ -82,9 +82,18 @@ function createGithubAppRouter({
     "/github-app/oauth/callback",
     asyncHandler(async (req: Request, res: Response) => {
       const code = String(req.query.code || "").trim();
+      const state = String(req.query.state || "").trim();
+      const expectedState = String(req.session.githubAppOAuthState || "").trim();
       if (!code) {
         return res.status(400).send("Missing GitHub OAuth code.");
       }
+
+      if (!state || !expectedState || state !== expectedState) {
+        return res.status(400).send("Invalid GitHub OAuth state.");
+      }
+
+      // Invalidate the one-time state after successful verification to prevent replay.
+      req.session.githubAppOAuthState = null;
 
       const githubApp = await githubAppStore.getGithubApp();
       if (!githubApp?.clientId || !githubApp?.clientSecret) {
@@ -175,7 +184,9 @@ function normalizeOrganizationLogin(value: unknown): string {
   }
 
   if (!/^[a-z0-9](?:[a-z0-9-]{0,37}[a-z0-9])?$/i.test(normalized)) {
-    const error = new Error("organizationLogin must be a valid GitHub organization login.") as Error & {
+    const error = new Error(
+      "organizationLogin must be a valid GitHub organization login.",
+    ) as Error & {
       statusCode?: number;
     };
     error.statusCode = 400;
