@@ -16,6 +16,12 @@ import { FakeRuntimeInspector } from "./fake-runtime-inspector.js";
 import { FakeScriptRunner } from "./fake-script-runner.js";
 import { FakeGithubAppClient } from "./fake-github-app-client.js";
 
+const noopLogger = {
+  info: async () => undefined,
+  warn: async () => undefined,
+  error: async () => undefined,
+};
+
 async function createTestContext(options = {}) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "orchestrator-test-"));
   const password = options.password || "secret-pass";
@@ -82,22 +88,14 @@ async function createTestContext(options = {}) {
     new GithubInstallationResolver({
       githubAppStore,
       githubAppClient,
-      logger: options.logger || {
-        info: async () => {},
-        warn: async () => {},
-        error: async () => {},
-      },
+      logger: options.logger || noopLogger,
     });
   const githubPullRequestCommentPublisher =
     options.githubPullRequestCommentPublisher ||
     new GithubPullRequestCommentPublisher({
       githubAppClient,
       githubInstallationResolver,
-      logger: options.logger || {
-        info: async () => {},
-        warn: async () => {},
-        error: async () => {},
-      },
+      logger: options.logger || noopLogger,
       orchestratorPublicUrl: config.orchestratorPublicUrl,
     });
 
