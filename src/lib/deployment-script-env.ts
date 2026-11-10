@@ -17,7 +17,7 @@ function buildDeployScriptEnv({
     REPO_SLUG: seed.repoSlug,
     REPO_FULL_NAME: repoAccess.repoFullName,
     GITHUB_REPO_URL: repoAccess.repoUrl,
-    GITHUB_INSTALLATION_ID: String(repoAccess.installation.id),
+    GITHUB_INSTALLATION_ID: String(repoAccess.installation?.id || ""),
     GITHUB_INSTALLATION_TOKEN: repoAccess.token,
     DEFAULT_BRANCH: repo.defaultBranch,
     WORKING_DIRECTORY: repo.workingDirectory || ".",

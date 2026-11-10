@@ -70,8 +70,8 @@ class GithubInstallationResolver implements GithubInstallationResolverLike {
     repoLike: RepoLike,
     { refresh = true }: { refresh?: boolean } = {},
   ): Promise<{
-    githubApp: GithubAppConfig;
-    installation: GithubAppInstallation;
+    githubApp: GithubAppConfig | null;
+    installation: GithubAppInstallation | null;
     token: string;
     expiresAt: string;
     repoUrl: string;
@@ -80,21 +80,27 @@ class GithubInstallationResolver implements GithubInstallationResolverLike {
     const owner = String(repoLike.owner || "").trim();
     const name = String(repoLike.name || "").trim();
     const fullName = `${owner}/${name}`;
-    const githubApp = await this.getGithubAppOrThrow();
+    const githubApp = await this.githubAppStore.getGithubApp();
 
     let githubAppState = githubApp;
-    let installation = findInstallationForRepo(githubAppState, fullName);
+    let installation = githubAppState ? findInstallationForRepo(githubAppState, fullName) : null;
 
-    if (!installation && refresh) {
+    if (!installation && refresh && githubAppState) {
       githubAppState = await this.refreshInstallationsUsingApp();
       installation = findInstallationForRepo(githubAppState, fullName);
     }
 
-    if (!installation) {
-      const matchingAccountInstallation = findInstallationForOwner(githubAppState, owner);
-      throw new RepoValidationError(`GitHub App does not currently have access to ${fullName}.`, {
-        configureUrl: matchingAccountInstallation?.htmlUrl || buildInstallUrl(githubAppState.slug),
-      });
+    // The scripts verify anonymous access with git before saving or deploying.
+    // No installation credentials are sent for repositories outside the app.
+    if (!installation || !githubAppState) {
+      return {
+        githubApp: githubAppState,
+        installation: null,
+        token: "",
+        expiresAt: "",
+        repoUrl: `https://github.com/${fullName}.git`,
+        repoFullName: fullName,
+      };
     }
 
     const accessTokenResponse = await this.githubAppClient.createInstallationAccessToken(
@@ -177,18 +183,6 @@ function findInstallationForRepo(
       installation.repositories.some(
         (repository) => String(repository.fullName || "").toLowerCase() === normalized,
       ),
-    ) || null
-  );
-}
-
-function findInstallationForOwner(
-  githubApp: GithubAppConfig,
-  ownerLogin: string,
-): GithubAppInstallation | null {
-  const normalized = String(ownerLogin || "").toLowerCase();
-  return (
-    githubApp.installations.find(
-      (installation) => String(installation.accountLogin || "").toLowerCase() === normalized,
     ) || null
   );
 }

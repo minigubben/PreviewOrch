@@ -42,6 +42,9 @@ class GithubPullRequestCommentPublisher {
 
     try {
       const access = await this.githubInstallationResolver.resolveRepoAccess(repo);
+      if (!access.installation) {
+        return;
+      }
       const comments = await this.githubAppClient.listIssueComments({
         owner: repo.owner,
         repo: repo.name,
