@@ -116,8 +116,8 @@ export interface GithubInstallationResolverLike {
     repoLike: Pick<RepoRecord, "owner" | "name">,
     options?: { refresh?: boolean },
   ): Promise<{
-    githubApp: GithubAppConfig;
-    installation: GithubAppInstallation;
+    githubApp: GithubAppConfig | null;
+    installation: GithubAppInstallation | null;
     token: string;
     expiresAt: string;
     repoUrl: string;

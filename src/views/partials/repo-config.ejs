@@ -48,23 +48,19 @@
         <div>
           <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">New Entry</p>
           <h3 class="mt-2 text-3xl font-semibold text-zinc-50">Add repository</h3>
-          <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">Pick a repository from the GitHub App installation list, then configure compose path, service, proxy mode, preview env vars, and an optional dedicated default-branch deployment here.</p>
+          <p class="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">Choose an installed repository or enter a public GitHub repository, then configure compose path, service, proxy mode, preview env vars, and an optional dedicated default-branch deployment here.</p>
         </div>
         <form action="/api/repos" method="post" data-method="POST" data-api-form class="space-y-4">
           <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div class="space-y-2 xl:col-span-2">
               <label for="repository" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Repository</label>
-              <select id="repository" name="repository" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
-                <option value="">Select a repository from the installed GitHub App</option>
+              <input id="repository" name="repository" list="repository-suggestions" placeholder="owner/repo or https://github.com/owner/repo" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
+              <datalist id="repository-suggestions">
                 <% allowedRepositories.forEach((allowedRepository) => { %>
-                  <option value="<%= allowedRepository.value %>"><%= allowedRepository.label %> · <%= allowedRepository.accountLogin || `installation-${allowedRepository.installationId}` %></option>
+                  <option value="<%= allowedRepository.value %>"><%= allowedRepository.label %></option>
                 <% }) %>
-              </select>
-              <% if (allowedRepositories.length) { %>
-                <p class="text-xs leading-5 text-zinc-500">Only repositories currently granted to the installed GitHub App appear here.</p>
-              <% } else { %>
-                <p class="text-xs leading-5 text-zinc-500">No repositories are available yet. Install the app or refresh GitHub access first.</p>
-              <% } %>
+              </datalist>
+              <p class="text-xs leading-5 text-zinc-500">Select a repository from the installed GitHub App or enter any public GitHub repository. Public repositories support manual deployments without app access. Automatic PR events and GitHub comments require app access.</p>
             </div>
             <div class="space-y-2">
               <label for="defaultBranch" class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Default Branch</label>
@@ -143,7 +139,7 @@
             <div>
               <p class="text-xs uppercase tracking-[0.34em] text-zinc-500">Existing Entry</p>
               <h3 class="mt-2 text-3xl font-semibold text-zinc-50"><%= repo.owner %>/<%= repo.name %></h3>
-              <p class="mt-3 text-sm leading-6 text-zinc-400">Repository identity comes from the installed GitHub App. Update deployment configuration, preview env vars, and default-branch settings here.</p>
+              <p class="mt-3 text-sm leading-6 text-zinc-400">Update deployment configuration, preview env vars, and default-branch settings here.</p>
             </div>
             <span class="border border-zinc-800 px-3 py-1 text-xs uppercase tracking-[0.24em] text-zinc-200"><%= repo.enabled ? "enabled" : "disabled" %></span>
           </div>
@@ -194,19 +190,7 @@
             <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div class="space-y-2 xl:col-span-2">
                 <label class="block text-xs uppercase tracking-[0.28em] text-zinc-500">Repository</label>
-                <select name="repository" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600">
-                  <% if (!allowedRepositories.some((allowedRepository) => allowedRepository.value === (repo.repository || `${repo.owner}/${repo.name}`))) { %>
-                    <option value="<%= repo.repository || `${repo.owner}/${repo.name}` %>" selected><%= repo.owner %>/<%= repo.name %> · access missing</option>
-                  <% } %>
-                  <% allowedRepositories.forEach((allowedRepository) => { %>
-                    <option
-                      value="<%= allowedRepository.value %>"
-                      <%= allowedRepository.value === (repo.repository || `${repo.owner}/${repo.name}`) ? "selected" : "" %>
-                    >
-                      <%= allowedRepository.label %> · <%= allowedRepository.accountLogin || `installation-${allowedRepository.installationId}` %>
-                    </option>
-                  <% }) %>
-                </select>
+                <input name="repository" list="repository-suggestions" value="<%= repo.repository || `${repo.owner}/${repo.name}` %>" required class="w-full border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 outline-none transition focus:border-zinc-600" />
                 <p class="text-xs leading-5 text-zinc-500">Current repository: <code class="text-zinc-300"><%= repo.owner %>/<%= repo.name %></code></p>
                 <% if (repo.githubInstallationId) { %>
                   <p class="text-xs leading-5 text-zinc-500">GitHub App installation: <code class="text-zinc-300"><%= repo.githubInstallationId %></code></p>

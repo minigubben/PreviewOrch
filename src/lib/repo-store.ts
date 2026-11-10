@@ -53,7 +53,7 @@ class RepoStore {
 
     repo.id = crypto.randomUUID();
     repo.slug = slugifyRepo(repo.owner, repo.name);
-    repo.githubInstallationId = access.installation.id;
+    repo.githubInstallationId = access.installation?.id || null;
     repo.createdAt = new Date().toISOString();
     repo.updatedAt = repo.createdAt;
 
@@ -84,7 +84,7 @@ class RepoStore {
     validateRepoShape(merged);
     this.assertNoDuplicate(repos, merged, id);
     const access = await this.validate(merged);
-    merged.githubInstallationId = access.installation.id;
+    merged.githubInstallationId = access.installation?.id || null;
 
     repos[index] = merged;
     await writeJson(this.reposFile, repos);
@@ -150,7 +150,7 @@ class RepoStore {
         env: {
           REPO_FULL_NAME: access.repoFullName,
           GITHUB_REPO_URL: access.repoUrl,
-          GITHUB_INSTALLATION_ID: String(access.installation.id),
+          GITHUB_INSTALLATION_ID: String(access.installation?.id || ""),
           GITHUB_INSTALLATION_TOKEN: access.token,
           DEFAULT_BRANCH: repo.defaultBranch,
           WORKING_DIRECTORY: repo.workingDirectory,

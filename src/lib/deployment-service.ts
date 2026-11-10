@@ -446,7 +446,7 @@ class DeploymentService {
     return {
       REPO_FULL_NAME: access.repoFullName,
       GITHUB_REPO_URL: access.repoUrl,
-      GITHUB_INSTALLATION_ID: String(access.installation.id),
+      GITHUB_INSTALLATION_ID: String(access.installation?.id || ""),
       GITHUB_INSTALLATION_TOKEN: access.token,
     };
   }

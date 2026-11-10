@@ -11,8 +11,6 @@ required_vars=(
   REPO_SLUG
   REPO_FULL_NAME
   GITHUB_REPO_URL
-  GITHUB_INSTALLATION_ID
-  GITHUB_INSTALLATION_TOKEN
   COMPOSE_PATH
   WORKING_DIRECTORY
   PUBLIC_SERVICE
@@ -38,11 +36,15 @@ cat >"${askpass_path}" <<'EOF'
 #!/usr/bin/env bash
 case "${1:-}" in
   *Username*) printf '%s\n' "x-access-token" ;;
-  *Password*) printf '%s\n' "${GITHUB_INSTALLATION_TOKEN}" ;;
+  *Password*) printf '%s\n' "${GITHUB_INSTALLATION_TOKEN:-}" ;;
   *) printf '\n' ;;
 esac
 EOF
 chmod 700 "${askpass_path}"
+# Disable ambient credentials so anonymous access really requires a public repo.
+export GIT_CONFIG_COUNT=1
+export GIT_CONFIG_KEY_0=credential.helper
+export GIT_CONFIG_VALUE_0=""
 export GIT_TERMINAL_PROMPT=0
 export GIT_ASKPASS="${askpass_path}"
 

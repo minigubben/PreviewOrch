@@ -247,3 +247,62 @@ test("rejects a working directory outside the repository", async () => {
   assert.equal(response.status, 400);
   assert.match(response.body.error, /workingDirectory must stay inside the repository/);
 });
+
+for (const initialGithubApp of [true, false]) {
+  test(`public repository can be saved, edited and deployed (app configured: ${initialGithubApp})`, async () => {
+    const context = await createTestContext({ initialGithubApp });
+    test.after(() => context.cleanup());
+    await login(context.agent, context.password);
+    const csrfToken = await getDashboardCsrf(context.agent);
+    const response = await createRepo(context.agent, csrfToken, {
+      repository: "https://github.com/public/project.git",
+    });
+    assert.equal(response.status, 201);
+    assert.equal(response.body.repository, "public/project");
+    assert.equal(response.body.githubInstallationId, null);
+
+    const updated = await context.agent
+      .put(`/api/repos/${response.body.id}`)
+      .set("X-CSRF-Token", csrfToken)
+      .send({ ...response.body, publicPort: 8080 });
+    assert.equal(updated.status, 200);
+    assert.equal(updated.body.githubInstallationId, null);
+
+    const dashboard = await context.agent.get("/");
+    assert.match(dashboard.text, /list="repository-suggestions"/);
+    assert.doesNotMatch(dashboard.text, /access missing/);
+
+    const targets = await context.agent.get(`/api/repos/${response.body.id}/manual-target-options`);
+    assert.equal(targets.status, 200);
+    for (const [manualTargetType, manualTargetValue] of [
+      ["default-branch", ""],
+      ["branch", "develop"],
+      ["pr", "17"],
+    ]) {
+      const deployment = await context.agent
+        .post(`/api/repos/${response.body.id}/manual-deploy`)
+        .set("X-CSRF-Token", csrfToken)
+        .send({ manualTargetType, manualTargetValue });
+      assert.equal(deployment.status, 200);
+    }
+    for (const call of context.scriptRunner.calls) {
+      assert.equal(call.env.GITHUB_REPO_URL, "https://github.com/public/project.git");
+      assert.equal(call.env.GITHUB_INSTALLATION_TOKEN, "");
+      assert.equal(call.env.GITHUB_INSTALLATION_ID, "");
+    }
+  });
+}
+
+test("does not save a repository when anonymous git validation fails", async () => {
+  const context = await createTestContext();
+  test.after(() => context.cleanup());
+  context.scriptRunner.validateRepo = async () => {
+    throw new Error("git ls-remote failed for private/project");
+  };
+  await login(context.agent, context.password);
+  const csrfToken = await getDashboardCsrf(context.agent);
+  const response = await createRepo(context.agent, csrfToken, { repository: "private/project" });
+  assert.equal(response.status, 400);
+  assert.match(response.body.error, /git ls-remote failed/);
+  assert.equal((await context.agent.get("/api/repos")).body.length, 0);
+});
